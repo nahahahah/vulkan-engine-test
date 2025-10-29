@@ -1,0 +1,6 @@
+[
+{
+  "directory": "C:\\Users\\ajvp\\Documents\\Programmes\\C++\\vulkan_test",
+  "arguments": ["C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\cl.exe", "/c", "/nologo", "/MDd", "/Zi", "/FS", "/Fdbuild\\windows\\x64\\debug\\compile.vulkan_test.pdb", "/W4", "/WX", "/Od", "/std:c++20", "/EHsc", "/IC:\\Users\\ajvp\\AppData\\Local\\.xmake\\packages\\v\\vulkan-headers\\1.4.309+0\\0db387830f454f03a5bb4c3245b1aba9\\include", "/IC:\\Users\\ajvp\\AppData\\Local\\.xmake\\packages\\l\\libsdl3\\3.2.22\\2e489455aaf141b28572da113f45c8ac\\include", "/IC:\\Users\\ajvp\\AppData\\Local\\.xmake\\packages\\o\\opengl-headers\\2024.01.04\\5c160b189b0f44b7b5a264574cabe9fc\\include", "/IC:\\Users\\ajvp\\AppData\\Local\\.xmake\\packages\\e\\egl-headers\\2023.12.16\\2edf6706c2074d9ca82a537077de57d7\\include", "/Fobuild\\.objs\\vulkan_test\\windows\\x64\\debug\\src\\main.cpp.obj", "src\\main.cpp"],
+  "file": "src\\main.cpp"
+}]
