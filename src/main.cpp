@@ -886,10 +886,10 @@ int main(int argc, char* argv[]) {
     VkPipeline graphicsPipeline = VK_NULL_HANDLE;
     std::vector<VkFramebuffer> frameBuffers {};
     VkCommandPool commandPool = VK_NULL_HANDLE;
-    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
-    VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
-    VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
-    VkFence inFlightFence = VK_NULL_HANDLE;
+    std::vector<VkCommandBuffer> commandBuffers {};
+    std::vector<VkSemaphore> imageAvailableSemaphores {};
+    std::vector<VkSemaphore> renderFinishedSemaphores {};
+    std::vector<VkFence> inFlightFences {};
 #ifndef NDEBUG
     VkDebugUtilsMessengerEXT debugUtilsMessenger = VK_NULL_HANDLE;
     constexpr bool enableValidationLayers = true;
@@ -897,23 +897,28 @@ int main(int argc, char* argv[]) {
     constexpr bool enableValidationLayers = false;
 #endif
 
+    constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+    (void)(MAX_FRAMES_IN_FLIGHT);
+
     auto CleanOnExit = [&](int code) {
-        if (imageAvailableSemaphore != VK_NULL_HANDLE) {
-            vkDestroySemaphore(device, imageAvailableSemaphore, VK_NULL_HANDLE);
-            std::clog << "'Image available' semaphore destroyed successfully" << std::endl;
-            imageAvailableSemaphore = VK_NULL_HANDLE;
-        }
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+            if (imageAvailableSemaphores[i] != VK_NULL_HANDLE) {
+                vkDestroySemaphore(device, imageAvailableSemaphores[i], VK_NULL_HANDLE);
+                std::clog << "'Image available' semaphore #" << i << " destroyed successfully" << std::endl;
+                imageAvailableSemaphores[i] = VK_NULL_HANDLE;
+            }
 
-        if (renderFinishedSemaphore != VK_NULL_HANDLE) {
-            vkDestroySemaphore(device, renderFinishedSemaphore, VK_NULL_HANDLE);
-            std::clog << "'Render finished' semaphore destroyed successfully" << std::endl;
-            renderFinishedSemaphore = VK_NULL_HANDLE;
-        }
+            if (renderFinishedSemaphores[i] != VK_NULL_HANDLE) {
+                vkDestroySemaphore(device, renderFinishedSemaphores[i], VK_NULL_HANDLE);
+                std::clog << "'Render finished' semaphore #" << i << " destroyed successfully" << std::endl;
+                renderFinishedSemaphores[i] = VK_NULL_HANDLE;
+            }
 
-        if (inFlightFence != VK_NULL_HANDLE) {
-            vkDestroyFence(device, inFlightFence, VK_NULL_HANDLE);
-            std::clog << "'In flight' fence destroyed successfully" << std::endl;
-            inFlightFence = VK_NULL_HANDLE;
+            if (inFlightFences[i] != VK_NULL_HANDLE) {
+                vkDestroyFence(device, inFlightFences[i], VK_NULL_HANDLE);
+                std::clog << "'In flight' fence #" << i << " destroyed successfully" << std::endl;
+                inFlightFences[i] = VK_NULL_HANDLE;
+            }   
         }
 
         if (commandPool != VK_NULL_HANDLE) {
@@ -1274,7 +1279,8 @@ int main(int argc, char* argv[]) {
 
     // specify device extensions
     std::vector<char const*> deviceExtensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME
     };
 
     VkSurfaceFormat2KHR preferredFormat {};
@@ -1566,8 +1572,16 @@ int main(int argc, char* argv[]) {
         queueCreateInfos.push_back(deviceQueueCreateInfo);
     }
 
-    // specify device enabled features (nothing for now)
+    // specify device enabled features
     VkPhysicalDeviceFeatures2 physicalDeviceFeatures {};
+
+    // enable synchronization2 feature
+    VkPhysicalDeviceSynchronization2Features physicalDeviceSynchronizationFeature2 {};
+    physicalDeviceSynchronizationFeature2.pNext = VK_NULL_HANDLE;
+    physicalDeviceSynchronizationFeature2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
+    physicalDeviceSynchronizationFeature2.synchronization2 = VK_TRUE;
+    
+    std::clog << VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME << " feature set for activation" << std::endl;
 
     // create device
     VkDeviceCreateInfo deviceCreateInfo {};
@@ -1575,7 +1589,7 @@ int main(int argc, char* argv[]) {
     deviceCreateInfo.enabledLayerCount = (enableValidationLayers ? static_cast<uint32_t>(validationLayers.size()) : 0);
     deviceCreateInfo.flags = 0;
     deviceCreateInfo.pEnabledFeatures = &physicalDeviceFeatures.features;
-    deviceCreateInfo.pNext = VK_NULL_HANDLE;
+    deviceCreateInfo.pNext = &physicalDeviceSynchronizationFeature2;
     deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
     deviceCreateInfo.ppEnabledLayerNames = (enableValidationLayers ? validationLayers.data() : VK_NULL_HANDLE);
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
@@ -1588,6 +1602,7 @@ int main(int argc, char* argv[]) {
         return CleanOnExit(EXIT_FAILURE);
     }
     std::clog << "Device created successully: <VkDevice " << device << ">" << std::endl;
+    std::clog << VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME << " feature activated" << std::endl;
 
     // get device graphics queue
     VkDeviceQueueInfo2 deviceGraphicsQueueInfo {};
@@ -1671,6 +1686,12 @@ int main(int argc, char* argv[]) {
 
     // create swap chain images views
     swapChainImageViews.resize(swapChainImages.size());
+
+    // resize command buffers, semaphores and fences vectors
+    commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
 
     for (size_t i = 0; i < swapChainImages.size(); ++i) {
         // create swap chain image view
@@ -2071,18 +2092,18 @@ int main(int argc, char* argv[]) {
 
     // create command buffer
     VkCommandBufferAllocateInfo commandBufferAllocateInfo {};
-    commandBufferAllocateInfo.commandBufferCount = 1;
+    commandBufferAllocateInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
     commandBufferAllocateInfo.commandPool = commandPool;
     commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     commandBufferAllocateInfo.pNext = VK_NULL_HANDLE;
     commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 
-    VkResult allocateCommandBufferResult = vkAllocateCommandBuffers(device, &commandBufferAllocateInfo, &commandBuffer);
+    VkResult allocateCommandBufferResult = vkAllocateCommandBuffers(device, &commandBufferAllocateInfo, commandBuffers.data());
     if (allocateCommandBufferResult != VK_SUCCESS) {
         std::cerr << "Unable to allocate a command buffer (status: " << allocateCommandBufferResult << ")" << std::endl;
         CleanOnExit(EXIT_FAILURE);
     }
-    std::clog << "Command buffer allocated successfully: <VkCommandBuffer " << commandBuffer << ">" << std::endl;
+    std::clog << "Command buffers allocated successfully" << std::endl;
 
     // create synchronization primitive objects
     VkSemaphoreCreateInfo semaphoreCreateInfo {};
@@ -2090,33 +2111,36 @@ int main(int argc, char* argv[]) {
     semaphoreCreateInfo.pNext = VK_NULL_HANDLE;
     semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    VkResult createImageAvailableSemaphoreResult = vkCreateSemaphore(device, &semaphoreCreateInfo, VK_NULL_HANDLE, &imageAvailableSemaphore);
-    if (createImageAvailableSemaphoreResult != VK_SUCCESS) {
-        std::cerr << "Unable to create 'Image available' semaphore (status: " << createImageAvailableSemaphoreResult << ")" << std::endl;
-        CleanOnExit(EXIT_FAILURE);
-    }
-    std::clog << "'Image available' semaphore created successfully: <VkSemaphore " << imageAvailableSemaphore << ">" << std::endl;
-
-    VkResult createRenderFinishedSemaphoreResult = vkCreateSemaphore(device, &semaphoreCreateInfo, VK_NULL_HANDLE, &renderFinishedSemaphore);
-    if (createRenderFinishedSemaphoreResult != VK_SUCCESS) {
-        std::cerr << "Unable to create 'Render finished' semaphore (status: " << createRenderFinishedSemaphoreResult << ")" << std::endl;
-        CleanOnExit(EXIT_FAILURE);
-    }
-    std::clog << "'Render finished' semaphore created successfully: <VkSemaphore " << renderFinishedSemaphore << ">" << std::endl;
-
     VkFenceCreateInfo fenceCreateInfo {};
     fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT; // to avoid deadlock on the first frame
     fenceCreateInfo.pNext = VK_NULL_HANDLE;
     fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
-    VkResult createInFlightFenceResult = vkCreateFence(device, &fenceCreateInfo, VK_NULL_HANDLE, &inFlightFence);
-    if (createInFlightFenceResult != VK_SUCCESS) {
-        std::cerr << "Unable to create 'In flight' fence (status: " << createInFlightFenceResult << ")" << std::endl;
-        CleanOnExit(EXIT_FAILURE);
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        VkResult createImageAvailableSemaphoreResult = vkCreateSemaphore(device, &semaphoreCreateInfo, VK_NULL_HANDLE, &imageAvailableSemaphores[i]);
+        if (createImageAvailableSemaphoreResult != VK_SUCCESS) {
+            std::cerr << "Unable to create 'Image available' semaphore (status: " << createImageAvailableSemaphoreResult << ")" << std::endl;
+            CleanOnExit(EXIT_FAILURE);
+        }
+        std::clog << "'Image available' semaphore created successfully: <VkSemaphore " << imageAvailableSemaphores[i] << ">" << std::endl;
+        
+        VkResult createRenderFinishedSemaphoreResult = vkCreateSemaphore(device, &semaphoreCreateInfo, VK_NULL_HANDLE, &renderFinishedSemaphores[i]);
+        if (createRenderFinishedSemaphoreResult != VK_SUCCESS) {
+            std::cerr << "Unable to create 'Render finished' semaphore (status: " << createRenderFinishedSemaphoreResult << ")" << std::endl;
+            CleanOnExit(EXIT_FAILURE);
+        }
+        std::clog << "'Render finished' semaphore created successfully: <VkSemaphore " << renderFinishedSemaphores[i] << ">" << std::endl;
+
+        VkResult createInFlightFenceResult = vkCreateFence(device, &fenceCreateInfo, VK_NULL_HANDLE, &inFlightFences[i]);
+        if (createInFlightFenceResult != VK_SUCCESS) {
+            std::cerr << "Unable to create 'In flight' fence (status: " << createInFlightFenceResult << ")" << std::endl;
+            CleanOnExit(EXIT_FAILURE);
+        }
+        std::clog << "'Render finished' fence created successfully: <VkFence " << inFlightFences[i] << ">" << std::endl;
     }
-    std::clog << "'Render finished' fence created successfully: <VkFence " << inFlightFence << ">" << std::endl;
-    
+
     running = true;
+    uint32_t currentFrame = 0;
     while (running) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT) {
@@ -2124,23 +2148,23 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
-        vkResetFences(device, 1, &inFlightFence);
+        vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+        vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
         uint32_t imageIndex = 0;
 
         VkAcquireNextImageInfoKHR acquireNextImageInfo {};
-        acquireNextImageInfo.deviceMask = 0;
+        acquireNextImageInfo.deviceMask = 1;
         acquireNextImageInfo.fence = VK_NULL_HANDLE;
         acquireNextImageInfo.pNext = VK_NULL_HANDLE;
-        acquireNextImageInfo.semaphore = imageAvailableSemaphore;
+        acquireNextImageInfo.semaphore = imageAvailableSemaphores[currentFrame];
         acquireNextImageInfo.sType = VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR;
         acquireNextImageInfo.swapchain = swapChain;
         acquireNextImageInfo.timeout = UINT64_MAX;
 
         vkAcquireNextImage2KHR(device, &acquireNextImageInfo, &imageIndex);
 
-        vkResetCommandBuffer(commandBuffer, 0);
+        vkResetCommandBuffer(commandBuffers[currentFrame], 0);
 
         // begin command buffer recording
         VkCommandBufferBeginInfo commandBufferBeginInfo {};
@@ -2149,12 +2173,12 @@ int main(int argc, char* argv[]) {
         commandBufferBeginInfo.pNext = VK_NULL_HANDLE;
         commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-        VkResult beginCommandBufferResult = vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo);
+        VkResult beginCommandBufferResult = vkBeginCommandBuffer(commandBuffers[currentFrame], &commandBufferBeginInfo);
         if (beginCommandBufferResult != VK_SUCCESS) {
             std::cerr << "Unable to begin command buffer recording (status: " << beginCommandBufferResult << ")" << std::endl;
             CleanOnExit(EXIT_FAILURE);
         }
-        std::clog << "Command buffer recording began successfully: <VkCommandBuffer " << commandBuffer << ">" << std::endl;
+        std::clog << "Command buffer recording began successfully: <VkCommandBuffer " << commandBuffers[currentFrame] << ">" << std::endl;
 
         VkClearValue clearValue {};
         clearValue.color.float32[0] = 0.0f;
@@ -2180,21 +2204,21 @@ int main(int argc, char* argv[]) {
         subpassBeginInfo.pNext = VK_NULL_HANDLE;
         subpassBeginInfo.sType = VK_STRUCTURE_TYPE_SUBPASS_BEGIN_INFO;
 
-        vkCmdBeginRenderPass2(commandBuffer, &renderPassBeginInfo, &subpassBeginInfo);
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+        vkCmdBeginRenderPass2(commandBuffers[currentFrame], &renderPassBeginInfo, &subpassBeginInfo);
+        vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
     
-        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+        vkCmdSetViewport(commandBuffers[currentFrame], 0, 1, &viewport);
+        vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &scissor);
 
-        vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+        vkCmdDraw(commandBuffers[currentFrame], 3, 1, 0, 0);
 
         VkSubpassEndInfo subpassEndInfo {};
         subpassEndInfo.pNext = VK_NULL_HANDLE;
         subpassEndInfo.sType = VK_STRUCTURE_TYPE_SUBPASS_END_INFO;
 
-        vkCmdEndRenderPass2(commandBuffer, &subpassEndInfo);
+        vkCmdEndRenderPass2(commandBuffers[currentFrame], &subpassEndInfo);
 
-        VkResult endCommandBufferResult = vkEndCommandBuffer(commandBuffer);
+        VkResult endCommandBufferResult = vkEndCommandBuffer(commandBuffers[currentFrame]);
         if (endCommandBufferResult != VK_SUCCESS) {
             std::cerr << "Unable to end the command buffer (status: " << endCommandBufferResult << ")" << std::endl;
             CleanOnExit(EXIT_FAILURE);
@@ -2202,7 +2226,7 @@ int main(int argc, char* argv[]) {
         std::clog << "Command buffer ended successfully" << std::endl;
         
         VkCommandBufferSubmitInfo commandBufferSubmitInfo {};
-        commandBufferSubmitInfo.commandBuffer = commandBuffer;
+        commandBufferSubmitInfo.commandBuffer = commandBuffers[currentFrame];
         commandBufferSubmitInfo.deviceMask = 0;
         commandBufferSubmitInfo.pNext = VK_NULL_HANDLE;
         commandBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
@@ -2210,22 +2234,22 @@ int main(int argc, char* argv[]) {
         VkSemaphoreSubmitInfo waitSemaphoreSubmitInfo {};
         waitSemaphoreSubmitInfo.deviceIndex = 0;
         waitSemaphoreSubmitInfo.pNext = VK_NULL_HANDLE;
-        waitSemaphoreSubmitInfo.semaphore = imageAvailableSemaphore;
+        waitSemaphoreSubmitInfo.semaphore = imageAvailableSemaphores[currentFrame];
         waitSemaphoreSubmitInfo.stageMask = 0;
         waitSemaphoreSubmitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
         waitSemaphoreSubmitInfo.value = 1;
 
-        std::vector<VkSemaphore> waitSemaphores = { imageAvailableSemaphore };
+        std::vector<VkSemaphore> waitSemaphores = { imageAvailableSemaphores[currentFrame] };
 
         VkSemaphoreSubmitInfo signalSemaphoreSubmitInfo {};
         signalSemaphoreSubmitInfo.deviceIndex = 0;
         signalSemaphoreSubmitInfo.pNext = VK_NULL_HANDLE;
-        signalSemaphoreSubmitInfo.semaphore = renderFinishedSemaphore;
+        signalSemaphoreSubmitInfo.semaphore = renderFinishedSemaphores[currentFrame];
         signalSemaphoreSubmitInfo.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
         signalSemaphoreSubmitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
         signalSemaphoreSubmitInfo.value = 1;
 
-        std::vector<VkSemaphore> signalSemaphores = { renderFinishedSemaphore };
+        std::vector<VkSemaphore> signalSemaphores = { renderFinishedSemaphores[currentFrame] };
 
         VkSubmitInfo2 submitInfo {};
         submitInfo.commandBufferInfoCount = 1;
@@ -2238,7 +2262,7 @@ int main(int argc, char* argv[]) {
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
         submitInfo.waitSemaphoreInfoCount = 1;
 
-        VkResult queueSubmitResult = vkQueueSubmit2(graphicsQueue, 1, &submitInfo, inFlightFence);
+        VkResult queueSubmitResult = vkQueueSubmit2(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]);
         if (queueSubmitResult != VK_SUCCESS) {
             std::cerr << "Unable to submit to queue (status " << queueSubmitResult << ")" << std::endl;
             CleanOnExit(EXIT_FAILURE);
@@ -2258,9 +2282,16 @@ int main(int argc, char* argv[]) {
         presentInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
 
         vkQueuePresentKHR(graphicsQueue, &presentInfo);
+
+        currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    vkDeviceWaitIdle(device);
+    VkResult deviceWaitIdleResult = vkDeviceWaitIdle(device);
+    if (deviceWaitIdleResult != VK_SUCCESS) {
+        std::cerr << "Unable to wait for idleing of the device (status: " << deviceWaitIdleResult << ")" << std::endl;
+        CleanOnExit(EXIT_FAILURE);
+    }
+    std::clog << "Device is now idle" << std::endl;
 
     return CleanOnExit(EXIT_SUCCESS);
 }
