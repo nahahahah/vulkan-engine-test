@@ -1037,8 +1037,8 @@ int main(int argc, char* argv[]) {
     SDL_SetStringProperty(windowProperties, SDL_PROP_WINDOW_CREATE_TITLE_STRING, "SDL3 with Vulkan");
     SDL_SetNumberProperty(windowProperties, SDL_PROP_WINDOW_CREATE_X_NUMBER, SDL_WINDOWPOS_CENTERED);
     SDL_SetNumberProperty(windowProperties, SDL_PROP_WINDOW_CREATE_Y_NUMBER, SDL_WINDOWPOS_CENTERED);
-    SDL_SetNumberProperty(windowProperties, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, 640);
-    SDL_SetNumberProperty(windowProperties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, 480);
+    SDL_SetNumberProperty(windowProperties, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, 1200);
+    SDL_SetNumberProperty(windowProperties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, 900);
     SDL_SetNumberProperty(windowProperties, SDL_PROP_WINDOW_CREATE_FLAGS_NUMBER, SDL_WINDOW_VULKAN);
     window = SDL_CreateWindowWithProperties(windowProperties);
     if (window == nullptr) {
@@ -2260,7 +2260,7 @@ int main(int argc, char* argv[]) {
         vkQueuePresentKHR(graphicsQueue, &presentInfo);
     }
 
-    //vkDeviceWaitIdle(device);
+    vkDeviceWaitIdle(device);
 
     return CleanOnExit(EXIT_SUCCESS);
 }
