@@ -5,6 +5,7 @@
 
 #include <vulkan/vulkan.h>
 
-void DisplaySurfaceTransformFlagsKHR(VkSurfaceTransformFlagsKHR flags);
+void DisplaySurfaceTransformFlag(VkSurfaceTransformFlagBitsKHR flag);
+void DisplaySurfaceTransformFlags(VkSurfaceTransformFlagsKHR flags);
 
 #endif // VK_WRAPPER_SURFACE_TRANSFORM_FLAGS_HPP

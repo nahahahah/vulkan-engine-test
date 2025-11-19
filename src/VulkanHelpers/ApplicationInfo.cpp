@@ -1,18 +1,22 @@
 #include "VulkanHelpers/ApplicationInfo.hpp"
 
-ApplicationInfo::ApplicationInfo() {
+VkApplicationInfo GenerateApplicationInfo() {
+    VkApplicationInfo applicationInfo {};
+
     // structure type
-    this->sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 
     // versions
-    this->apiVersion = VK_API_VERSION_1_4;
-    this->applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
-    this->engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
+    applicationInfo.apiVersion = VK_API_VERSION_1_4;
+    applicationInfo.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
+    applicationInfo.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
 
     // names
-    this->pApplicationName = "Vulkan application";
-    this->pEngineName = "No engine";
+    applicationInfo.pApplicationName = "Vulkan application";
+    applicationInfo.pEngineName = "No engine";
 
     // extend application info
-    this->pNext = VK_NULL_HANDLE;
+    applicationInfo.pNext = VK_NULL_HANDLE;
+
+    return applicationInfo;
 }

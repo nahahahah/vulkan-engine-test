@@ -7,10 +7,7 @@
 
 #include "VulkanHelpers/PhysicalDevice.hpp"
 
-struct PhysicalDeviceFeatures : public VkPhysicalDeviceFeatures2 {
-    PhysicalDeviceFeatures(PhysicalDevice const& physicalDevice);
-
-    friend std::ostream& operator << (std::ostream& out, VkPhysicalDeviceFeatures2 const& physicalDeviceFeatures);
-};
+VkPhysicalDeviceFeatures2 GeneratePhysicalDeviceFeatures(PhysicalDevice const& physicalDevice);
+std::ostream& operator << (std::ostream& out, VkPhysicalDeviceFeatures2 const& physicalDeviceFeatures);
 
 #endif // VK_WRAPPER_PHYSICAL_DEVICE_FEATURES_HPP

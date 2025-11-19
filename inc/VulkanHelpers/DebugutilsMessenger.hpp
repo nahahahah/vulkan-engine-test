@@ -8,16 +8,14 @@
 #include <vulkan/vulkan.h>
 
 #include "VulkanHelpers/Instance.hpp"
-#include "VulkanHelpers/DebugutilsMessengerCreateInfo.hpp"
-
 
 class DebugUtilsMessenger {
     public:
-        DebugUtilsMessenger(Instance const& instance, DebugUtilsMessengerCreateInfo const& createInfo);
+        DebugUtilsMessenger(Instance const& instance, VkDebugUtilsMessengerCreateInfoEXT const& createInfo);
         ~DebugUtilsMessenger();
 
         VkDebugUtilsMessengerEXT Handle() { return _handle; }
-        VkDebugUtilsMessengerEXT Handle() const { return _handle; }
+        VkDebugUtilsMessengerEXT const Handle() const { return _handle; }
 
     private:
         VkDebugUtilsMessengerEXT _handle = VK_NULL_HANDLE;

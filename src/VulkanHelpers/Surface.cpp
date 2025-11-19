@@ -16,3 +16,14 @@ Surface::~Surface() {
         _handle = VK_NULL_HANDLE;
     }
 }
+
+bool Surface::IsSupportedByQueueFamily(PhysicalDevice const& physicalDevice, uint32_t queueFamilyIndex) {
+    VkBool32 supportedSurface = VK_FALSE;
+    VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice.Handle(), queueFamilyIndex, _handle, &supportedSurface);
+    if (result != VK_SUCCESS) {
+        std::string error = "Could not get surface support (status: " + std::to_string(result) + ")";
+        throw std::runtime_error(error);
+    }
+
+    return supportedSurface == VK_TRUE;
+}

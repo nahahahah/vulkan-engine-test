@@ -5,9 +5,10 @@
 
 #include <vulkan/vulkan.h>
 
+#include "VulkanHelpers/CompositeAlphaFlags.hpp"
 #include "VulkanHelpers/SurfaceTransformFlags.hpp"
 #include "VulkanHelpers/ImageUsageFlags.hpp"
 
-void DisplayPhysicalDeviceSurfaceCapabilities(VkSurfaceCapabilitiesKHR const& physicalDeviceSurfaceCapabilities);
+std::ostream& operator << (std::ostream& out, VkSurfaceCapabilitiesKHR const& physicalDeviceSurfaceCapabilities);
 
 #endif // VK_WRAPPER_PHYSICAL_DEVICE_SURFACE_CAPABILITIES_HPP

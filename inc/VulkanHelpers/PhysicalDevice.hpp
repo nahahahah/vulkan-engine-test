@@ -16,7 +16,7 @@ class PhysicalDevice {
         PhysicalDevice(VkPhysicalDevice const& physicalDevice);
 
         VkPhysicalDevice Handle() { return _handle; }
-        VkPhysicalDevice Handle() const { return _handle; }
+        VkPhysicalDevice const Handle() const { return _handle; }
 
         static std::vector<PhysicalDevice> Enumerate(Instance const& instance);
 

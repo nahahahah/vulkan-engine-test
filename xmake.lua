@@ -11,7 +11,7 @@ target("vulkan_test")
     add_packages("vulkan-headers", "libsdl3")
     if is_plat("windows") then
         add_packages("vulkan-loader")
-    else
+    end
 
     if is_mode("debug") then
         set_optimize("none")

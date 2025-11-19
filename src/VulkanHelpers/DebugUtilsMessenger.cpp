@@ -1,6 +1,6 @@
 #include "VulkanHelpers/DebugutilsMessenger.hpp"
 
-DebugUtilsMessenger::DebugUtilsMessenger(Instance const& instance, DebugUtilsMessengerCreateInfo const& createInfo) : _instance(instance) {
+DebugUtilsMessenger::DebugUtilsMessenger(Instance const& instance, VkDebugUtilsMessengerCreateInfoEXT const& createInfo) : _instance(instance) {
     auto CreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)(vkGetInstanceProcAddr(_instance.Handle(), "vkCreateDebugUtilsMessengerEXT"));
     if (CreateDebugUtilsMessengerEXT == VK_NULL_HANDLE) {
         std::string error = "Unable to get instance process address for vkCreateDebugUtilsMessengerEXT";

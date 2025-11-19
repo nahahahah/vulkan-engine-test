@@ -1,6 +1,6 @@
 #include "VulkanHelpers/LayerProperties.hpp"
 
-std::vector<LayerProperties> LayerProperties::Enumerate() {
+std::vector<VkLayerProperties> EnumerateLayerProperties() {
     uint32_t count = 0;
     VkResult result = vkEnumerateInstanceLayerProperties(&count, VK_NULL_HANDLE);
     if (result != VK_SUCCESS) {
@@ -9,7 +9,7 @@ std::vector<LayerProperties> LayerProperties::Enumerate() {
     }
     std::clog << "Instance layer properties enumerated successfully (1st call, count: " << count << ")" << std::endl;
     
-    std::vector<LayerProperties> properties(count, LayerProperties {});
+    std::vector<VkLayerProperties> properties(count, VkLayerProperties {});
     result = vkEnumerateInstanceLayerProperties(&count, properties.data());
     if (result != VK_SUCCESS) {
         std::string error = "Unable to enumerate instance layer properties (2nd call, status: " + std::to_string(result) + ")";
@@ -20,7 +20,7 @@ std::vector<LayerProperties> LayerProperties::Enumerate() {
     return properties;
 }
 
-bool LayerProperties::ValidationLayerSupported(std::span<char const*> validationLayers, std::span<LayerProperties> layersProperties) {
+bool AreValidationLayerSupported(std::span<char const*> validationLayers, std::span<VkLayerProperties> layersProperties) {
     bool supported = true;
     for (char const* layerName : validationLayers) {
         bool layerFound = false;
@@ -41,21 +41,25 @@ bool LayerProperties::ValidationLayerSupported(std::span<char const*> validation
     return supported;
 }
 
-void LayerProperties::DisplayLayerProperties(LayerProperties const& layerProperties) {
-    std::cout << "\tInstance layer properties found:" << std::endl;
-    std::cout << "\t\t - Description                "
-              << layerProperties.description << std::endl;
-    std::cout << "\t\t - Implementation version     " 
-              << layerProperties.implementationVersion << std::endl;
-    std::cout << "\t\t - Name                       "
-              << layerProperties.layerName << std::endl;
+std::ostream& operator << (std::ostream& out, VkLayerProperties const& layerProperties) {
+    out << "Instance layer properties found:" << std::endl;
+    out << " - Description                "
+        << layerProperties.description << std::endl;
+    out << " - Implementation version     " 
+        << layerProperties.implementationVersion << std::endl;
+    out << " - Name                       "
+        << layerProperties.layerName << std::endl;
     Version specVersion(layerProperties.specVersion);
-    std::cout << "\t\t - Specification version      "
-              << specVersion << std::endl;
+    out << " - Specification version      "
+        << specVersion << std::endl;
+
+    return out;
 }
 
-void LayerProperties::DisplayLayersProperties(std::span<LayerProperties> layersProperties) {
-    for (LayerProperties const& instanceLayerProperties : layersProperties) {
-        DisplayLayerProperties(instanceLayerProperties);
+std::ostream& operator << (std::ostream& out, std::span<VkLayerProperties> layersProperties) {
+    for (VkLayerProperties const& instanceLayerProperties : layersProperties) {
+        out << instanceLayerProperties << std::endl;
     }
+
+    return out;
 }

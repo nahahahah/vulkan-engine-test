@@ -6,17 +6,16 @@
 #include <vector>
 #include <span>
 #include <string>
+#include <set>
 
 #include <vulkan/vulkan.h>
 
-struct ExtensionProperties : public VkExtensionProperties {
-    public:
-        ExtensionProperties() = default;
+#include "VulkanHelpers/PhysicalDevice.hpp"
 
-        static std::vector<ExtensionProperties> Enumerate();
-
-        friend std::ostream& operator << (std::ostream& out, ExtensionProperties const& extensionProperties);
-        friend std::ostream& operator << (std::ostream& out, std::span<ExtensionProperties> extensionsProperties);
-};
+std::vector<VkExtensionProperties> EnumerateInstanceExtensionProperties();
+std::vector<VkExtensionProperties> EnumerateDeviceExtensionProperties(PhysicalDevice const& physicalDevice);
+bool AreDeviceExtensionsSupported(std::span<char const*> requiredDeviceExtensions, std::span<VkExtensionProperties> deviceExtensionsProperties);
+std::ostream& operator << (std::ostream& out, VkExtensionProperties const& extensionProperties);
+std::ostream& operator << (std::ostream& out, std::span<VkExtensionProperties> extensionsProperties);
 
 #endif // VK_WRAPPER_EXTENSION_PROPERTIES_HPP

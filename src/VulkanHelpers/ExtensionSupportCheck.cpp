@@ -1,6 +1,6 @@
 #include "VulkanHelpers/ExtensionSupportCheck.hpp"
 
-void DisplaySupportedExtensionsFromSDLVulkan(std::vector<const char*> const& enabledExtensions, std::vector<ExtensionProperties> const& supportedExtensions) {
+void DisplaySupportedExtensionsFromSDLVulkan(std::vector<const char*> const& enabledExtensions, std::vector<VkExtensionProperties> const& supportedExtensions) {
     uint32_t supportedEnabledExtensionsCount = 0;
     for (char const* enabledExtension : enabledExtensions) {
         for (VkExtensionProperties const& supportedExtension : supportedExtensions) {

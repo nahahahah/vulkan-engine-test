@@ -20,7 +20,9 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 
+#ifdef WIN32 
 #define VK_USE_PLATFORM_WIN32_KHR
+#endif
 #include <vulkan/vulkan.h>
 
 #include "SDLHelpers/Window.hpp"
@@ -49,6 +51,8 @@
 #include "VulkanHelpers/DebugutilsMessenger.hpp"
 #include "VulkanHelpers/Surface.hpp"
 #include "VulkanHelpers/PhysicalDevice.hpp"
+#include "VulkanHelpers/SurfaceCapabilities.hpp"
+#include "VulkanHelpers/PhysicalDeviceSurfaceInfo.hpp"
 
 #ifndef NDEBUG
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
@@ -263,14 +267,14 @@ int main(int argc, char* argv[]) {
     }
     std::clog << "SDL initialized successfully" << std::endl;
 
-    std::unique_ptr<ApplicationInfo> applicationInfo = std::make_unique<ApplicationInfo>(); // create application info
+    auto applicationInfo = GenerateApplicationInfo(); // create application info
     std::vector<char const*> validationLayers = { "VK_LAYER_KHRONOS_validation" }; // validation layers to use
-    std::vector<LayerProperties> instanceLayersProperties = LayerProperties::Enumerate(); // enumerate instance layers properties
+    auto instanceLayersProperties = EnumerateLayerProperties(); // enumerate instance layers properties
     std::clog << "Instance layers properties:" << std::endl;
-    LayerProperties::DisplayLayersProperties(instanceLayersProperties); // display instance layers properties 
+    std::clog << instanceLayersProperties << std::endl; // display instance layers properties 
 
-    bool validationLayersSupported = LayerProperties::ValidationLayerSupported(validationLayers, instanceLayersProperties); // check validation layers support and enable them if available
-    if constexpr (enableValidationLayers && !validationLayersSupported) {
+    bool validationLayersSupported = AreValidationLayerSupported(validationLayers, instanceLayersProperties); // check validation layers support and enable them if available
+    if (enableValidationLayers && !validationLayersSupported) {
         std::cerr << "Validation layers requested, but not available" << std::endl;
         return CleanOnExit(EXIT_FAILURE);
     }
@@ -292,10 +296,10 @@ int main(int argc, char* argv[]) {
     std::clog << "Enabled extensions count retrieved successfully from SDL_Vulkan_GetInstanceExtensions (count: " << enabledExtensions.size() << ")" << std::endl;
     std::clog << "Enabled extensions:" << std::endl;
     for (const char* enabledExtension : enabledExtensions) {
-        std::clog << "\t - " << enabledExtension << std::endl;
+        std::clog << " - " << enabledExtension << std::endl;
     }
 
-    std::vector<ExtensionProperties> instanceExtensionsProperties = ExtensionProperties::Enumerate();
+    auto instanceExtensionsProperties = EnumerateInstanceExtensionProperties();
 
     std::clog << "Instance extensions:" << std::endl;
     std::clog << instanceExtensionsProperties << std::endl;
@@ -304,21 +308,21 @@ int main(int argc, char* argv[]) {
 
 #ifndef NDEBUG
     // a pointer to nullptr by default since validation layers may not be enabled so debug utils will not be enabled as well (by default)
-    std::unique_ptr<DebugUtilsMessengerCreateInfo> debugUtilsMessengerCreateInfo = nullptr;
+    VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo {};
 
     if (enableValidationLayers) {
-        debugUtilsMessengerCreateInfo = std::make_unique<DebugUtilsMessengerCreateInfo>(DebugCallback);
+        debugUtilsMessengerCreateInfo = GenerateDebugUtilsMessengerCreateInfo(DebugCallback);
     }
 
-    auto instanceCreateInfo = InstanceCreateInfo(applicationInfo, enabledExtensions, validationLayers, VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR, debugUtilsMessengerCreateInfo.get());
+    auto instanceCreateInfo = GenerateInstanceCreateInfo(&applicationInfo, enabledExtensions, validationLayers, VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR, &debugUtilsMessengerCreateInfo);
 #else
-    auto instanceCreateInfo = InstanceCreateInfo(applicationInfo, enabledExtensions, validationLayers, VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR);
+    auto instanceCreateInfo = GenerateInstanceCreateInfo(&applicationInfo, enabledExtensions, validationLayers, VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR);
 #endif
 
     instance = std::make_unique<Instance>(instanceCreateInfo); // create instance
 
 #ifndef NDEBUG
-    debugUtilsMessenger = std::make_unique<DebugUtilsMessenger>(*instance, *debugUtilsMessengerCreateInfo); // create the global debug messenger
+    debugUtilsMessenger = std::make_unique<DebugUtilsMessenger>(*instance, debugUtilsMessengerCreateInfo); // create the global debug messenger
 #endif
 
     surface = std::make_unique<Surface>(*instance, window); // create the surface from SDL
@@ -331,6 +335,7 @@ int main(int argc, char* argv[]) {
         VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME
     };
 
+    // save preferred physical device properties
     VkSurfaceFormat2KHR preferredFormat {};
     VkPresentModeKHR preferredPresentMode = VK_PRESENT_MODE_FIFO_KHR;
     VkExtent2D swapchainExtent {};
@@ -342,55 +347,27 @@ int main(int argc, char* argv[]) {
     for (PhysicalDevice const& pd : physicalDevices) {
         std::clog << "Physical device found: <VkPhysicalDevice " << pd.Handle() << ">" << std::endl;
         
-        PhysicalDeviceProperties physicalDeviceProperties(pd); // get physical device's properties
-        PhysicalDeviceFeatures physicalDeviceFeatures(pd); // get physical device's features
-        std::vector<QueueFamilyProperties> physicalDeviceQueueFamilyProperties = QueueFamilyProperties::Enumerate(pd); // get physical device's queue family properties
+        VkPhysicalDeviceProperties2 physicalDeviceProperties = GeneratePhysicalDeviceProperties(pd); // get physical device's properties
+        VkPhysicalDeviceFeatures2 physicalDeviceFeatures = GeneratePhysicalDeviceFeatures(pd); // get physical device's features
+        std::vector<VkQueueFamilyProperties2> physicalDeviceQueueFamilyProperties = EnumerateQueueFamilyProperties(pd); // get physical device's queue family properties
     
         int queueFamilyIndex = 0;
-        std::clog << "\t - Queue families (count: " << physicalDeviceQueueFamilyProperties.size() << ")" << std::endl;
+        std::clog << " - Queue families (count: " << physicalDeviceQueueFamilyProperties.size() << ")" << std::endl;
         for (VkQueueFamilyProperties2 const& queueFamilyProperties : physicalDeviceQueueFamilyProperties) {
             if (queueFamilyProperties.queueFamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
                 queueFamilyIndexWithGraphicsCapabilities = queueFamilyIndex; 
             }
 
-            // check surface support for a specific queue family
-            VkBool32 supportedSurface = false;
-            VkResult getPhysicalDeviceSurfaceSupportKHRResult = vkGetPhysicalDeviceSurfaceSupportKHR(pd.Handle(), queueFamilyIndex, surface->Handle(), &supportedSurface);
-            if (getPhysicalDeviceSurfaceSupportKHRResult != VK_SUCCESS) {
-                std::cerr << "Could not get surface support (status: " << getPhysicalDeviceSurfaceSupportKHRResult << ")" << std::endl;
-                return CleanOnExit(EXIT_FAILURE);
-            }
-
+            // check that the retrieved surface is supported by a specific queue family
+            VkBool32 supportedSurface = surface->IsSupportedByQueueFamily(pd, queueFamilyIndex);
             if (supportedSurface) {
                 queueFamilyIndexWithPresentCapabilities = queueFamilyIndex;
             }
-
-            //DisplayPhysicalDeviceQueueFamilyProperties(queueFamilyProperties.queueFamilyProperties);
         }
 
         // enumerate device extensions
-        uint32_t deviceExtensionPropertiesCount = 0;
-        VkResult enumerateDeviceExtensionPropertiesResult = vkEnumerateDeviceExtensionProperties(pd.Handle(), VK_NULL_HANDLE, &deviceExtensionPropertiesCount, VK_NULL_HANDLE);
-        if (enumerateDeviceExtensionPropertiesResult != VK_SUCCESS) {
-            std::cerr << "Could not get device extensions properties (1st call, status: " << enumerateDeviceExtensionPropertiesResult << ")" << std::endl;
-            return CleanOnExit(EXIT_FAILURE);
-        }
-        std::clog << "Device extensions properties enumerated successfully (1st call, count: " << deviceExtensionPropertiesCount << ")" << std::endl;
-
-        std::vector<VkExtensionProperties> deviceExtensionsProperties(deviceExtensionPropertiesCount, VkExtensionProperties {});
-        enumerateDeviceExtensionPropertiesResult = vkEnumerateDeviceExtensionProperties(pd.Handle(), VK_NULL_HANDLE, &deviceExtensionPropertiesCount, deviceExtensionsProperties.data());
-        if (enumerateDeviceExtensionPropertiesResult != VK_SUCCESS) {
-            std::cerr << "Could not get device extensions properties (2nd call, status: " << enumerateDeviceExtensionPropertiesResult << ")" << std::endl;
-            return CleanOnExit(EXIT_FAILURE);
-        }
-        std::clog << "Device extensions properties enumerated successfully (2nd call, retrieved in array)" << std::endl;
-
-        std::set<std::string> requiredDeviceExtensions(deviceExtensions.begin(), deviceExtensions.end());
-        for (VkExtensionProperties const& deviceExtensionProperties : deviceExtensionsProperties) {
-            requiredDeviceExtensions.erase(deviceExtensionProperties.extensionName);
-        }
-
-        bool deviceExtensionsSupported = requiredDeviceExtensions.empty();
+        std::vector<VkExtensionProperties> deviceExtensionsProperties = EnumerateDeviceExtensionProperties(pd); // enumerate device extensions
+        bool deviceExtensionsSupported = AreDeviceExtensionsSupported(deviceExtensions, deviceExtensionsProperties);
         if (deviceExtensionsSupported) {
             std::clog << "All device extensions are supported" << std::endl;
         }
@@ -400,17 +377,12 @@ int main(int argc, char* argv[]) {
         }
 
         // get capabilities of the surface
-        VkSurfaceCapabilities2KHR surfaceCapabilities = {
-            .sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR
-        };
-        VkPhysicalDeviceSurfaceInfo2KHR physicalDeviceSurfaceInfo {};
-        physicalDeviceSurfaceInfo.pNext = nullptr;
-        physicalDeviceSurfaceInfo.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR;
-        physicalDeviceSurfaceInfo.surface = surface->Handle();
+        VkSurfaceCapabilities2KHR surfaceCapabilities = GenerateSurfaceCapabilities();
+        VkPhysicalDeviceSurfaceInfo2KHR physicalDeviceSurfaceInfo = GeneratePhysicalDeviceSurfaceInfo(*surface);
         
         VkResult getPhysicalDeviceSurfaceCapabilitiesResult = vkGetPhysicalDeviceSurfaceCapabilities2KHR(pd.Handle(), &physicalDeviceSurfaceInfo, &surfaceCapabilities);
         if (getPhysicalDeviceSurfaceCapabilitiesResult != VK_SUCCESS) {
-            std::cerr << "Could not get physical device surface capabilities (status: " << enumerateDeviceExtensionPropertiesResult << ")" << std::endl;
+            std::cerr << "Could not get physical device surface capabilities (status: " << getPhysicalDeviceSurfaceCapabilitiesResult << ")" << std::endl;
             return CleanOnExit(EXIT_FAILURE);
         }
         std::clog << "Physical device surface capabilities retrieved successfully" << std::endl;
@@ -549,28 +521,28 @@ int main(int argc, char* argv[]) {
             std::clog << physicalDeviceProperties << std::endl;
             std::clog << physicalDeviceFeatures << std::endl;
             queueFamilyIndex = 0;
-            std::clog << "\t - Queue families (count: " << physicalDeviceQueueFamilyProperties.size() << ")" << std::endl;
-            for (QueueFamilyProperties const& queueFamilyProperties : physicalDeviceQueueFamilyProperties) {
-                std::clog << "\t\t - [" << queueFamilyIndex++ << "]: " << std::endl;
-                QueueFamilyProperties::Display(queueFamilyProperties);            
+            std::clog << " - Queue families (count: " << physicalDeviceQueueFamilyProperties.size() << ")" << std::endl;
+            for (VkQueueFamilyProperties2 const& queueFamilyProperties : physicalDeviceQueueFamilyProperties) {
+                std::clog << " - [" << queueFamilyIndex++ << "]: " << std::endl;
+                std::clog << queueFamilyProperties << std::endl;            
             }
 
-            DisplayPhysicalDeviceSurfaceCapabilities(surfaceCapabilities.surfaceCapabilities);
+            std::clog << surfaceCapabilities.surfaceCapabilities << std::endl;
 
-            std::clog << "\t - Surface formats:" << std::endl;
+            std::clog << " - Surface formats:" << std::endl;
             for (VkSurfaceFormat2KHR const& surfaceFormat : surfaceFormats) {
-                std::clog << "\t\t - Surface format found:" << std::endl;
+                std::clog << " - Surface format found:" << std::endl;
                 DisplaySurfaceFormat(surfaceFormat.surfaceFormat);
             }
 
-            std::clog << "\t - Present modes:" << std::endl;
+            std::clog << " - Present modes:" << std::endl;
             for (VkPresentModeKHR const& presentMode : presentModes) {
                 DisplayPresentMode(presentMode);
             }
 
-            std::clog << "\t - Queue has graphics capabilities index:     " 
+            std::clog << " - Queue has graphics capabilities index:     " 
                       << queueFamilyIndexWithGraphicsCapabilities.value() << std::endl;
-            std::clog << "\t - Queue has present capabilities index:      "
+            std::clog << " - Queue has present capabilities index:      "
                       << queueFamilyIndexWithPresentCapabilities.value() << std::endl;
         }
     }

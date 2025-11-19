@@ -5,8 +5,6 @@
 
 #include <vulkan/vulkan.h>
 
-struct DebugUtilsMessengerCreateInfo : public VkDebugUtilsMessengerCreateInfoEXT {
-    DebugUtilsMessengerCreateInfo(PFN_vkDebugUtilsMessengerCallbackEXT DebugCallback);
-};
+VkDebugUtilsMessengerCreateInfoEXT GenerateDebugUtilsMessengerCreateInfo(PFN_vkDebugUtilsMessengerCallbackEXT DebugCallback);
 
 #endif // VK_WRAPPER_DEBUG_UTILS_MESSENGER_CREATE_INFO_HPP

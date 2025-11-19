@@ -7,15 +7,13 @@
 
 #include <vulkan/vulkan.h>
 
-#include "VulkanHelpers/InstanceCreateInfo.hpp"
-
 class Instance {
     public:
-        Instance(InstanceCreateInfo const& createInfo);
+        Instance(VkInstanceCreateInfo const& createInfo);
         ~Instance();
 
         VkInstance Handle() { return _handle; }
-        VkInstance Handle() const { return _handle; }
+        VkInstance const Handle() const { return _handle; }
 
     private:
         VkInstance _handle = VK_NULL_HANDLE;

@@ -1,125 +1,129 @@
 #include "VulkanHelpers/PhysicalDeviceFeatures.hpp"
 
-PhysicalDeviceFeatures::PhysicalDeviceFeatures(PhysicalDevice const& physicalDevice) {
-    this->sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    this->features = {};
-    this->pNext = VK_NULL_HANDLE;
+VkPhysicalDeviceFeatures2 GeneratePhysicalDeviceFeatures(PhysicalDevice const& physicalDevice) {
+    VkPhysicalDeviceFeatures2 features {};
 
-    vkGetPhysicalDeviceFeatures2(physicalDevice.Handle(), this);
+    features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    features.features = {};
+    features.pNext = VK_NULL_HANDLE;
+
+    vkGetPhysicalDeviceFeatures2(physicalDevice.Handle(), &features);
+
+    return features;
 }
 
 std::ostream& operator << (std::ostream& out, VkPhysicalDeviceFeatures2 const& physicalDeviceFeatures) {
     out << std::boolalpha;
-    out << "\t - Features:" << std::endl;
-    out << "\t\t - Alpha to one                                     " 
+    out << " - Features:" << std::endl;
+    out << " - Alpha to one                                     " 
         << static_cast<bool>(physicalDeviceFeatures.features.alphaToOne) << std::endl;
-    out << "\t\t - Depth bias clamp                                 " 
+    out << " - Depth bias clamp                                 " 
         << static_cast<bool>(physicalDeviceFeatures.features.depthBiasClamp) << std::endl;
-    out << "\t\t - Depth bounds                                     " 
+    out << " - Depth bounds                                     " 
         << static_cast<bool>(physicalDeviceFeatures.features.depthBounds) << std::endl;
-    out << "\t\t - Depth clamp                                      " 
+    out << " - Depth clamp                                      " 
         << static_cast<bool>(physicalDeviceFeatures.features.depthClamp) << std::endl;
-    out << "\t\t - Draw indirect first instance                     " 
+    out << " - Draw indirect first instance                     " 
         << static_cast<bool>(physicalDeviceFeatures.features.drawIndirectFirstInstance) << std::endl;
-    out << "\t\t - Dual source blend                                " 
+    out << " - Dual source blend                                " 
         << static_cast<bool>(physicalDeviceFeatures.features.dualSrcBlend) << std::endl;
-    out << "\t\t - Fill mode non solid                              " 
+    out << " - Fill mode non solid                              " 
         << static_cast<bool>(physicalDeviceFeatures.features.fillModeNonSolid) << std::endl;
-    out << "\t\t - Fragment stores and atomics                      " 
+    out << " - Fragment stores and atomics                      " 
         << static_cast<bool>(physicalDeviceFeatures.features.fragmentStoresAndAtomics) << std::endl;
-    out << "\t\t - Full draw index Uint32                           " 
+    out << " - Full draw index Uint32                           " 
         << static_cast<bool>(physicalDeviceFeatures.features.fullDrawIndexUint32) << std::endl;
-    out << "\t\t - Geometry shader                                  " 
+    out << " - Geometry shader                                  " 
         << static_cast<bool>(physicalDeviceFeatures.features.geometryShader) << std::endl;
-    out << "\t\t - Image cube array                                 " 
+    out << " - Image cube array                                 " 
         << static_cast<bool>(physicalDeviceFeatures.features.imageCubeArray) << std::endl;
-    out << "\t\t - Independent blend                                " 
+    out << " - Independent blend                                " 
         << static_cast<bool>(physicalDeviceFeatures.features.independentBlend) << std::endl;
-    out << "\t\t - Inherited queries                                " 
+    out << " - Inherited queries                                " 
         << static_cast<bool>(physicalDeviceFeatures.features.inheritedQueries) << std::endl;
-    out << "\t\t - Large points                                     " 
+    out << " - Large points                                     " 
         << static_cast<bool>(physicalDeviceFeatures.features.largePoints) << std::endl;
-    out << "\t\t - Logic operations                                 " 
+    out << " - Logic operations                                 " 
         << static_cast<bool>(physicalDeviceFeatures.features.logicOp) << std::endl;
-    out << "\t\t - Multi draw indirect                              " 
+    out << " - Multi draw indirect                              " 
         << static_cast<bool>(physicalDeviceFeatures.features.multiDrawIndirect) << std::endl;
-    out << "\t\t - Multi viewport                                   " 
+    out << " - Multi viewport                                   " 
         << static_cast<bool>(physicalDeviceFeatures.features.multiViewport) << std::endl;
-    out << "\t\t - Occlusion query precise                          " 
+    out << " - Occlusion query precise                          " 
         << static_cast<bool>(physicalDeviceFeatures.features.occlusionQueryPrecise) << std::endl;
-    out << "\t\t - Pipeline statistics query                        " 
+    out << " - Pipeline statistics query                        " 
         << static_cast<bool>(physicalDeviceFeatures.features.pipelineStatisticsQuery) << std::endl;
-    out << "\t\t - Robust buffer access                             " 
+    out << " - Robust buffer access                             " 
         << static_cast<bool>(physicalDeviceFeatures.features.robustBufferAccess) << std::endl;
-    out << "\t\t - Sampler anisotropy                               " 
+    out << " - Sampler anisotropy                               " 
         << static_cast<bool>(physicalDeviceFeatures.features.samplerAnisotropy) << std::endl;
-    out << "\t\t - Sample rate shading                              " 
+    out << " - Sample rate shading                              " 
         << static_cast<bool>(physicalDeviceFeatures.features.sampleRateShading) << std::endl;
-    out << "\t\t - Shader clip distance                             " 
+    out << " - Shader clip distance                             " 
         << static_cast<bool>(physicalDeviceFeatures.features.shaderClipDistance) << std::endl;
-    out << "\t\t - Shader cull distance                             " 
+    out << " - Shader cull distance                             " 
         << static_cast<bool>(physicalDeviceFeatures.features.shaderCullDistance) << std::endl;
-    out << "\t\t - Shader Float64                                   " 
+    out << " - Shader Float64                                   " 
         << static_cast<bool>(physicalDeviceFeatures.features.shaderFloat64) << std::endl;
-    out << "\t\t - Shader image gather extended                     " 
+    out << " - Shader image gather extended                     " 
         << static_cast<bool>(physicalDeviceFeatures.features.shaderImageGatherExtended) << std::endl;
-    out << "\t\t - Shader Int16                                     " 
+    out << " - Shader Int16                                     " 
         << static_cast<bool>(physicalDeviceFeatures.features.shaderInt16) << std::endl;
-    out << "\t\t - Shader Int64                                     "  
+    out << " - Shader Int64                                     "  
         << static_cast<bool>(physicalDeviceFeatures.features.shaderInt64) << std::endl;
-    out << "\t\t - Shader resource min LOD                          " 
+    out << " - Shader resource min LOD                          " 
         << static_cast<bool>(physicalDeviceFeatures.features.shaderResourceMinLod) << std::endl;
-    out << "\t\t - Shader resource residency                        " 
+    out << " - Shader resource residency                        " 
         << static_cast<bool>(physicalDeviceFeatures.features.shaderResourceResidency) << std::endl;
-    out << "\t\t - Shader sampled image array dynamic indexing      " 
+    out << " - Shader sampled image array dynamic indexing      " 
         << static_cast<bool>(physicalDeviceFeatures.features.shaderSampledImageArrayDynamicIndexing) << std::endl;
-    out << "\t\t - Shader storage buffer array dynamic indexing     " 
+    out << " - Shader storage buffer array dynamic indexing     " 
         << static_cast<bool>(physicalDeviceFeatures.features.shaderStorageBufferArrayDynamicIndexing) << std::endl;
-    out << "\t\t - Shader storage image array dynamic indexing      " 
+    out << " - Shader storage image array dynamic indexing      " 
         << static_cast<bool>(physicalDeviceFeatures.features.shaderStorageImageArrayDynamicIndexing) << std::endl;
-    out << "\t\t - Shader storage image extended formats            " 
+    out << " - Shader storage image extended formats            " 
         << static_cast<bool>(physicalDeviceFeatures.features.shaderStorageImageExtendedFormats) << std::endl;
-    out << "\t\t - Shader storage image multisample                 " 
+    out << " - Shader storage image multisample                 " 
         << static_cast<bool>(physicalDeviceFeatures.features.shaderStorageImageMultisample) << std::endl;
-    out << "\t\t - Shader storage image read without format         " 
+    out << " - Shader storage image read without format         " 
         << static_cast<bool>(physicalDeviceFeatures.features.shaderStorageImageReadWithoutFormat) << std::endl;
-    out << "\t\t - Shader storage image write withou format         " 
+    out << " - Shader storage image write withou format         " 
         << static_cast<bool>(physicalDeviceFeatures.features.shaderStorageImageWriteWithoutFormat) << std::endl;
-    out << "\t\t - Shader tesselation and geometry point size       " 
+    out << " - Shader tesselation and geometry point size       " 
         << static_cast<bool>(physicalDeviceFeatures.features.shaderTessellationAndGeometryPointSize) << std::endl;
-    out << "\t\t - Shader uniform buffer array dynamic indexing     " 
+    out << " - Shader uniform buffer array dynamic indexing     " 
         << static_cast<bool>(physicalDeviceFeatures.features.shaderUniformBufferArrayDynamicIndexing) << std::endl;
-    out << "\t\t - Sparse binding                                   " 
+    out << " - Sparse binding                                   " 
         << static_cast<bool>(physicalDeviceFeatures.features.sparseBinding) << std::endl;
-    out << "\t\t - Sparse residency 16 samples                      " 
+    out << " - Sparse residency 16 samples                      " 
         << static_cast<bool>(physicalDeviceFeatures.features.sparseResidency16Samples) << std::endl;
-    out << "\t\t - Sparse residency 2 samples                       " 
+    out << " - Sparse residency 2 samples                       " 
         << static_cast<bool>(physicalDeviceFeatures.features.sparseResidency2Samples) << std::endl;
-    out << "\t\t - Sparse residency 4 samples                       " 
+    out << " - Sparse residency 4 samples                       " 
         << static_cast<bool>(physicalDeviceFeatures.features.sparseResidency4Samples) << std::endl;
-    out << "\t\t - Sparse residency 8 samples                       " 
+    out << " - Sparse residency 8 samples                       " 
         << static_cast<bool>(physicalDeviceFeatures.features.sparseResidency8Samples) << std::endl;
-    out << "\t\t - Sparse residency aliased                         " 
+    out << " - Sparse residency aliased                         " 
         << static_cast<bool>(physicalDeviceFeatures.features.sparseResidencyAliased) << std::endl;
-    out << "\t\t - Sparse residency buffer                          " 
+    out << " - Sparse residency buffer                          " 
         << static_cast<bool>(physicalDeviceFeatures.features.sparseResidencyBuffer) << std::endl;
-    out << "\t\t - Sparse residency image 2D                        " 
+    out << " - Sparse residency image 2D                        " 
         << static_cast<bool>(physicalDeviceFeatures.features.sparseResidencyImage2D) << std::endl;
-    out << "\t\t - Sparse residency image 3D                        " 
+    out << " - Sparse residency image 3D                        " 
         << static_cast<bool>(physicalDeviceFeatures.features.sparseResidencyImage3D) << std::endl;
-    out << "\t\t - Tesselation shader                               " 
+    out << " - Tesselation shader                               " 
         << static_cast<bool>(physicalDeviceFeatures.features.tessellationShader) << std::endl;
-    out << "\t\t - Texture compression ASTC_LDR                     " 
+    out << " - Texture compression ASTC_LDR                     " 
         << static_cast<bool>(physicalDeviceFeatures.features.textureCompressionASTC_LDR) << std::endl;
-    out << "\t\t - Texture compression BC                           " 
+    out << " - Texture compression BC                           " 
         << static_cast<bool>(physicalDeviceFeatures.features.textureCompressionBC) << std::endl;
-    out << "\t\t - Texture compression ETC2                         " 
+    out << " - Texture compression ETC2                         " 
         << static_cast<bool>(physicalDeviceFeatures.features.textureCompressionETC2) << std::endl;
-    out << "\t\t - Variable multisample rate                        " 
+    out << " - Variable multisample rate                        " 
         << static_cast<bool>(physicalDeviceFeatures.features.variableMultisampleRate) << std::endl;
-    out << "\t\t - Vertex pipeline stores and atomics               " 
+    out << " - Vertex pipeline stores and atomics               " 
         << static_cast<bool>(physicalDeviceFeatures.features.vertexPipelineStoresAndAtomics) << std::endl;
-    out << "\t\t - Wide lines                                       " 
+    out << " - Wide lines                                       " 
         << static_cast<bool>(physicalDeviceFeatures.features.wideLines) << std::endl;
     out << std::noboolalpha;
 

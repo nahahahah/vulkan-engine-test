@@ -3,9 +3,6 @@
 
 #include <vulkan/vulkan.h>
 
-struct ApplicationInfo : public VkApplicationInfo {
-    public:
-        ApplicationInfo();
-};
+VkApplicationInfo GenerateApplicationInfo();
 
 #endif // VK_WRAPPER_APPLICATION_INFO_HPP

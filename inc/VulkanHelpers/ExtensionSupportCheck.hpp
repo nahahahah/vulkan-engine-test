@@ -3,11 +3,10 @@
 
 #include <iostream>
 #include <vector>
+#include <cstring>
 
 #include <vulkan/vulkan.h>
 
-#include "VulkanHelpers/ExtensionProperties.hpp"
-
-void DisplaySupportedExtensionsFromSDLVulkan(std::vector<const char*> const& enabledExtensions, std::vector<ExtensionProperties> const& supportedExtensions);
+void DisplaySupportedExtensionsFromSDLVulkan(std::vector<const char*> const& enabledExtensions, std::vector<VkExtensionProperties> const& supportedExtensions);
 
 #endif // VK_WRAPPER_EXTENSION_SUPPORT_CHECK_HPP
