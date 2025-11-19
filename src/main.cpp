@@ -20,9 +20,6 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 
-#ifdef WIN32 
-#define VK_USE_PLATFORM_WIN32_KHR
-#endif
 #include <vulkan/vulkan.h>
 
 #include "SDLHelpers/Window.hpp"
@@ -164,7 +161,7 @@ int main(int argc, char* argv[]) {
     std::vector<VkFence> inFlightFences {};
     bool framebufferResized = false;
 
-    constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+    constexpr int MAX_FRAMES_IN_FLIGHT = 1;
     (void)(MAX_FRAMES_IN_FLIGHT);
 
     auto CleanOnExit = [&](int code) {
@@ -403,10 +400,12 @@ int main(int argc, char* argv[]) {
 
         std::vector<VkSurfaceFormat2KHR> surfaceFormats(
             surfaceFormatsCount,
-            VkSurfaceFormat2KHR {
-                .sType = VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR
-            }
+            VkSurfaceFormat2KHR {}
         );
+	for (auto& surfaceFormat : surfaceFormats) {
+                surfaceFormat.sType = VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR;
+	}
+
         getPhysicalDeviceSurfaceFormats2KHRResult = vkGetPhysicalDeviceSurfaceFormats2KHR(pd.Handle(), &physicalDeviceSurfaceInfo, &surfaceFormatsCount, surfaceFormats.data());
         if (getPhysicalDeviceSurfaceFormats2KHRResult != VK_SUCCESS) {
             std::cerr << "Could not get physical device surface formats (2nd call, status: " << getPhysicalDeviceSurfaceFormats2KHRResult << ")" << std::endl;
@@ -507,9 +506,7 @@ int main(int argc, char* argv[]) {
 
         // check if device is suitable
         if (std::string deviceName = std::string(physicalDeviceProperties.properties.deviceName);
-            physicalDeviceProperties.properties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
-         && deviceName.find("Microsoft Direct3D") == std::string::npos
-         && physicalDeviceFeatures.features.geometryShader
+         physicalDeviceFeatures.features.geometryShader
          && queueFamilyIndexWithGraphicsCapabilities.has_value()
          && queueFamilyIndexWithPresentCapabilities.has_value()
          && deviceExtensionsSupported

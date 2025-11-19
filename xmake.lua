@@ -28,3 +28,4 @@ target("vulkan_test")
     set_rundir(".")
 
     add_includedirs("inc")
+target_end()
