@@ -6,6 +6,7 @@
 #include <vector>
 #include <span>
 #include <string>
+#include <cstring>
 
 #include <vulkan/vulkan.h>
 

@@ -8,7 +8,7 @@
 #include <vulkan/vulkan.h>
 
 #include "VulkanHelpers/Instance.hpp"
-#include "VulkanHelpers/DebugutilsMessengerCreateInfo.hpp"
+#include "VulkanHelpers/DebugUtilsMessengerCreateInfo.hpp"
 
 
 class DebugUtilsMessenger {
