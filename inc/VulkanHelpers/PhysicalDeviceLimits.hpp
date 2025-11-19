@@ -7,10 +7,12 @@
 
 #include "VulkanHelpers/SampleCountFlags.hpp"
 
+std::ostream& operator << (std::ostream& out, VkPhysicalDeviceLimits const& limits);
+
 struct PhysicalDeviceLimits : public VkPhysicalDeviceLimits {
     PhysicalDeviceLimits() = default;
 
-    std::ostream& operator << (std::ostream& out, VkPhysicalDeviceLimits const& limits);
+    friend std::ostream& operator << (std::ostream& out, VkPhysicalDeviceLimits const& limits);
 };
 
 #endif // VK_WRAPPER_PHYSICAL_DEVICE_LIMITS_HPP

@@ -7,8 +7,11 @@ add_requires("vulkan-headers", "vulkan-loader", "libsdl3")
 add_rules("plugin.compile_commands.autoupdate", { outputdir = ".vscode" })
 target("vulkan_test")
     set_kind("binary")
-    
-    add_packages("vulkan-headers", "vulkan-loader", "libsdl3")
+
+    add_packages("vulkan-headers", "libsdl3")
+    if is_plat("windows") then
+        add_packages("vulkan-loader")
+    else
 
     if is_mode("debug") then
         set_optimize("none")
