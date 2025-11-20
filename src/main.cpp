@@ -41,7 +41,6 @@
 #include "VulkanHelpers/ExtensionSupportCheck.hpp"
 #include "VulkanHelpers/PhysicalDeviceProperties.hpp"
 #include "VulkanHelpers/PhysicalDeviceFeatures.hpp"
-#include "VulkanHelpers/PhysicalDeviceSurfaceCapabilities.hpp"
 #include "VulkanHelpers/SurfaceFormat.hpp"
 #include "VulkanHelpers/DebugUtilsMessengerCreateInfo.hpp"
 #include "VulkanHelpers/Instance.hpp"
@@ -373,77 +372,18 @@ int main(int argc, char* argv[]) {
             std::clog << "Some or all device extensions aren't supported" << std::endl;
         }
 
-        // get capabilities of the surface
-        VkSurfaceCapabilities2KHR surfaceCapabilities = GenerateSurfaceCapabilities();
-        VkPhysicalDeviceSurfaceInfo2KHR physicalDeviceSurfaceInfo = GeneratePhysicalDeviceSurfaceInfo(*surface);
-        
-        VkResult getPhysicalDeviceSurfaceCapabilitiesResult = vkGetPhysicalDeviceSurfaceCapabilities2KHR(pd.Handle(), &physicalDeviceSurfaceInfo, &surfaceCapabilities);
-        if (getPhysicalDeviceSurfaceCapabilitiesResult != VK_SUCCESS) {
-            std::cerr << "Could not get physical device surface capabilities (status: " << getPhysicalDeviceSurfaceCapabilitiesResult << ")" << std::endl;
-            return CleanOnExit(EXIT_FAILURE);
-        }
-        std::clog << "Physical device surface capabilities retrieved successfully" << std::endl;
-
-        // get formats of the surface
-        uint32_t surfaceFormatsCount = 0;
-        VkResult getPhysicalDeviceSurfaceFormats2KHRResult = vkGetPhysicalDeviceSurfaceFormats2KHR(pd.Handle(), &physicalDeviceSurfaceInfo, &surfaceFormatsCount, VK_NULL_HANDLE);
-        if (getPhysicalDeviceSurfaceFormats2KHRResult != VK_SUCCESS) {
-            std::cerr << "Could not get physical device surface formats (1st call, status: " << getPhysicalDeviceSurfaceFormats2KHRResult << ")" << std::endl;
-            return CleanOnExit(EXIT_FAILURE);
-        }
-        std::clog << "Physical device surface formats retrieved successfully (1st call, count: " << surfaceFormatsCount << ")" << std::endl;
-
-        if (surfaceFormatsCount == 0) {
-            std::cerr << "No surface formats found" << std::endl;
-            return CleanOnExit(EXIT_FAILURE);
-        }
-
-        std::vector<VkSurfaceFormat2KHR> surfaceFormats(
-            surfaceFormatsCount,
-            VkSurfaceFormat2KHR {}
-        );
-	for (auto& surfaceFormat : surfaceFormats) {
-                surfaceFormat.sType = VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR;
-	}
-
-        getPhysicalDeviceSurfaceFormats2KHRResult = vkGetPhysicalDeviceSurfaceFormats2KHR(pd.Handle(), &physicalDeviceSurfaceInfo, &surfaceFormatsCount, surfaceFormats.data());
-        if (getPhysicalDeviceSurfaceFormats2KHRResult != VK_SUCCESS) {
-            std::cerr << "Could not get physical device surface formats (2nd call, status: " << getPhysicalDeviceSurfaceFormats2KHRResult << ")" << std::endl;
-            return CleanOnExit(EXIT_FAILURE);
-        }
-        std::clog << "Physical device surface formats retrieved successfully (2nd call, retrieved in array)" << std::endl;
-
-        // get present modes of the surface
-        uint32_t presentModesCount = 0;
-        VkResult getPhysicalDeviceSurfacePresentModesKHR = vkGetPhysicalDeviceSurfacePresentModesKHR(pd.Handle(), surface->Handle(), &presentModesCount, VK_NULL_HANDLE);
-        if (getPhysicalDeviceSurfacePresentModesKHR != VK_SUCCESS) {
-            std::cerr << "Could not get physical device surface present modes (1st call, status: " << getPhysicalDeviceSurfaceFormats2KHRResult << ")" << std::endl;
-            return CleanOnExit(EXIT_FAILURE);
-        }
-        std::clog << "Physical device surface present modes retrieved successfully (1st call, count: " << presentModesCount << ")" << std::endl;
-
-        if (presentModesCount == 0) {
-            std::cerr << "No present modes found" << std::endl;
-            return CleanOnExit(EXIT_FAILURE);
-        }
-
-        std::vector<VkPresentModeKHR> presentModes(presentModesCount, VkPresentModeKHR {});
-        getPhysicalDeviceSurfacePresentModesKHR = vkGetPhysicalDeviceSurfacePresentModesKHR(pd.Handle(), surface->Handle(), &presentModesCount, presentModes.data());
-        if (getPhysicalDeviceSurfacePresentModesKHR != VK_SUCCESS) {
-            std::cerr << "Could not get physical device surface present modes (2nd call, status: " << getPhysicalDeviceSurfaceFormats2KHRResult << ")" << std::endl;
-            return CleanOnExit(EXIT_FAILURE);
-        }
-        std::clog << "Physical device surface present modes retrieved successfully (2nd call, retrieved in array)" << std::endl;
+        VkPhysicalDeviceSurfaceInfo2KHR physicalDeviceSurfaceInfo = GeneratePhysicalDeviceSurfaceInfo(*surface); // get surface info
+        VkSurfaceCapabilities2KHR surfaceCapabilities = GenerateSurfaceCapabilities(pd, physicalDeviceSurfaceInfo); // get capabilities of the surface
+        std::vector<VkSurfaceFormat2KHR> surfaceFormats = EnumerateSurfaceFormats(pd, physicalDeviceSurfaceInfo); // get formats of the surface
+        std::vector<VkPresentModeKHR> presentModes = EnumeratePresentModes(pd, *surface); // get present modes of the surface
 
         // check is swapchain has mandatory properties
         bool swapChainIsAdequate = false;
         if (deviceExtensionsSupported) {
-            swapChainIsAdequate = 
-                !surfaceFormats.empty() &&
-                !presentModes.empty()
-                ;
+            swapChainIsAdequate = !surfaceFormats.empty() && !presentModes.empty();
         }
 
+        // get adequate surface format
         preferredFormat = surfaceFormats[0];
         for (VkSurfaceFormat2KHR const& surfaceFormat : surfaceFormats) {
             if (
@@ -454,6 +394,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        // get adequate surface mode
         preferredPresentMode = VK_PRESENT_MODE_FIFO_KHR;
         for (VkPresentModeKHR const& presentMode : presentModes) {
             if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
@@ -529,7 +470,7 @@ int main(int argc, char* argv[]) {
             std::clog << " - Surface formats:" << std::endl;
             for (VkSurfaceFormat2KHR const& surfaceFormat : surfaceFormats) {
                 std::clog << " - Surface format found:" << std::endl;
-                DisplaySurfaceFormat(surfaceFormat.surfaceFormat);
+                std::clog << surfaceFormat.surfaceFormat << std::endl;
             }
 
             std::clog << " - Present modes:" << std::endl;

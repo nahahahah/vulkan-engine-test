@@ -19,7 +19,7 @@ class Surface {
         ~Surface();
 
         VkSurfaceKHR Handle() { return _handle; }
-        VkSurfaceKHR const Handle() const { return _handle; }
+        VkSurfaceKHR Handle() const { return _handle; }
 
         bool IsSupportedByQueueFamily(PhysicalDevice const& physicalDevice, uint32_t queueFamilyIndex);
 

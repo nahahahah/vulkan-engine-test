@@ -15,7 +15,7 @@ class DebugUtilsMessenger {
         ~DebugUtilsMessenger();
 
         VkDebugUtilsMessengerEXT Handle() { return _handle; }
-        VkDebugUtilsMessengerEXT const Handle() const { return _handle; }
+        VkDebugUtilsMessengerEXT Handle() const { return _handle; }
 
     private:
         VkDebugUtilsMessengerEXT _handle = VK_NULL_HANDLE;

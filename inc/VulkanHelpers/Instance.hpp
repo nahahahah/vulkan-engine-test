@@ -13,7 +13,7 @@ class Instance {
         ~Instance();
 
         VkInstance Handle() { return _handle; }
-        VkInstance const Handle() const { return _handle; }
+        VkInstance Handle() const { return _handle; }
 
     private:
         VkInstance _handle = VK_NULL_HANDLE;
