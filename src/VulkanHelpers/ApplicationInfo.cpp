@@ -13,7 +13,7 @@ VkApplicationInfo GenerateApplicationInfo() {
 
     // names
     applicationInfo.pApplicationName = "Vulkan application";
-    applicationInfo.pEngineName = "No engine";
+    applicationInfo.pEngineName = "gammaShade";
 
     // extend application info
     applicationInfo.pNext = VK_NULL_HANDLE;

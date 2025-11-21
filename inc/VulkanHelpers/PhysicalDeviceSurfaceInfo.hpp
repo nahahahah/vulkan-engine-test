@@ -5,6 +5,6 @@
 
 #include "VulkanHelpers/Surface.hpp"
 
-VkPhysicalDeviceSurfaceInfo2KHR GeneratePhysicalDeviceSurfaceInfo(Surface const& surface);
+VkPhysicalDeviceSurfaceInfo2KHR GeneratePhysicalDeviceSurfaceInfo(Surface const& surface, void* next = VK_NULL_HANDLE);
 
 #endif // VK_WRAPPER_PHYSICAL_DEVICE_SURFACE_INFO_HPP

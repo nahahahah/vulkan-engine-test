@@ -1,0 +1,8 @@
+#ifndef VK_WRAPPER_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_HPP
+#define VK_WRAPPER_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_HPP
+
+#include <vulkan/vulkan.h>
+
+VkPhysicalDeviceSynchronization2Features GeneratePhysicalDeviceSynchronization2Features();
+
+#endif // VK_WRAPPER_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_HPP
