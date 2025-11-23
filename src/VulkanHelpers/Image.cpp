@@ -1,5 +1,6 @@
 #include "VulkanHelpers/Image.hpp"
 
+// TODO: Create a class for VkImage as it's a handle. Not urgent for now.
 std::vector<VkImage> EnumerateSwapChainImages(Device const& device, Swapchain const& swapChain) {
     uint32_t count = 0;
     VkResult result = vkGetSwapchainImagesKHR(device.Handle(), swapChain.Handle(), &count, VK_NULL_HANDLE);

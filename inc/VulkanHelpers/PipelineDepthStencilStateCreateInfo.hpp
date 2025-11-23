@@ -1,0 +1,8 @@
+#ifndef VK_WRAPPER_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO_HPP
+#define VK_WRAPPER_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO_HPP
+
+#include <vulkan/vulkan.h>
+
+VkPipelineDepthStencilStateCreateInfo GeneratePipelineDepthStencilStateCreateInfo();
+
+#endif // VK_WRAPPER_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO_HPP

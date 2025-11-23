@@ -1,0 +1,8 @@
+#ifndef VK_WRAPPER_PIPELINE_COLOR_BLEND_ATTACHMENT_STATE_HPP
+#define VK_WRAPPER_PIPELINE_COLOR_BLEND_ATTACHMENT_STATE_HPP
+
+#include <vulkan/vulkan.h>
+
+VkPipelineColorBlendAttachmentState GeneratePipelineColorBlendAttachmentState();
+
+#endif // VK_WRAPPER_PIPELINE_COLOR_BLEND_ATTACHMENT_STATE_HPP

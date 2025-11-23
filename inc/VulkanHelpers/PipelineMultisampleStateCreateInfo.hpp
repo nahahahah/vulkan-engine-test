@@ -1,0 +1,8 @@
+#ifndef VK_WRAPPER_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO_HPP
+#define VK_WRAPPER_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO_HPP
+
+#include <vulkan/vulkan.h>
+
+VkPipelineMultisampleStateCreateInfo GeneratePipelineMultisampleStateCreateInfo();
+
+#endif // VK_WRAPPER_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO_HPP
