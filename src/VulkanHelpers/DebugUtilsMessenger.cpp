@@ -16,16 +16,16 @@ DebugUtilsMessenger::DebugUtilsMessenger(Instance const& instance, VkDebugUtilsM
 
 DebugUtilsMessenger::~DebugUtilsMessenger() {
     if (_handle != VK_NULL_HANDLE) {
-            // destroy debug messenger
-            auto DestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)(vkGetInstanceProcAddr(_instance.Handle(), "vkDestroyDebugUtilsMessengerEXT"));
-            if (DestroyDebugUtilsMessengerEXT == VK_NULL_HANDLE) {
-                std::cerr << "Unable to get instance process address for vkCreateDebugUtilsMessengerEXT" << std::endl;
-            }
-
-            else {
-                DestroyDebugUtilsMessengerEXT(_instance.Handle(), _handle, VK_NULL_HANDLE);
-                std::clog << "Debug messenger destroyed successfully" << std::endl;
-                _handle = VK_NULL_HANDLE;
-            }
+        // destroy debug messenger
+        auto DestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)(vkGetInstanceProcAddr(_instance.Handle(), "vkDestroyDebugUtilsMessengerEXT"));
+        if (DestroyDebugUtilsMessengerEXT == VK_NULL_HANDLE) {
+            std::cerr << "Unable to get instance process address for vkCreateDebugUtilsMessengerEXT" << std::endl;
         }
+
+        else {
+            DestroyDebugUtilsMessengerEXT(_instance.Handle(), _handle, VK_NULL_HANDLE);
+            std::clog << "Debug messenger destroyed successfully" << std::endl;
+            _handle = VK_NULL_HANDLE;
+        }
+    }
 }

@@ -3,8 +3,13 @@
 VkPhysicalDeviceProperties2 GeneratePhysicalDeviceProperties(PhysicalDevice const& physicalDevice) {
     VkPhysicalDeviceProperties2 properties {};
     
+    // structure type
     properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+
+    // physical device properties
     properties.properties = {};
+
+    // extend properties
     properties.pNext = VK_NULL_HANDLE;
 
     vkGetPhysicalDeviceProperties2(physicalDevice.Handle(), &properties);
