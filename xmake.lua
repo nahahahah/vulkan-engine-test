@@ -18,11 +18,22 @@ target("vulkan_test")
     end
 
     add_files("src/*.cpp")
-    add_files("src/VulkanHelpers/*.cpp")
+    add_files("src/VulkanHelpers/CreateInfos/*.cpp")
+    add_files("src/VulkanHelpers/Flags/*.cpp")
+    add_files("src/VulkanHelpers/Handles/*.cpp")
+    add_files("src/VulkanHelpers/ParameterEnums/*.cpp")
+    add_files("src/VulkanHelpers/ParameterInfos/*.cpp")
+    add_files("src/VulkanHelpers/ParameterStructs/*.cpp")
     add_files("src/SDLHelpers/*.cpp")
 
-    add_headerfiles("inc/*.hpp")
+    -- add_headerfiles("inc/*.hpp") -- useless for now
     add_headerfiles("inc/VulkanHelpers/*.hpp")
+    add_headerfiles("inc/VulkanHelpers/CreateInfos/*.hpp")
+    add_headerfiles("inc/VulkanHelpers/Flags/*.hpp")
+    add_headerfiles("inc/VulkanHelpers/Handles/*.hpp")
+    add_headerfiles("inc/VulkanHelpers/ParameterEnums/*.hpp")
+    add_headerfiles("inc/VulkanHelpers/ParameterInfos/*.hpp")
+    add_headerfiles("inc/VulkanHelpers/ParameterStructs/*.hpp")
     add_headerfiles("inc/SDLHelpers/*.hpp")
 
     set_rundir(".")

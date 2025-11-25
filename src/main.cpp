@@ -25,86 +25,12 @@
 
 #include "SDLHelpers/Window.hpp"
 
-#include "VulkanHelpers/ApplicationInfo.hpp"
-#include "VulkanHelpers/LayerProperties.hpp"
-#include "VulkanHelpers/ExtensionProperties.hpp"
-#include "VulkanHelpers/InstanceCreateInfo.hpp"
-#include "VulkanHelpers/Version.hpp"
-#include "VulkanHelpers/SampleCountFlags.hpp"
-#include "VulkanHelpers/QueueFlags.hpp"
-#include "VulkanHelpers/SurfaceTransformFlags.hpp"
-#include "VulkanHelpers/ImageUsageFlags.hpp"
-#include "VulkanHelpers/ColorSpace.hpp"
-#include "VulkanHelpers/PresentMode.hpp"
-#include "VulkanHelpers/PhysicalDeviceLimits.hpp"
-#include "VulkanHelpers/PhysicalDeviceSparseProperties.hpp"
-#include "VulkanHelpers/QueueFamilyProperties.hpp"
-#include "VulkanHelpers/ExtensionSupportCheck.hpp"
-#include "VulkanHelpers/PhysicalDeviceProperties.hpp"
-#include "VulkanHelpers/PhysicalDeviceFeatures.hpp"
-#include "VulkanHelpers/SurfaceFormat.hpp"
-#include "VulkanHelpers/DebugUtilsMessengerCreateInfo.hpp"
-#include "VulkanHelpers/Instance.hpp"
-#include "VulkanHelpers/DebugutilsMessenger.hpp"
-#include "VulkanHelpers/Surface.hpp"
-#include "VulkanHelpers/PhysicalDevice.hpp"
-#include "VulkanHelpers/SurfaceCapabilities.hpp"
-#include "VulkanHelpers/PhysicalDeviceSurfaceInfo.hpp"
-#include "VulkanHelpers/Swapchain.hpp"
-#include "VulkanHelpers/DeviceQueueCreateInfo.hpp"
-#include "VulkanHelpers/PhysicalDeviceSynchronization2Features.hpp"
-#include "VulkanHelpers/DeviceCreateInfo.hpp"
-#include "VulkanHelpers/Device.hpp"
-#include "VulkanHelpers/DeviceQueueInfo.hpp"
-#include "VulkanHelpers/Queue.hpp"
-#include "VulkanHelpers/SwapchainCreateInfo.hpp"
-#include "VulkanHelpers/Image.hpp"
-#include "VulkanHelpers/ImageViewCreateInfo.hpp"
-#include "VulkanHelpers/ImageView.hpp"
-#include "VulkanHelpers/ShaderModuleCreateInfo.hpp"
-#include "VulkanHelpers/ShaderModule.hpp"
-#include "VulkanHelpers/PipelineShaderStageCreateInfo.hpp"
-#include "VulkanHelpers/PipelineDynamicStateCreateInfo.hpp"
-#include "VulkanHelpers/PipelineVertexInputStateCreateInfo.hpp"
-#include "VulkanHelpers/PipelineInputAssemblyStateCreateInfo.hpp"
-#include "VulkanHelpers/Viewport.hpp"
-#include "VulkanHelpers/Rect2D.hpp"
-#include "VulkanHelpers/PipelineViewportStateCreateInfo.hpp"
-#include "VulkanHelpers/PipelineRasterizationStateCreateInfo.hpp"
-#include "VulkanHelpers/PipelineMultisampleStateCreateInfo.hpp"
-#include "VulkanHelpers/PipelineDepthStencilStateCreateInfo.hpp"
-#include "VulkanHelpers/PipelineColorBlendAttachmentState.hpp"
-#include "VulkanHelpers/PipelineColorBlendStateCreateInfo.hpp"
-#include "VulkanHelpers/PipelineLayoutCreateInfo.hpp"
-#include "VulkanHelpers/PipelineLayout.hpp"
-#include "VulkanHelpers/AttachmentDescription.hpp"
-#include "VulkanHelpers/AttachmentReference.hpp"
-#include "VulkanHelpers/SubpassDescription.hpp"
-#include "VulkanHelpers/SubpassDependency.hpp"
-#include "VulkanHelpers/RenderPassCreateInfo.hpp"
-#include "VulkanHelpers/RenderPass.hpp"
-#include "VulkanHelpers/GraphicsPipelineCreateInfo.hpp"
-#include "VulkanHelpers/Pipeline.hpp"
-#include "VulkanHelpers/FramebufferCreateInfo.hpp"
-#include "VulkanHelpers/Framebuffer.hpp"
-#include "VulkanHelpers/CommandPoolCreateInfo.hpp"
-#include "VulkanHelpers/CommandPool.hpp"
-#include "VulkanHelpers/CommandBufferAllocateInfo.hpp"
-#include "VulkanHelpers/CommandBuffer.hpp"
-#include "VulkanHelpers/SemaphoreCreateInfo.hpp"
-#include "VulkanHelpers/FenceCreateInfo.hpp"
-#include "VulkanHelpers/Semaphore.hpp"
-#include "VulkanHelpers/Fence.hpp"
-#include "VulkanHelpers/AcquireNextImageInfo.hpp"
-#include "VulkanHelpers/CommandBufferBeginInfo.hpp"
-#include "VulkanHelpers/ClearValue.hpp"
-#include "VulkanHelpers/RenderPassBeginInfo.hpp"
-#include "VulkanHelpers/SubpassBeginInfo.hpp"
-#include "VulkanHelpers/SubpassEndInfo.hpp"
-#include "VulkanHelpers/CommandBufferSubmitInfo.hpp"
-#include "VulkanHelpers/SemaphoreSubmitInfo.hpp"
-#include "VulkanHelpers/SubmitInfo.hpp"
-#include "VulkanHelpers/PresentInfo.hpp"
+#include "VulkanHelpers/CreateInfos.hpp"
+#include "VulkanHelpers/Flags.hpp"
+#include "VulkanHelpers/Handles.hpp"
+#include "VulkanHelpers/ParameterEnums.hpp"
+#include "VulkanHelpers/ParameterInfos.hpp"
+#include "VulkanHelpers/ParameterStructs.hpp"
 
 // debug callback
 #ifndef NDEBUG
@@ -185,43 +111,15 @@ int main(int argc, char* argv[]) {
     std::clog << "Vulkan header version: " << VK_HEADER_VERSION << std::endl;
 
     Window window;
-    SDL_Event event {};
-    bool running = false;
-    std::unique_ptr<Instance> instance = nullptr;
 #ifndef NDEBUG
-    std::unique_ptr<DebugUtilsMessenger> debugUtilsMessenger = nullptr;
     bool enableValidationLayers = true;
 #else
     bool enableValidationLayers = false;
 #endif
-    std::unique_ptr<Surface> surface = nullptr;
-    VkSurfaceCapabilities2KHR choosenPhysicalDeviceSurfaceCapabilities {};
-    std::unique_ptr<PhysicalDevice> physicalDevice = nullptr;
-    std::optional<uint32_t> queueFamilyIndexWithGraphicsCapabilities = std::nullopt;
-    std::optional<uint32_t> queueFamilyIndexWithPresentCapabilities = std::nullopt;
-    std::unique_ptr<Device> device = nullptr;
-    std::unique_ptr<Queue> graphicsQueue = nullptr;
-    std::unique_ptr<Queue> presentQueue = nullptr;
-    std::unique_ptr<Swapchain> swapChain = nullptr;
-    std::vector<std::unique_ptr<ImageView>> swapChainImageViews {};
-    std::unique_ptr<ShaderModule> vertexShaderModule = nullptr;
-    std::unique_ptr<ShaderModule> fragmentShaderModule = nullptr;
-    std::unique_ptr<PipelineLayout> pipelineLayout = nullptr;
-    std::unique_ptr<RenderPass> renderPass = nullptr;
-    std::unique_ptr<Pipeline> graphicsPipeline = nullptr;
-    std::vector<std::unique_ptr<Framebuffer>> frameBuffers;
-    std::unique_ptr<CommandPool> commandPool = nullptr;
-    std::vector<CommandBuffer> commandBuffers {};
-    std::vector<std::unique_ptr<Semaphore>> imageAvailableSemaphores {};
-    std::vector<std::unique_ptr<Semaphore>> renderFinishedSemaphores {};
-    std::vector<std::unique_ptr<Fence>> inFlightFences {};
-    bool framebufferResized = false;
-
     constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
     auto CleanOnExit = [&](int code) {
         SDL_Quit();
-
         return code;
     };
     
@@ -274,26 +172,23 @@ int main(int argc, char* argv[]) {
 
     #ifndef NDEBUG
         // a pointer to nullptr by default since validation layers may not be enabled so debug utils will not be enabled as well (by default)
+        std::unique_ptr<DebugUtilsMessenger> debugUtilsMessenger = nullptr;
         VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo {};
-
         if (enableValidationLayers) {
             debugUtilsMessengerCreateInfo = GenerateDebugUtilsMessengerCreateInfo(DebugCallback);
         }
 
         auto instanceCreateInfo = GenerateInstanceCreateInfo(&applicationInfo, enabledExtensions, validationLayers, VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR, &debugUtilsMessengerCreateInfo);
+        auto instance = Instance(instanceCreateInfo); // create instance
+        debugUtilsMessenger = std::make_unique<DebugUtilsMessenger>(instance, debugUtilsMessengerCreateInfo); // create the global debug messenger
     #else
         auto instanceCreateInfo = GenerateInstanceCreateInfo(&applicationInfo, enabledExtensions, validationLayers, VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR);
+        auto instance = Instance(instanceCreateInfo); // create instance
     #endif
 
-        instance = std::make_unique<Instance>(instanceCreateInfo); // create instance
+        auto surface = Surface(instance, window); // create the surface from SDL
 
-    #ifndef NDEBUG
-        debugUtilsMessenger = std::make_unique<DebugUtilsMessenger>(*instance, debugUtilsMessengerCreateInfo); // create the global debug messenger
-    #endif
-
-        surface = std::make_unique<Surface>(*instance, window); // create the surface from SDL
-
-        std::vector<PhysicalDevice> physicalDevices = PhysicalDevice::Enumerate(*instance); // enumerate physical devices
+        std::vector<PhysicalDevice> enumeratedPhysicalDevices = PhysicalDevice::Enumerate(instance); // enumerate physical devices
 
         // specify device extensions
         std::vector<char const*> deviceExtensions = {
@@ -307,15 +202,20 @@ int main(int argc, char* argv[]) {
         VkExtent2D swapchainExtent {};
         uint32_t imageCount = 0;
         VkSurfaceTransformFlagBitsKHR currentTransform {};
+        VkSurfaceCapabilities2KHR choosenPhysicalDeviceSurfaceCapabilities {};
+        std::optional<uint32_t> queueFamilyIndexWithGraphicsCapabilities = std::nullopt;
+        std::optional<uint32_t> queueFamilyIndexWithPresentCapabilities = std::nullopt;
+
+        std::unique_ptr<PhysicalDevice> physicalDevice = nullptr;
 
         // enumerate each physical device's properties
         std::ios_base::fmtflags formatFlags = std::clog.flags();
-        for (PhysicalDevice const& pd : physicalDevices) {
-            std::clog << "Physical device found: <VkPhysicalDevice " << pd.Handle() << ">" << std::endl;
+        for (PhysicalDevice const& enumeratedPhysicalDevice : enumeratedPhysicalDevices) {
+            std::clog << "Physical device found: <VkPhysicalDevice " << enumeratedPhysicalDevice.Handle() << ">" << std::endl;
             
-            auto physicalDeviceProperties = GeneratePhysicalDeviceProperties(pd); // get physical device's properties
-            auto physicalDeviceFeatures = GeneratePhysicalDeviceFeatures(pd); // get physical device's features
-            auto physicalDeviceQueueFamilyProperties = EnumerateQueueFamilyProperties(pd); // get physical device's queue family properties
+            auto physicalDeviceProperties = GeneratePhysicalDeviceProperties(enumeratedPhysicalDevice); // get physical device's properties
+            auto physicalDeviceFeatures = GeneratePhysicalDeviceFeatures(enumeratedPhysicalDevice); // get physical device's features
+            auto physicalDeviceQueueFamilyProperties = EnumerateQueueFamilyProperties(enumeratedPhysicalDevice); // get physical device's queue family properties
         
             int queueFamilyIndex = 0;
             std::clog << " - Queue families (count: " << physicalDeviceQueueFamilyProperties.size() << ")" << std::endl;
@@ -325,22 +225,22 @@ int main(int argc, char* argv[]) {
                 }
 
                 // check that the retrieved surface is supported by a specific queue family
-                VkBool32 supportedSurface = surface->IsSupportedByQueueFamily(pd, queueFamilyIndex);
+                VkBool32 supportedSurface = surface.IsSupportedByQueueFamily(enumeratedPhysicalDevice, queueFamilyIndex);
                 if (supportedSurface) {
                     queueFamilyIndexWithPresentCapabilities = queueFamilyIndex;
                 }
             }
 
             // enumerate device extensions
-            auto deviceExtensionsProperties = EnumerateDeviceExtensionProperties(pd); // enumerate device extensions
+            auto deviceExtensionsProperties = EnumerateDeviceExtensionProperties(enumeratedPhysicalDevice); // enumerate device extensions
             bool deviceExtensionsSupported = AreDeviceExtensionsSupported(deviceExtensions, deviceExtensionsProperties);
             
             std::clog << (deviceExtensionsSupported ? "All device extensions are supported" : "Some or all device extensions aren't supported") << std::endl;
 
-            auto physicalDeviceSurfaceInfo = GeneratePhysicalDeviceSurfaceInfo(*surface); // get surface info
-            auto surfaceCapabilities = GenerateSurfaceCapabilities(pd, physicalDeviceSurfaceInfo); // get capabilities of the surface
-            auto surfaceFormats = EnumerateSurfaceFormats(pd, physicalDeviceSurfaceInfo); // get formats of the surface
-            auto presentModes = EnumeratePresentModes(pd, *surface); // get present modes of the surface
+            auto physicalDeviceSurfaceInfo = GeneratePhysicalDeviceSurfaceInfo(surface); // get surface info
+            auto surfaceCapabilities = GenerateSurfaceCapabilities(enumeratedPhysicalDevice, physicalDeviceSurfaceInfo); // get capabilities of the surface
+            auto surfaceFormats = EnumerateSurfaceFormats(enumeratedPhysicalDevice, physicalDeviceSurfaceInfo); // get formats of the surface
+            auto presentModes = EnumeratePresentModes(enumeratedPhysicalDevice, surface); // get present modes of the surface
 
             // check is swapchain has mandatory properties
             bool swapChainIsAdequate = false;
@@ -389,7 +289,7 @@ int main(int argc, char* argv[]) {
             ) {
                 std::clog << "Current physical device selected" << std::endl;
                 choosenPhysicalDeviceSurfaceCapabilities = surfaceCapabilities;
-                physicalDevice = std::make_unique<PhysicalDevice>(pd);
+                physicalDevice = std::make_unique<PhysicalDevice>(enumeratedPhysicalDevice);
             }
         }
         std::clog.flags(formatFlags);
@@ -416,13 +316,13 @@ int main(int argc, char* argv[]) {
         auto physicalDeviceSynchronizationFeature2 = GeneratePhysicalDeviceSynchronization2Features(); // enable synchronization2 feature
 
         auto deviceCreateInfo = GenerateDeviceCreateInfo(queueCreateInfos, deviceExtensions, validationLayers, physicalDeviceFeatures, 0, &physicalDeviceSynchronizationFeature2);
-        device = std::make_unique<Device>(deviceCreateInfo, physicalDevice->Handle()); // create device
+        auto device = Device(deviceCreateInfo, physicalDevice->Handle()); // create device
     
         auto deviceGraphicsQueueInfo = GenerateDeviceQueueInfo(0, queueFamilyIndexWithGraphicsCapabilities.value());
-        graphicsQueue = std::make_unique<Queue>(deviceGraphicsQueueInfo, *device); // get device graphics queue
+        auto graphicsQueue = Queue(deviceGraphicsQueueInfo, device); // get device graphics queue
 
         VkDeviceQueueInfo2 devicePresentQueueInfo = GenerateDeviceQueueInfo(0, queueFamilyIndexWithPresentCapabilities.value());
-        presentQueue = std::make_unique<Queue>(devicePresentQueueInfo, *device); // get device present queue
+        auto presentQueue = Queue(devicePresentQueueInfo, device); // get device present queue
 
         auto swapChainCreateInfo = GenerateSwapchainCreateInfo(
             preferredFormat.surfaceFormat.colorSpace,
@@ -433,31 +333,29 @@ int main(int argc, char* argv[]) {
             imageCount,
             preferredPresentMode,
             currentTransform,
-            *surface
+            surface
         );
-        swapChain = std::make_unique<Swapchain>(swapChainCreateInfo, *device); // create swapchain
+        auto swapChain = Swapchain(swapChainCreateInfo, device); // create swapchain
 
-        std::vector<VkImage> swapChainImages = EnumerateSwapChainImages(*device, *swapChain); // retrieve swap chain images
+        std::vector<VkImage> swapChainImages = EnumerateSwapChainImages(device, swapChain); // retrieve swap chain images
 
-        swapChainImageViews.resize(swapChainImages.size()); // resize swap chain images views
-        commandBuffers.resize(MAX_FRAMES_IN_FLIGHT); // resize command buffers
-
+        std::vector<ImageView> swapChainImageViews;
         for (size_t i = 0; i < swapChainImages.size(); ++i) {
             auto swapChainImageViewCreateInfo = GenerateImageViewCreateInfo(preferredFormat.surfaceFormat.format, swapChainImages[i]);
-            swapChainImageViews[i] = std::make_unique<ImageView>(swapChainImageViewCreateInfo, *device); // create swap chain image view
+            swapChainImageViews.emplace_back(swapChainImageViewCreateInfo, device); // create swap chain image view
         }
         
         std::vector<char> vertexShaderFileBuffer;
         auto vertexShaderModuleCreateInfo = GenerateShaderModuleCreateInfo("resources/shaders/triangle.vertex.spv", vertexShaderFileBuffer);
-        vertexShaderModule = std::make_unique<ShaderModule>(vertexShaderModuleCreateInfo, *device); // create vertex shader module
+        auto vertexShaderModule = ShaderModule(vertexShaderModuleCreateInfo, device); // create vertex shader module
 
         std::vector<char> fragmentShaderFileBuffer;
         auto fragmentShaderModuleCreateInfo = GenerateShaderModuleCreateInfo("resources/shaders/triangle.fragment.spv", fragmentShaderFileBuffer);
-        fragmentShaderModule = std::make_unique<ShaderModule>(fragmentShaderModuleCreateInfo, *device); // create fragment shader module
+        auto fragmentShaderModule = ShaderModule(fragmentShaderModuleCreateInfo, device); // create fragment shader module
         
         std::string shaderMainFunctionName = "main";
-        auto vertexShaderPipelineStageCreateInfo = GeneratePipelineShaderStageCreateInfo(*vertexShaderModule, shaderMainFunctionName, VK_SHADER_STAGE_VERTEX_BIT); // create vertex shader pipeline stage
-        auto fragmentShaderPipelineStageCreateInfo = GeneratePipelineShaderStageCreateInfo(*fragmentShaderModule, shaderMainFunctionName, VK_SHADER_STAGE_FRAGMENT_BIT); // create fragment shader pipeline stage
+        auto vertexShaderPipelineStageCreateInfo = GeneratePipelineShaderStageCreateInfo(vertexShaderModule, shaderMainFunctionName, VK_SHADER_STAGE_VERTEX_BIT); // create vertex shader pipeline stage
+        auto fragmentShaderPipelineStageCreateInfo = GeneratePipelineShaderStageCreateInfo(fragmentShaderModule, shaderMainFunctionName, VK_SHADER_STAGE_FRAGMENT_BIT); // create fragment shader pipeline stage
 
         std::vector<VkPipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos = { vertexShaderPipelineStageCreateInfo, fragmentShaderPipelineStageCreateInfo };
         std::vector<VkDynamicState> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
@@ -466,9 +364,7 @@ int main(int argc, char* argv[]) {
         auto pipelineVertexInputStateCreateInfo = GeneratePipelineVertexInputStateCreateInfo(); // specify pipeline vertex inputs
         auto pipelineInputAssemblyStateCreateInfo = GeneratePipelineInputAssemblyStateCreateInfo(); // specify pipeline input assemblies
         
-        std::vector<VkViewport> viewport = { 
-            GenerateViewport(static_cast<float>(swapchainExtent.width), static_cast<float>(swapchainExtent.height)) // specify viewport
-        };
+        std::vector<VkViewport> viewport = { GenerateViewport(static_cast<float>(swapchainExtent.width), static_cast<float>(swapchainExtent.height)) }; // specify viewport
         std::vector<VkRect2D> scissor = { GenerateRect2D(swapchainExtent) }; // specify scissor
         auto pipelineViewportStateCreateInfo = GeneratePipelineViewportStateCreateInfo(viewport, scissor);
 
@@ -480,14 +376,14 @@ int main(int argc, char* argv[]) {
         auto pipelineColorBlendStateCreateInfo = GeneratePipelineColorBlendStateCreateInfo(pipelineColorBlendAttachmentState);
 
         auto pipelineLayoutCreateInfo = GeneratePipelineLayoutCreateInfo(); // create pipeline layout
-        pipelineLayout = std::make_unique<PipelineLayout>(pipelineLayoutCreateInfo, *device);
+        auto pipelineLayout = PipelineLayout(pipelineLayoutCreateInfo, device);
 
         std::vector<VkAttachmentDescription2> attachmentDescription = { GenerateAttachmentDescription(preferredFormat.surfaceFormat.format) }; // specify attachment description
         std::vector<VkAttachmentReference2> attachmentReference = { GenerateAttachmentReference() }; // create attachment reference
         std::vector<VkSubpassDescription2> subpassDescription = { GenerateSubpassDescription(attachmentReference) }; // specify subpass descriptions
         std::vector<VkSubpassDependency2> subpassDependency = { GenerateSubpassDependency() }; // specify subpass dependencies
         auto renderPassCreateInfo = GenerateRenderPassCreateInfo(attachmentDescription, subpassDependency, subpassDescription);
-        renderPass = std::make_unique<RenderPass>(renderPassCreateInfo, *device);
+        auto renderPass = RenderPass(renderPassCreateInfo, device);
 
         VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = GenerateGraphicsPipelineCreateInfo(
             pipelineDynamicStateCreateInfo,
@@ -497,55 +393,55 @@ int main(int argc, char* argv[]) {
             pipelineRasterizationStateCreateInfo,
             pipelineMultisampleStateCreateInfo,
             pipelineColorBlendStateCreateInfo,
-            *pipelineLayout,
+            pipelineLayout,
             pipelineShaderStageCreateInfos,
-            *renderPass
+            renderPass
         );
-        graphicsPipeline = std::make_unique<Pipeline>(graphicsPipelineCreateInfo, *device); // create graphics pipeline
+        auto graphicsPipeline = Pipeline(graphicsPipelineCreateInfo, device); // create graphics pipeline
 
         // create frame buffers
-        frameBuffers.resize(swapChainImageViews.size());
+        std::vector<Framebuffer> frameBuffers;
         for (size_t i = 0; i < swapChainImageViews.size(); ++i) {
-            std::vector<VkImageView> attachments = { swapChainImageViews[i]->Handle() };
-            auto frameBufferCreateInfo = GenerateFramebufferCreateInfo(swapchainExtent, attachments, *renderPass);
-            frameBuffers[i] = std::make_unique<Framebuffer>(frameBufferCreateInfo, *device); // create frame buffer
+            std::vector<VkImageView> attachments = { swapChainImageViews[i].Handle() };
+            auto frameBufferCreateInfo = GenerateFramebufferCreateInfo(swapchainExtent, attachments, renderPass);
+            frameBuffers.emplace_back(frameBufferCreateInfo, device); // create frame buffer
         }
 
         auto commandPoolCreateInfo = GenerateCommandPoolCreateInfo(queueFamilyIndexWithGraphicsCapabilities.value());
-        commandPool = std::make_unique<CommandPool>(commandPoolCreateInfo, *device); // create command pool
+        auto commandPool = CommandPool(commandPoolCreateInfo, device); // create command pool
 
-        auto commandBufferAllocateInfo = GenerateCommandBufferAllocateInfo(*commandPool, static_cast<uint32_t>(commandBuffers.size())); // create command buffer
-        commandBuffers = AllocateCommandBuffers(commandBufferAllocateInfo, *device);
+        auto commandBuffers = std::vector<CommandBuffer>(MAX_FRAMES_IN_FLIGHT);
+        auto commandBufferAllocateInfo = GenerateCommandBufferAllocateInfo(commandPool, static_cast<uint32_t>(commandBuffers.size())); // create command buffer
+        commandBuffers = AllocateCommandBuffers(commandBufferAllocateInfo, device);
 
         // create synchronization primitive objects
         auto semaphoreCreateInfo = GenerateSemaphoreCreateInfo();
         auto fenceCreateInfo = GenerateFenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT); // signaled on creation to avoid deadlock on the first frame
 
-        imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT); // resize image available semaphores
-        renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT); // resize render finished semaphores
-        inFlightFences.resize(MAX_FRAMES_IN_FLIGHT); // resize fences vectors 
-
+        std::vector<Semaphore> imageAvailableSemaphores {};
+        std::vector<Semaphore> renderFinishedSemaphores {};
+        std::vector<Fence> inFlightFences {};
         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-            imageAvailableSemaphores[i] = std::make_unique<Semaphore>(semaphoreCreateInfo, *device);
-            renderFinishedSemaphores[i] = std::make_unique<Semaphore>(semaphoreCreateInfo, *device);
-            inFlightFences[i] = std::make_unique<Fence>(fenceCreateInfo, *device);
+            imageAvailableSemaphores.emplace_back(semaphoreCreateInfo, device);
+            renderFinishedSemaphores.emplace_back(semaphoreCreateInfo, device);
+            inFlightFences.emplace_back(fenceCreateInfo, device);
         }
 
-        running = true;
+        // main loop variables
+        SDL_Event event {};
+        bool running = true;
         uint32_t frameIndex = 0;
         uint32_t imageIndex = 0;
-        while (running) {
-            Semaphore& acquireSemaphore = *imageAvailableSemaphores[frameIndex];
-            Semaphore& submitSemaphore = *renderFinishedSemaphores[frameIndex];
-            Fence& frameFence = *inFlightFences[frameIndex];
-            CommandBuffer& commandBuffer = commandBuffers[frameIndex];
+        bool framebufferResized = false;
 
-            VkResult waitForFencesResult = vkWaitForFences(device->Handle(), 1, frameFence.HandleAddress(), VK_TRUE, UINT64_MAX);
-            if (waitForFencesResult != VK_SUCCESS) {
-                std::cerr << "Could not wait for fences (status: " << waitForFencesResult << ")" << std::endl;
-                CleanOnExit(EXIT_FAILURE);
-            }
-            //std::clog << "Waited for fences successfully" << std::endl;
+        while (running) {
+            Semaphore& acquireSemaphore = imageAvailableSemaphores[frameIndex];
+            Semaphore& submitSemaphore = renderFinishedSemaphores[frameIndex];
+            Fence& frameFence = inFlightFences[frameIndex];
+            CommandBuffer& commandBuffer = commandBuffers[frameIndex];
+            std::vector<VkFence> fencesToResetAndWaitFor = { frameFence.Handle() };
+            
+            WaitForFences(device, fencesToResetAndWaitFor);
 
             while (SDL_PollEvent(&event)) {
                 if (event.type == SDL_EVENT_QUIT) {
@@ -558,9 +454,8 @@ int main(int argc, char* argv[]) {
                 }
             }
 
-            auto acquireNextImageInfo = GenerateAcquireNextImageInfo(*swapChain, &acquireSemaphore);
-            VkResult acquireNextImageResult = vkAcquireNextImage2KHR(device->Handle(), &acquireNextImageInfo, &imageIndex); // acquire next frame
-            //std::clog << "Image acquired: " << acquireNextImageResult << std::endl;
+            auto acquireNextImageInfo = GenerateAcquireNextImageInfo(swapChain, &acquireSemaphore);
+            VkResult acquireNextImageResult = vkAcquireNextImage2KHR(device.Handle(), &acquireNextImageInfo, &imageIndex); // acquire next frame
             if (
                 acquireNextImageResult == VK_ERROR_OUT_OF_DATE_KHR ||
                 acquireNextImageResult == VK_SUBOPTIMAL_KHR ||
@@ -574,26 +469,20 @@ int main(int argc, char* argv[]) {
                 /// TODO: CODE AT THE END OF THIS FILE IS SUPPOSED TO BE HERE
             }
 
-            /// TODO: Add this call to the Fence object somehow (static method maybe ?)
-            VkResult resetFencesResult = vkResetFences(device->Handle(), 1, frameFence.HandleAddress());
-            if (resetFencesResult != VK_SUCCESS) {
-                std::cerr << "Could not reset fences (status: " << resetFencesResult << ")" << std::endl;
-                CleanOnExit(EXIT_FAILURE);
-            }
-            //std::clog << "Reset fences successfully" << std::endl;
-            
+            ResetFences(device, fencesToResetAndWaitFor);
+
             commandBuffer.Reset(0);
  
-            auto commandBufferBeginInfo = GenerateCommandBufferBeginInfo(); 
+            auto commandBufferBeginInfo = GenerateCommandBufferBeginInfo();
             commandBuffer.Begin(commandBufferBeginInfo); // begin command buffer recording
-                     
+
             std::vector<VkClearValue> clearValue = { GenerateClearValue() };
             auto renderPassBeginInfoRenderArea = GenerateRect2D(swapchainExtent);
-            VkRenderPassBeginInfo renderPassBeginInfo = GenerateRenderPassBeginInfo(*renderPass, *frameBuffers[frameIndex], clearValue, renderPassBeginInfoRenderArea);
+            VkRenderPassBeginInfo renderPassBeginInfo = GenerateRenderPassBeginInfo(renderPass, frameBuffers[frameIndex], clearValue, renderPassBeginInfoRenderArea);
             auto subpassBeginInfo = GenerateSubpassBeginInfo();
             commandBuffer.BeginRenderPass(renderPassBeginInfo, subpassBeginInfo); // begin render pass
 
-            commandBuffer.BindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, *graphicsPipeline);
+            commandBuffer.BindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
         
             // set dynamic states
             commandBuffer.SetViewport(0, 1, viewport);
@@ -613,35 +502,27 @@ int main(int argc, char* argv[]) {
             std::vector<VkSemaphore> waitSemaphores = { acquireSemaphore.Handle() };
 
             VkSubmitInfo2 submitInfo = GenerateSumbitInfo(commandBufferSubmitInfo, signalSemaphoreSubmitInfo, waitSemaphoreSubmitInfo);
-            VkResult queueSubmitResult = vkQueueSubmit2(graphicsQueue->Handle(), 1, &submitInfo, frameFence.Handle()); // submit command buffer to the queue
+            VkResult queueSubmitResult = vkQueueSubmit2(graphicsQueue.Handle(), 1, &submitInfo, frameFence.Handle()); // submit command buffer to the queue
             if (queueSubmitResult != VK_SUCCESS) {
                 std::cerr << "Unable to submit to queue (status " << queueSubmitResult << ")" << std::endl;
                 CleanOnExit(EXIT_FAILURE);
             }
-            // std::clog << "Submitted to queue successfully" << std::endl;
 
             std::vector<uint32_t> imageIndices = { imageIndex };
-            std::vector<VkSwapchainKHR> swapChains = { swapChain->Handle() };
+            std::vector<VkSwapchainKHR> swapChains = { swapChain.Handle() };
 
             VkPresentInfoKHR presentInfo = GeneratePresentInfo(imageIndices, swapChains, signalSemaphores);
-            VkResult queuePresentResult = vkQueuePresentKHR(presentQueue->Handle(), &presentInfo); // present
+            VkResult queuePresentResult = vkQueuePresentKHR(presentQueue.Handle(), &presentInfo); // present
             if (queuePresentResult != VK_SUCCESS) {
                 std::cerr << "Unable to present image with queue (status: " << queuePresentResult << ")" << std::endl;
                 CleanOnExit(EXIT_FAILURE);
             }
-            //std::clog << "Image presented" << std::endl;
             
             // cap frame index to MAX_FRAMES_IN_FLIGHT
             frameIndex = (frameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
         }
 
-        // wait for device to be idle
-        VkResult deviceWaitIdleResult = vkDeviceWaitIdle(device->Handle());
-        if (deviceWaitIdleResult != VK_SUCCESS) {
-            std::cerr << "Unable to wait for idleing of the device (status: " << deviceWaitIdleResult << ")" << std::endl;
-            CleanOnExit(EXIT_FAILURE);
-        }
-        std::clog << "Device is now idle" << std::endl;
+        device.WaitIdle(); // wait for device to be idle
     }
 
     catch (std::exception const& err) {
