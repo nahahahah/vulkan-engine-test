@@ -7,7 +7,7 @@ DebugUtilsMessenger::DebugUtilsMessenger(Instance const& instance, VkDebugUtilsM
         throw std::runtime_error(error);
     }
 
-    VkResult result = CreateDebugUtilsMessengerEXT(instance.Handle(), &createInfo, VK_NULL_HANDLE, &_handle);
+    VkResult result = CreateDebugUtilsMessengerEXT(_instance.Handle(), &createInfo, VK_NULL_HANDLE, &_handle);
     if (result != VK_SUCCESS) {
         std::string error = "Unable to create a debug utils messenger (status: " + std::to_string(result) + ")";
         throw std::runtime_error(error);
