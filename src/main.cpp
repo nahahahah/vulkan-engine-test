@@ -153,7 +153,7 @@ int main(int argc, char* argv[]) {
             enabledExtensions.emplace_back(enabledExtensionsArray[i]);
         }
 
-        enabledExtensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME); // for MacOS, to avoid VK_ERROR_INCOMPATIBLE_DRIVER on vkCreateInstance
+        //enabledExtensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME); // for MacOS, to avoid VK_ERROR_INCOMPATIBLE_DRIVER on vkCreateInstance
         enabledExtensions.emplace_back("VK_KHR_get_surface_capabilities2");
         if (enableValidationLayers) {
             enabledExtensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -196,7 +196,8 @@ int main(int argc, char* argv[]) {
             debugUtilsMessenger = std::make_unique<DebugUtilsMessenger>(instance, debugUtilsMessengerCreateInfo); // create the global debug messenger
         }
     #else
-        auto instanceCreateInfo = GenerateInstanceCreateInfo(&applicationInfo, enabledExtensions, validationLayers, VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR);
+        //auto instanceCreateInfo = GenerateInstanceCreateInfo(&applicationInfo, enabledExtensions, validationLayers, VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR);
+        auto instanceCreateInfo = GenerateInstanceCreateInfo(&applicationInfo, enabledExtensions, validationLayers);
         auto instance = Instance(instanceCreateInfo); // create instance
     #endif
 
@@ -506,7 +507,7 @@ int main(int argc, char* argv[]) {
             commandBuffer.SetViewport(0, 1, viewport);
             commandBuffer.SetScissor(0, 1, scissor);
 
-            commandBuffer.Draw(6, 1, 0, 0);
+            commandBuffer.Draw(3, 1, 0, 0);
 
             auto subpassEndInfo = GenerateSubpassEndInfo();
             commandBuffer.EndRenderPass(subpassEndInfo); // end render pass

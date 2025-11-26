@@ -12,14 +12,14 @@ VkPresentInfoKHR GeneratePresentInfo(
     // structure type
     infos.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
-    // image indices
+    // image indices (probably uses the same array size as swapChains)
     infos.pImageIndices = imageIndices.data();
     
     // swapchains
     infos.swapchainCount = static_cast<uint32_t>(swapChains.size());
     infos.pSwapchains = swapChains.data();
 
-    // results
+    // results (same comment as image indices regarding the size of this array)
     infos.pResults = results.data();
 
     // wait semaphores
