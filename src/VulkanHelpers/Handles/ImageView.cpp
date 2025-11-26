@@ -18,7 +18,6 @@ ImageView::ImageView(ImageView&& other) : _device(other._device) {
 
 ImageView::~ImageView() {
     if (_handle != VK_NULL_HANDLE) {
-        std::clog << "Destroying image view " << _handle << std::endl;
         vkDestroyImageView(_device.Handle(), _handle, VK_NULL_HANDLE);
         std::clog << "Image view destroyed successfully" << std::endl;
         _handle = VK_NULL_HANDLE;

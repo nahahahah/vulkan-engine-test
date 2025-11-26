@@ -12,6 +12,7 @@ DebugUtilsMessenger::DebugUtilsMessenger(Instance const& instance, VkDebugUtilsM
         std::string error = "Unable to create a debug utils messenger (status: " + std::to_string(result) + ")";
         throw std::runtime_error(error);
     }
+    std::clog << "Debug utils messenger created successfully: <VkDebugUtilsMessengerEXT " << _handle << ">" << std::endl;
 }
 
 DebugUtilsMessenger::~DebugUtilsMessenger() {
@@ -19,7 +20,7 @@ DebugUtilsMessenger::~DebugUtilsMessenger() {
         // destroy debug messenger
         auto DestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)(vkGetInstanceProcAddr(_instance.Handle(), "vkDestroyDebugUtilsMessengerEXT"));
         if (DestroyDebugUtilsMessengerEXT == VK_NULL_HANDLE) {
-            std::cerr << "Unable to get instance process address for vkCreateDebugUtilsMessengerEXT" << std::endl;
+            std::cerr << "Unable to get instance process address for vkDestroyDebugUtilsMessengerEXT" << std::endl;
         }
 
         else {

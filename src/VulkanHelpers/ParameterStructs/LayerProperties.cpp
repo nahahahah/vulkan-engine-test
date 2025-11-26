@@ -7,7 +7,7 @@ std::vector<VkLayerProperties> EnumerateLayerProperties() {
         std::string error = "Unable to enumerate instance layer properties (1st call, status: " + std::to_string(result) + ")";
         throw std::runtime_error(error);
     }
-    std::clog << "Instance layer properties enumerated successfully (1st call, count: " << count << ")" << std::endl;
+    //std::clog << "Instance layer properties enumerated successfully (1st call, count: " << count << ")" << std::endl;
     
     std::vector<VkLayerProperties> properties(count, VkLayerProperties {});
     result = vkEnumerateInstanceLayerProperties(&count, properties.data());
@@ -15,7 +15,7 @@ std::vector<VkLayerProperties> EnumerateLayerProperties() {
         std::string error = "Unable to enumerate instance layer properties (2nd call, status: " + std::to_string(result) + ")";
         throw std::runtime_error(error);
     }
-    std::clog << "Instance layer properties enumerated successfully (2nd call, retrieved in array)" << std::endl;
+    //std::clog << "Instance layer properties enumerated successfully (2nd call, retrieved in array)" << std::endl;
 
     return properties;
 }

@@ -7,7 +7,7 @@ std::vector<VkPresentModeKHR> EnumeratePresentModes(PhysicalDevice const& physic
 		std::string error = "Could not get physical device surface present modes (1st call, status: " + std::to_string(result) + ")";
 		throw std::runtime_error(error);
 	}
-	std::clog << "Physical device surface present modes retrieved successfully (1st call, count: " << count << ")" << std::endl;
+	//std::clog << "Physical device surface present modes retrieved successfully (1st call, count: " << count << ")" << std::endl;
 
 	if (count == 0) {
 		std::string error = "No present modes found";
@@ -20,7 +20,7 @@ std::vector<VkPresentModeKHR> EnumeratePresentModes(PhysicalDevice const& physic
 		std::string error = "Could not get physical device surface present modes (2nd call, status: " + std::to_string(result) + ")";
 		throw std::runtime_error(error);
 	}
-	std::clog << "Physical device surface present modes retrieved successfully (2nd call, retrieved in array)" << std::endl;
+	//std::clog << "Physical device surface present modes retrieved successfully (2nd call, retrieved in array)" << std::endl;
 
 	return presentModes;
 }

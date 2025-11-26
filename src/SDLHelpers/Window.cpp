@@ -24,9 +24,8 @@ Window::Window() {
 
 Window::~Window() {
     if (_handle != nullptr) {
-        std::clog << "Destroying Window at address 0x" << _handle << std::endl;
         SDL_DestroyWindow(_handle);
         _handle = nullptr;
-        std::clog << "Window destroyed" << std::endl;
+        std::clog << "Window destroyed successfully" << std::endl;
     }
 }

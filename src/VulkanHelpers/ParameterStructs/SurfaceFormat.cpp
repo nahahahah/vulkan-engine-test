@@ -17,7 +17,7 @@ std::vector<VkSurfaceFormat2KHR> EnumerateSurfaceFormats(PhysicalDevice const& p
         std::string error = "Could not get physical device surface formats (1st call, status: " + std::to_string(result) + ")";
         throw std::runtime_error(error);
     }
-    std::clog << "Physical device surface formats retrieved successfully (1st call, count: " << count << ")" << std::endl;
+    //std::clog << "Physical device surface formats retrieved successfully (1st call, count: " << count << ")" << std::endl;
 
     if (count == 0) {
         std::string error = "No surface formats found";
@@ -31,7 +31,7 @@ std::vector<VkSurfaceFormat2KHR> EnumerateSurfaceFormats(PhysicalDevice const& p
         std::string error = "Could not get physical device surface formats (2nd call, status: " + std::to_string(result) + ")";
         throw std::runtime_error(error);
     }
-    std::clog << "Physical device surface formats retrieved successfully (2nd call, retrieved in array)" << std::endl;
+    //std::clog << "Physical device surface formats retrieved successfully (2nd call, retrieved in array)" << std::endl;
 
     return formats;
 }

@@ -21,7 +21,7 @@ class CommandBuffer {
         VkCommandBuffer Handle() { return _handle; }
         VkCommandBuffer Handle() const { return _handle; }
 
-        void Reset(VkCommandBufferResetFlags flags);
+        void Reset(VkCommandBufferResetFlags flags = 0);
         void Begin(VkCommandBufferBeginInfo const& beginInfo);
         void BeginRenderPass(VkRenderPassBeginInfo const& renderPassBeginInfo, VkSubpassBeginInfo const& subpassBeginInfo);
         void BindPipeline(VkPipelineBindPoint bindpoint, Pipeline const& pipeline);

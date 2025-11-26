@@ -12,7 +12,7 @@ VkSurfaceCapabilities2KHR GenerateSurfaceCapabilities(PhysicalDevice const& phys
         std::string error = "Could not get physical device surface capabilities (status: " + std::to_string(result) + ")";
         throw std::runtime_error(error);
     }
-    std::clog << "Physical device surface capabilities retrieved successfully" << std::endl;
+    //std::clog << "Physical device surface capabilities retrieved successfully" << std::endl;
 
     return capabilities;
 }

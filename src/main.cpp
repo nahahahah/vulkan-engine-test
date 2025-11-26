@@ -134,8 +134,10 @@ int main(int argc, char* argv[]) {
         auto applicationInfo = GenerateApplicationInfo(); // create application info
         std::vector<char const*> validationLayers = { "VK_LAYER_KHRONOS_validation" }; // validation layers to use
         auto instanceLayersProperties = EnumerateLayerProperties(); // enumerate instance layers properties
+        /*
         std::clog << "Instance layers properties:" << std::endl;
         std::clog << instanceLayersProperties << std::endl; // display instance layers properties 
+        */
 
         bool validationLayersSupported = AreValidationLayerSupported(validationLayers, instanceLayersProperties); // check validation layers support and enable them if available
         if (enableValidationLayers && !validationLayersSupported) {
@@ -157,30 +159,42 @@ int main(int argc, char* argv[]) {
             enabledExtensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         }
 
+        /*
         std::clog << "Enabled extensions count retrieved successfully from SDL_Vulkan_GetInstanceExtensions (count: " << enabledExtensions.size() << ")" << std::endl;
         std::clog << "Enabled extensions:" << std::endl;
         for (const char* enabledExtension : enabledExtensions) {
             std::clog << " - " << enabledExtension << std::endl;
         }
+        */
 
         auto instanceExtensionsProperties = EnumerateInstanceExtensionProperties();
 
+        /*
         std::clog << "Instance extensions:" << std::endl;
         std::clog << instanceExtensionsProperties << std::endl;
+        */
 
         DisplaySupportedExtensionsFromSDLVulkan(enabledExtensions, instanceExtensionsProperties);
 
     #ifndef NDEBUG
-        // a pointer to nullptr by default since validation layers may not be enabled so debug utils will not be enabled as well (by default)
-        std::unique_ptr<DebugUtilsMessenger> debugUtilsMessenger = nullptr;
+        VkInstanceCreateInfo instanceCreateInfo {};
         VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo {};
         if (enableValidationLayers) {
             debugUtilsMessengerCreateInfo = GenerateDebugUtilsMessengerCreateInfo(DebugCallback);
+            instanceCreateInfo = GenerateInstanceCreateInfo(&applicationInfo, enabledExtensions, validationLayers, VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR, &debugUtilsMessengerCreateInfo);
         }
 
-        auto instanceCreateInfo = GenerateInstanceCreateInfo(&applicationInfo, enabledExtensions, validationLayers, VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR, &debugUtilsMessengerCreateInfo);
+        else  {
+            instanceCreateInfo = GenerateInstanceCreateInfo(&applicationInfo, enabledExtensions, validationLayers, VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR);
+        }
+        
         auto instance = Instance(instanceCreateInfo); // create instance
-        debugUtilsMessenger = std::make_unique<DebugUtilsMessenger>(instance, debugUtilsMessengerCreateInfo); // create the global debug messenger
+        
+        // a pointer to nullptr by default since validation layers may not be enabled so debug utils will not be enabled as well (by default)
+        std::unique_ptr<DebugUtilsMessenger> debugUtilsMessenger = nullptr;
+        if (enableValidationLayers) {
+            debugUtilsMessenger = std::make_unique<DebugUtilsMessenger>(instance, debugUtilsMessengerCreateInfo); // create the global debug messenger
+        }
     #else
         auto instanceCreateInfo = GenerateInstanceCreateInfo(&applicationInfo, enabledExtensions, validationLayers, VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR);
         auto instance = Instance(instanceCreateInfo); // create instance
@@ -211,14 +225,14 @@ int main(int argc, char* argv[]) {
         // enumerate each physical device's properties
         std::ios_base::fmtflags formatFlags = std::clog.flags();
         for (PhysicalDevice const& enumeratedPhysicalDevice : enumeratedPhysicalDevices) {
-            std::clog << "Physical device found: <VkPhysicalDevice " << enumeratedPhysicalDevice.Handle() << ">" << std::endl;
+            //std::clog << "Physical device found: <VkPhysicalDevice " << enumeratedPhysicalDevice.Handle() << ">" << std::endl;
             
             auto physicalDeviceProperties = GeneratePhysicalDeviceProperties(enumeratedPhysicalDevice); // get physical device's properties
             auto physicalDeviceFeatures = GeneratePhysicalDeviceFeatures(enumeratedPhysicalDevice); // get physical device's features
             auto physicalDeviceQueueFamilyProperties = EnumerateQueueFamilyProperties(enumeratedPhysicalDevice); // get physical device's queue family properties
         
             int queueFamilyIndex = 0;
-            std::clog << " - Queue families (count: " << physicalDeviceQueueFamilyProperties.size() << ")" << std::endl;
+            //std::clog << " - Queue families (count: " << physicalDeviceQueueFamilyProperties.size() << ")" << std::endl;
             for (VkQueueFamilyProperties2 const& queueFamilyProperties : physicalDeviceQueueFamilyProperties) {
                 if (queueFamilyProperties.queueFamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
                     queueFamilyIndexWithGraphicsCapabilities = queueFamilyIndex; 
@@ -234,8 +248,7 @@ int main(int argc, char* argv[]) {
             // enumerate device extensions
             auto deviceExtensionsProperties = EnumerateDeviceExtensionProperties(enumeratedPhysicalDevice); // enumerate device extensions
             bool deviceExtensionsSupported = AreDeviceExtensionsSupported(deviceExtensions, deviceExtensionsProperties);
-            
-            std::clog << (deviceExtensionsSupported ? "All device extensions are supported" : "Some or all device extensions aren't supported") << std::endl;
+            //std::clog << (deviceExtensionsSupported ? "All device extensions are supported" : "Some or all device extensions aren't supported") << std::endl;
 
             auto physicalDeviceSurfaceInfo = GeneratePhysicalDeviceSurfaceInfo(surface); // get surface info
             auto surfaceCapabilities = GenerateSurfaceCapabilities(enumeratedPhysicalDevice, physicalDeviceSurfaceInfo); // get capabilities of the surface
@@ -287,7 +300,8 @@ int main(int argc, char* argv[]) {
             && deviceExtensionsSupported
             && swapChainIsAdequate
             ) {
-                std::clog << "Current physical device selected" << std::endl;
+                std::clog << "Physical device selected successfully: <VkPhysicalDevice " << enumeratedPhysicalDevice.Handle() << ">" << std::endl;
+                //std::clog << "Current physical device selected" << std::endl;
                 choosenPhysicalDeviceSurfaceCapabilities = surfaceCapabilities;
                 physicalDevice = std::make_unique<PhysicalDevice>(enumeratedPhysicalDevice);
             }
@@ -419,30 +433,29 @@ int main(int argc, char* argv[]) {
         auto fenceCreateInfo = GenerateFenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT); // signaled on creation to avoid deadlock on the first frame
 
         std::vector<Semaphore> imageAvailableSemaphores {};
-        std::vector<Semaphore> renderFinishedSemaphores {};
         std::vector<Fence> inFlightFences {};
         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
             imageAvailableSemaphores.emplace_back(semaphoreCreateInfo, device);
-            renderFinishedSemaphores.emplace_back(semaphoreCreateInfo, device);
             inFlightFences.emplace_back(fenceCreateInfo, device);
+        }
+
+        std::vector<Semaphore> renderFinishedSemaphores {};
+        for (int i = 0; i < swapChainImages.size(); ++i) {
+            renderFinishedSemaphores.emplace_back(semaphoreCreateInfo, device);
         }
 
         // main loop variables
         SDL_Event event {};
         bool running = true;
         uint32_t frameIndex = 0;
-        uint32_t imageIndex = 0;
         bool framebufferResized = false;
 
         while (running) {
-            Semaphore& acquireSemaphore = imageAvailableSemaphores[frameIndex];
-            Semaphore& submitSemaphore = renderFinishedSemaphores[frameIndex];
             Fence& frameFence = inFlightFences[frameIndex];
-            CommandBuffer& commandBuffer = commandBuffers[frameIndex];
             std::vector<VkFence> fencesToResetAndWaitFor = { frameFence.Handle() };
-            
             WaitForFences(device, fencesToResetAndWaitFor);
-
+            ResetFences(device, fencesToResetAndWaitFor);
+            
             while (SDL_PollEvent(&event)) {
                 if (event.type == SDL_EVENT_QUIT) {
                     running = false;
@@ -454,6 +467,10 @@ int main(int argc, char* argv[]) {
                 }
             }
 
+            uint32_t imageIndex = 0;
+            Semaphore& acquireSemaphore = imageAvailableSemaphores[frameIndex];
+            CommandBuffer& commandBuffer = commandBuffers[frameIndex];
+        
             auto acquireNextImageInfo = GenerateAcquireNextImageInfo(swapChain, &acquireSemaphore);
             VkResult acquireNextImageResult = vkAcquireNextImage2KHR(device.Handle(), &acquireNextImageInfo, &imageIndex); // acquire next frame
             if (
@@ -469,9 +486,9 @@ int main(int argc, char* argv[]) {
                 /// TODO: CODE AT THE END OF THIS FILE IS SUPPOSED TO BE HERE
             }
 
-            ResetFences(device, fencesToResetAndWaitFor);
+            Semaphore& submitSemaphore = renderFinishedSemaphores[imageIndex];
 
-            commandBuffer.Reset(0);
+            commandBuffer.Reset();
  
             auto commandBufferBeginInfo = GenerateCommandBufferBeginInfo();
             commandBuffer.Begin(commandBufferBeginInfo); // begin command buffer recording
@@ -488,7 +505,7 @@ int main(int argc, char* argv[]) {
             commandBuffer.SetViewport(0, 1, viewport);
             commandBuffer.SetScissor(0, 1, scissor);
 
-            commandBuffer.Draw(3, 1, 0, 0);
+            commandBuffer.Draw(6, 1, 0, 0);
 
             auto subpassEndInfo = GenerateSubpassEndInfo();
             commandBuffer.EndRenderPass(subpassEndInfo); // end render pass
