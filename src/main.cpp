@@ -486,6 +486,7 @@ int main(int argc, char* argv[]) {
                 /// TODO: CODE AT THE END OF THIS FILE IS SUPPOSED TO BE HERE
             }
 
+            // REALLY IMPORTANT: USE SWAPCHAIN IMAGE INDEX RETRIEVE FROM ANI TO PROPERLY RE-USE SEMAPHORES
             Semaphore& submitSemaphore = renderFinishedSemaphores[imageIndex];
 
             commandBuffer.Reset();
