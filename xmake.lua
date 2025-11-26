@@ -38,6 +38,9 @@ target("vulkan_test")
 
     set_rundir(".")
 
+    set_configdir("$(builddir)/$(plat)/$(arch)/$(mode)")
+    add_configfiles("resources/shaders/*", { onlycopy = true, prefixdir = "resources/shaders" })
+
     set_installdir("$(builddir)/$(plat)/$(arch)/$(mode)/")
     add_installfiles("resources/shaders/*", { prefixdir = "bin/resources/shaders" })
 
