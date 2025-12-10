@@ -166,7 +166,8 @@ int main(int argc, char* argv[]) {
 #else
     bool enableValidationLayers = false;
 #endif
-    constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+    constexpr int MAX_FRAMES_IN_FLIGHT = 4;
+    uint frames_counter = 0;
 
     auto CleanOnExit = [&](int code) {
         SDL_Quit();
@@ -216,6 +217,7 @@ int main(int argc, char* argv[]) {
             std::clog << " - " << enabledExtension << std::endl;
         }
         */
+
 
         auto instanceExtensionsProperties = EnumerateInstanceExtensionProperties();
 
@@ -343,8 +345,7 @@ int main(int argc, char* argv[]) {
 
             // check if device is suitable
             if (std::string deviceName = std::string(physicalDeviceProperties.properties.deviceName);
-                physicalDeviceProperties.properties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
-            && deviceName.find("Microsoft Direct3D") == std::string::npos
+            deviceName.find("Microsoft Direct3D") == std::string::npos
             && physicalDeviceFeatures.features.geometryShader
             && queueFamilyIndexWithGraphicsCapabilities.has_value()
             && queueFamilyIndexWithPresentCapabilities.has_value()
@@ -367,14 +368,14 @@ int main(int argc, char* argv[]) {
 
         /// TODO: IMPLEMENT THESE LAMBDAS CORRECTLY TO BE USED AS PREDICATE FOR FUTURE IMPLEMENTATION OF ISSUITABLE()
         // user defined so that the user can choose specifically which format to use
-        auto selectPreferredSurfaceFormat = [&physicalDevice, &surface]() -> bool {
-            return true;
-        };
+        //auto selectPreferredSurfaceFormat = [&physicalDevice, &surface]() -> bool {
+        //    return true;
+        //};
 
         // user defined so that the user can choose specifically which present mode to use
-        auto selectPreferredPresentMode = [&physicalDevice, &surface]() -> bool {
-            return true;
-        };
+        //auto selectPreferredPresentMode = [&physicalDevice, &surface]() -> bool {
+        //    return true;
+        //};
 
         // specify queues create info
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos {}; 
@@ -511,8 +512,17 @@ int main(int argc, char* argv[]) {
         bool running = true;
         uint32_t frameIndex = 0;
         bool framebufferResized = false;
+        uint last_tick_number = SDL_GetTicks();
+        while (running)
+        {
+            frames_counter++;
 
-        while (running) {
+            if (SDL_GetTicks() > last_tick_number + 1000) {
+                std::clog << "FPS: " << frames_counter << std::endl;
+                frames_counter = 0;
+                last_tick_number = SDL_GetTicks();
+            }
+
             Fence& frameFence = inFlightFences[frameIndex];
             std::vector<VkFence> fencesToResetAndWaitFor = { frameFence.Handle() };
             WaitForFences(device, fencesToResetAndWaitFor);
