@@ -134,20 +134,20 @@ void HandleFrameInvalidity(
     std::cout << swapchainCreateInfo.imageExtent.width << "x" << swapchainCreateInfo.imageExtent.height << std::endl;
 
     auto physicalDeviceSurfaceInfo = GeneratePhysicalDeviceSurfaceInfo(surface); // get surface info
-    auto physicalDeviceSurfaceCapabilities = physicalDevice.SurfaceCapabilities(physicalDeviceSurfaceInfo);
-    auto surfaceFormats = physicalDevice.SurfaceFormats(physicalDeviceSurfaceInfo); // get formats of the surface
-    auto presentModes = physicalDevice.PresentModes(surface); // get present modes of the surface
+    physicalDevice.SurfaceCapabilities(physicalDeviceSurfaceInfo);
+    physicalDevice.SurfaceFormats(physicalDeviceSurfaceInfo); // get formats of the surface
+    physicalDevice.PresentModes(surface); // get present modes of the surface
 
     swapchain.CreateHandle(swapchainCreateInfo);
 
     swapchainImages = EnumerateSwapChainImages(device, swapchain);
 
-    for (int i = 0; i < swapchainImages.size(); ++i) {
+    for (int i = 0; i < static_cast<int>(swapchainImages.size()); ++i) {
         auto swapchainImageViewCreateInfo = GenerateImageViewCreateInfo(imageFormat, swapchainImages[i]);
         swapchainImageViews[i].CreateHandle(swapchainImageViewCreateInfo);
     }
 
-    for (size_t i = 0; i < swapchainImageViews.size(); ++i) {
+    for (int i = 0; i < static_cast<int>(swapchainImageViews.size()); ++i) {
         std::vector<VkImageView> attachments = { swapchainImageViews[i].Handle() };
         auto frameBufferCreateInfo = GenerateFramebufferCreateInfo(swapchainCreateInfo.imageExtent, attachments, renderPass);
         framebuffers[i].CreateHandle(frameBufferCreateInfo);
@@ -368,12 +368,12 @@ int main(int argc, char* argv[]) {
         /// TODO: IMPLEMENT THESE LAMBDAS CORRECTLY TO BE USED AS PREDICATE FOR FUTURE IMPLEMENTATION OF ISSUITABLE()
         // user defined so that the user can choose specifically which format to use
         auto selectPreferredSurfaceFormat = [&physicalDevice, &surface]() -> bool {
-            
+            return true;
         };
 
         // user defined so that the user can choose specifically which present mode to use
         auto selectPreferredPresentMode = [&physicalDevice, &surface]() -> bool {
-
+            return true;
         };
 
         // specify queues create info
@@ -477,7 +477,7 @@ int main(int argc, char* argv[]) {
 
         // create frame buffers
         std::vector<Framebuffer> framebuffers;
-        for (size_t i = 0; i < swapchainImageViews.size(); ++i) {
+        for (int i = 0; i < static_cast<int>(swapchainImageViews.size()); ++i) {
             std::vector<VkImageView> attachments = { swapchainImageViews[i].Handle() };
             auto frameBufferCreateInfo = GenerateFramebufferCreateInfo(swapchainExtent, attachments, renderPass);
             framebuffers.emplace_back(frameBufferCreateInfo, device); // create frame buffer
@@ -502,7 +502,7 @@ int main(int argc, char* argv[]) {
         }
 
         std::vector<Semaphore> renderFinishedSemaphores {};
-        for (int i = 0; i < swapchainImages.size(); ++i) {
+        for (int i = 0; i < static_cast<int>(swapchainImages.size()); ++i) {
             renderFinishedSemaphores.emplace_back(semaphoreCreateInfo, device);
         }
 
@@ -515,7 +515,7 @@ int main(int argc, char* argv[]) {
         while (running) {
             Fence& frameFence = inFlightFences[frameIndex];
             std::vector<VkFence> fencesToResetAndWaitFor = { frameFence.Handle() };
-            WaitForFences(device, fencesToResetAndWaitFor);            
+            WaitForFences(device, fencesToResetAndWaitFor);
 
             uint32_t imageIndex = 0;
             Semaphore& acquireSemaphore = imageAvailableSemaphores[frameIndex];
