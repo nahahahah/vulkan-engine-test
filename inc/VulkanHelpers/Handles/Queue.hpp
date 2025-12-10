@@ -21,4 +21,4 @@ class Queue {
         VkQueue _handle = VK_NULL_HANDLE;
 };
 
-#endif VK_WRAPPER_QUEUE_HPP
+#endif // VK_WRAPPER_QUEUE_HPP
