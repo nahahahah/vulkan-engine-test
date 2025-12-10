@@ -12,7 +12,7 @@
 #include "VulkanHelpers/Flags/SurfaceTransformFlags.hpp"
 #include "VulkanHelpers/Flags/ImageUsageFlags.hpp"
 
-VkSurfaceCapabilities2KHR GenerateSurfaceCapabilities(PhysicalDevice const& physicalDevice, VkPhysicalDeviceSurfaceInfo2KHR const& surfaceInfo);
+VkSurfaceCapabilities2KHR GenerateSurfaceCapabilities();
 std::ostream& operator << (std::ostream& out, VkSurfaceCapabilitiesKHR const& surfaceCapabilities);
 
 #endif // VK_WRAPPER_SURFACE_CAPABILITIES_HPP

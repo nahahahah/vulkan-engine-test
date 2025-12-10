@@ -19,6 +19,9 @@ class ImageView {
         VkImageView Handle() { return _handle; }
         VkImageView Handle() const { return _handle; }
 
+        void CreateHandle(VkImageViewCreateInfo const& createInfo);
+        void DestroyHandle();
+
     private:
         VkImageView _handle = VK_NULL_HANDLE;
         Device const& _device;

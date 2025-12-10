@@ -1,18 +1,11 @@
 #include "VulkanHelpers/ParameterStructs/SurfaceCapabilities.hpp"
 
-VkSurfaceCapabilities2KHR GenerateSurfaceCapabilities(PhysicalDevice const& physicalDevice, VkPhysicalDeviceSurfaceInfo2KHR const& surfaceInfo) {
+VkSurfaceCapabilities2KHR GenerateSurfaceCapabilities() {
     VkSurfaceCapabilities2KHR capabilities {};
 
     capabilities.sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR;
     capabilities.surfaceCapabilities = {};
     capabilities.pNext = VK_NULL_HANDLE;
-
-    VkResult result = vkGetPhysicalDeviceSurfaceCapabilities2KHR(physicalDevice.Handle(), &surfaceInfo, &capabilities);
-    if (result != VK_SUCCESS) {
-        std::string error = "Could not get physical device surface capabilities (status: " + std::to_string(result) + ")";
-        throw std::runtime_error(error);
-    }
-    //std::clog << "Physical device surface capabilities retrieved successfully" << std::endl;
 
     return capabilities;
 }

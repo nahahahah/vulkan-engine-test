@@ -15,7 +15,7 @@
 
 class Swapchain {
     public:
-        Swapchain(VkSwapchainCreateInfoKHR createInfo, Device const& device);
+        Swapchain(VkSwapchainCreateInfoKHR const& createInfo, Device& device);
         ~Swapchain();
 
         VkSwapchainKHR Handle() { return _handle; }
@@ -23,9 +23,12 @@ class Swapchain {
 
         static VkExtent2D Extent2DFromSDLWindow(Window const& window, VkSurfaceCapabilities2KHR const& surfaceCapabilities);
 
+        void CreateHandle(VkSwapchainCreateInfoKHR const& createInfo);
+        void DestroyHandle();
+
     private:
         VkSwapchainKHR _handle = VK_NULL_HANDLE;
-        Device const& _device;
+        Device& _device;
 };
 
 #endif // VK_WRAPPER_SWAPCHAIN_HPP

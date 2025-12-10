@@ -19,6 +19,9 @@ class Framebuffer {
         VkFramebuffer Handle() { return _handle; }
         VkFramebuffer Handle() const { return _handle; }
 
+        void CreateHandle(VkFramebufferCreateInfo const& createInfo);
+        void DestroyHandle();
+
     private:
         VkFramebuffer _handle = VK_NULL_HANDLE;
         Device const& _device;

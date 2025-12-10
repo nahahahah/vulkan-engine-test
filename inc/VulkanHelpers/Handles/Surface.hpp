@@ -10,8 +10,9 @@
 #include <vulkan/vulkan.h>
 
 #include "VulkanHelpers/Handles/Instance.hpp"
-#include "VulkanHelpers/Handles/PhysicalDevice.hpp"
 #include "SDLHelpers/Window.hpp"
+
+class PhysicalDevice;
 
 class Surface {
     public:
@@ -20,8 +21,6 @@ class Surface {
 
         VkSurfaceKHR Handle() { return _handle; }
         VkSurfaceKHR Handle() const { return _handle; }
-
-        bool IsSupportedByQueueFamily(PhysicalDevice const& physicalDevice, uint32_t queueFamilyIndex);
 
     private:
         VkSurfaceKHR _handle = VK_NULL_HANDLE;
