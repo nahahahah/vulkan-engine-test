@@ -2,12 +2,14 @@
 #define SDL_HELPERS_WINDOW_HPP
 
 #include <iostream>
+#include <cassert>
 
 #include <SDL3/SDL.h>
 
 class Window {
     public:
         Window();
+        Window(int width, int height);
         ~Window();
 
         SDL_Window* Handle() {

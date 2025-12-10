@@ -160,7 +160,7 @@ int main(int argc, char* argv[]) {
 
     std::clog << "Vulkan header version: " << VK_HEADER_VERSION << std::endl;
 
-    Window window;
+    auto window = Window(640, 480);
 #ifndef NDEBUG
     bool enableValidationLayers = true;
 #else
