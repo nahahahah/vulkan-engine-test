@@ -1,15 +1,65 @@
 #include "VulkanHelpers/Handles/PhysicalDevice.hpp"
 
 #include "VulkanHelpers/Handles/Surface.hpp"
+#include "VulkanHelpers/ParameterStructs/QueueFamilyProperties.hpp"
 
 PhysicalDevice::PhysicalDevice(VkPhysicalDevice physicalDevice) : _handle(physicalDevice) {}
+
+VkPhysicalDeviceProperties2 PhysicalDevice::Properties() const {
+    VkPhysicalDeviceProperties2 properties {};
+    
+    // structure type
+    properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+
+    // physical device properties
+    properties.properties = {};
+
+    vkGetPhysicalDeviceProperties2(_handle, &properties);
+
+    // extend properties
+    properties.pNext = VK_NULL_HANDLE;
+
+    return properties;
+}
+
+VkPhysicalDeviceFeatures2 PhysicalDevice::Features() const {
+    VkPhysicalDeviceFeatures2 features {};
+
+    // structure type
+    features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    
+    // physical device features
+    features.features = {};
+
+    vkGetPhysicalDeviceFeatures2(_handle, &features);
+
+    // extend features
+    features.pNext = VK_NULL_HANDLE;
+
+    return features;
+}
+
+std::vector<VkQueueFamilyProperties2> PhysicalDevice::QueueFamilyProperties() const {
+    uint32_t count = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties2(_handle, &count, VK_NULL_HANDLE);
+    if (count == 0) {
+        std::string error = "Could not find any queue family properties";
+        throw std::runtime_error(error);
+    }
+
+    std::vector<VkQueueFamilyProperties2> properties(count, GenerateQueueFamilyProperties());
+    vkGetPhysicalDeviceQueueFamilyProperties2(_handle, &count, properties.data());
+
+    return properties;
+}
 
 VkSurfaceCapabilities2KHR PhysicalDevice::SurfaceCapabilities(VkPhysicalDeviceSurfaceInfo2KHR const& surfaceInfo) const {
     VkSurfaceCapabilities2KHR capabilities {};
 
+    // structure type
     capabilities.sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR;
+
     capabilities.surfaceCapabilities = {};
-    capabilities.pNext = VK_NULL_HANDLE;
 
     VkResult result = vkGetPhysicalDeviceSurfaceCapabilities2KHR(_handle, &surfaceInfo, &capabilities);
     if (result != VK_SUCCESS) {
@@ -17,6 +67,9 @@ VkSurfaceCapabilities2KHR PhysicalDevice::SurfaceCapabilities(VkPhysicalDeviceSu
         throw std::runtime_error(error);
     }
     //std::clog << "Physical device surface capabilities retrieved successfully" << std::endl;
+
+    // extend capabilities
+    capabilities.pNext = VK_NULL_HANDLE;
 
     return capabilities;
 }
@@ -115,4 +168,20 @@ bool PhysicalDevice::IsSurfaceSupportedByQueueFamily(Surface const& surface, uin
     }
 
     return supportedSurface == VK_TRUE;
+}
+
+VkPhysicalDeviceMemoryProperties2 PhysicalDevice::MemoryProperties() const {
+    VkPhysicalDeviceMemoryProperties2 properties {};
+
+    // structure type
+    properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
+
+    properties.memoryProperties = {};
+    
+    vkGetPhysicalDeviceMemoryProperties2(_handle, &properties);
+
+    // extend properties
+    properties.pNext = VK_NULL_HANDLE;
+
+    return properties;
 }

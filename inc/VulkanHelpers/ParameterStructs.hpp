@@ -19,6 +19,8 @@
 #include "VulkanHelpers/ParameterStructs/SurfaceCapabilities.hpp"
 #include "VulkanHelpers/ParameterStructs/SurfaceFormat.hpp"
 #include "VulkanHelpers/ParameterStructs/Version.hpp"
+#include "VulkanHelpers/ParameterStructs/VertexInputAttributeDescription.hpp"
+#include "VulkanHelpers/ParameterStructs/VertexInputBindingDescription.hpp"
 #include "VulkanHelpers/ParameterStructs/Viewport.hpp"
 
 #endif // VK_WRAPPER_PARAMETER_STRUCTS_HPP

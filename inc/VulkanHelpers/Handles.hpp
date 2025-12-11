@@ -1,10 +1,12 @@
 #ifndef VK_WRAPPER_HANDLES_HPP
 #define VK_WRAPPER_HANDLES_HPP
 
+#include "VulkanHelpers/Handles/Buffer.hpp"
 #include "VulkanHelpers/Handles/CommandBuffer.hpp"
 #include "VulkanHelpers/Handles/CommandPool.hpp"
 #include "VulkanHelpers/Handles/DebugutilsMessenger.hpp"
 #include "VulkanHelpers/Handles/Device.hpp"
+#include "VulkanHelpers/Handles/DeviceMemory.hpp"
 #include "VulkanHelpers/Handles/Fence.hpp"
 #include "VulkanHelpers/Handles/Framebuffer.hpp"
 #include "VulkanHelpers/Handles/Image.hpp"

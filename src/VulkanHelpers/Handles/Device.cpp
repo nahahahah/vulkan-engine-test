@@ -25,3 +25,7 @@ void Device::WaitIdle() {
     }
     std::clog << "Device is now idle" << std::endl;
 }
+
+void Device::BindBufferMemory(std::span<VkBindBufferMemoryInfo> bindInfos) {
+    vkBindBufferMemory2(_handle, static_cast<uint32_t>(bindInfos.size()), bindInfos.data());
+}

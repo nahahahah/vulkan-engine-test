@@ -1,6 +1,7 @@
 #ifndef VK_WRAPPER_CREATE_INFOS_HPP
 #define VK_WRAPPER_CREATE_INFOS_HPP
 
+#include "VulkanHelpers/CreateInfos/BufferCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/CommandPoolCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/DebugUtilsMessengerCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/DeviceCreateInfo.hpp"

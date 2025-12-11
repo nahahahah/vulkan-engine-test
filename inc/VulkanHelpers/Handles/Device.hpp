@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <stdexcept>
+#include <span>
 
 #include <vulkan/vulkan.h>
 
@@ -18,6 +19,8 @@ class Device {
         VkDevice Handle() const { return _handle; }
 
         void WaitIdle();
+
+        void BindBufferMemory(std::span<VkBindBufferMemoryInfo> bindInfos);
 
     private:
         VkDevice _handle = VK_NULL_HANDLE;

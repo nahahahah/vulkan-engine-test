@@ -9,9 +9,7 @@ target("vulkan_test")
     set_kind("binary")
 
     add_packages("vulkan-headers", "libsdl3")
-    if is_plat("windows") then
-        add_packages("vulkan-loader")
-    end
+    add_packages("vulkan-loader")
 
     if is_mode("debug") then
         set_optimize("none")
@@ -25,8 +23,9 @@ target("vulkan_test")
     add_files("src/VulkanHelpers/ParameterInfos/*.cpp")
     add_files("src/VulkanHelpers/ParameterStructs/*.cpp")
     add_files("src/SDLHelpers/*.cpp")
+    add_files("src/Math/*.cpp")
 
-    -- add_headerfiles("inc/*.hpp") -- useless for now
+    add_headerfiles("inc/*.hpp")
     add_headerfiles("inc/VulkanHelpers/*.hpp")
     add_headerfiles("inc/VulkanHelpers/CreateInfos/*.hpp")
     add_headerfiles("inc/VulkanHelpers/Flags/*.hpp")
@@ -35,6 +34,7 @@ target("vulkan_test")
     add_headerfiles("inc/VulkanHelpers/ParameterInfos/*.hpp")
     add_headerfiles("inc/VulkanHelpers/ParameterStructs/*.hpp")
     add_headerfiles("inc/SDLHelpers/*.hpp")
+    add_headerfiles("inc/Math/*.hpp")
 
     set_rundir(".")
 

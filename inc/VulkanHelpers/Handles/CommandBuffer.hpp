@@ -12,6 +12,7 @@
 #include "VulkanHelpers/Handles/CommandPool.hpp"
 #include "VulkanHelpers/Handles/Device.hpp"
 #include "VulkanHelpers/Handles/Pipeline.hpp"
+#include "VulkanHelpers/Handles/Buffer.hpp"
 
 class CommandBuffer {
     public:
@@ -25,6 +26,13 @@ class CommandBuffer {
         void Begin(VkCommandBufferBeginInfo const& beginInfo);
         void BeginRenderPass(VkRenderPassBeginInfo const& renderPassBeginInfo, VkSubpassBeginInfo const& subpassBeginInfo);
         void BindPipeline(VkPipelineBindPoint bindpoint, Pipeline const& pipeline);
+        void BindVertexBuffers(
+            uint32_t firstBinding,
+            std::span<VkBuffer> vertexBuffers,
+            std::span<VkDeviceSize> offsets,
+            std::span<VkDeviceSize> sizes,
+            std::span<VkDeviceSize> strides
+        );
         void SetViewport(uint32_t first, uint32_t count, std::span<VkViewport> viewports);
         void SetScissor(uint32_t first, uint32_t count, std::span<VkRect2D> scissors);
         void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);

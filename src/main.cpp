@@ -23,135 +23,17 @@
 
 #include <vulkan/vulkan.h>
 
-#include "SDLHelpers/Window.hpp"
+#include "Application.hpp"
 
-#include "VulkanHelpers/CreateInfos.hpp"
-#include "VulkanHelpers/Flags.hpp"
-#include "VulkanHelpers/Handles.hpp"
-#include "VulkanHelpers/ParameterEnums.hpp"
-#include "VulkanHelpers/ParameterInfos.hpp"
-#include "VulkanHelpers/ParameterStructs.hpp"
-
-// debug callback
-#ifndef NDEBUG
-static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
-    void* pUserData
-) {
-    (void)(pUserData);
-
-    std::clog << "[ ";
-    switch (messageSeverity) {
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: {
-            std::clog << "VERBOSE";
-            break;
-        }
-
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: {
-            std::clog << "INFO";
-            break;
-        }
-
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: {
-            std::clog << "WARNING";
-            break;
-        }
-
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: {
-            std::clog << "ERROR";
-            break;
-        }
-
-        default: {
-            break;
+uint32_t FindMemoryType(PhysicalDevice const& physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+    auto memoryProperties = physicalDevice.MemoryProperties().memoryProperties;
+    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i) {
+        if (typeFilter & (1 << i) && (memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            return i;
         }
     }
 
-    std::clog << "::";
-    
-    switch (messageType) {
-        case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT: {
-            std::clog << "GENERAL"; 
-            break;
-        }
-
-        case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT: {
-            std::clog << "VALIDATION";
-            break;
-        }
-
-        case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT: {
-            std::clog << "PERFORMANCE";
-            break;
-        }
-
-        case VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT: {
-            std::clog << "DEVICE ADRESS BINDING";
-            break; 
-        }
-
-        default: {
-            break;
-        }
-    }
-
-    std::cout << " ] ";
-
-    std::cerr << "Validation layer: " << pCallbackData->pMessage << std::endl;
-    return VK_FALSE;
-}
-#endif
-
-/// TODO: VERY BAD IDEA HERE. Find a way to NOT give access to the handle (especially giving the right to create/destroy it)
-void HandleFrameInvalidity(
-    PhysicalDevice const& physicalDevice,
-    Device& device,
-    Surface const& surface,
-    VkSwapchainCreateInfoKHR const& swapchainCreateInfo,
-    Swapchain& swapchain,
-    VkFormat imageFormat,
-    std::vector<VkImage>& swapchainImages,
-    std::vector<ImageView>& swapchainImageViews,
-    std::vector<Framebuffer>& framebuffers,
-    RenderPass const& renderPass
-) {
-    device.WaitIdle();
-
-    for (auto& framebuffer : framebuffers) {
-        framebuffer.DestroyHandle();
-    }
-
-    for (auto& swapchainImageView : swapchainImageViews) {
-        swapchainImageView.DestroyHandle();
-    }
-
-    swapchainImages.clear();
-
-    swapchain.DestroyHandle();
-
-    std::cout << swapchainCreateInfo.imageExtent.width << "x" << swapchainCreateInfo.imageExtent.height << std::endl;
-
-    auto physicalDeviceSurfaceInfo = GeneratePhysicalDeviceSurfaceInfo(surface); // get surface info
-    physicalDevice.SurfaceCapabilities(physicalDeviceSurfaceInfo);
-    physicalDevice.SurfaceFormats(physicalDeviceSurfaceInfo); // get formats of the surface
-    physicalDevice.PresentModes(surface); // get present modes of the surface
-
-    swapchain.CreateHandle(swapchainCreateInfo);
-
-    swapchainImages = EnumerateSwapChainImages(device, swapchain);
-
-    for (int i = 0; i < static_cast<int>(swapchainImages.size()); ++i) {
-        auto swapchainImageViewCreateInfo = GenerateImageViewCreateInfo(imageFormat, swapchainImages[i]);
-        swapchainImageViews[i].CreateHandle(swapchainImageViewCreateInfo);
-    }
-
-    for (int i = 0; i < static_cast<int>(swapchainImageViews.size()); ++i) {
-        std::vector<VkImageView> attachments = { swapchainImageViews[i].Handle() };
-        auto frameBufferCreateInfo = GenerateFramebufferCreateInfo(swapchainCreateInfo.imageExtent, attachments, renderPass);
-        framebuffers[i].CreateHandle(frameBufferCreateInfo);
-    }
+    throw std::runtime_error("Failed to find suitable memory type");
 }
 
 int main(int argc, char* argv[]) {
@@ -231,11 +113,11 @@ int main(int argc, char* argv[]) {
         VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo {};
         if (enableValidationLayers) {
             debugUtilsMessengerCreateInfo = GenerateDebugUtilsMessengerCreateInfo(DebugCallback);
-            instanceCreateInfo = GenerateInstanceCreateInfo(&applicationInfo, enabledExtensions, validationLayers, VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR, &debugUtilsMessengerCreateInfo);
+            instanceCreateInfo = GenerateInstanceCreateInfo(&applicationInfo, enabledExtensions, validationLayers, 0 /* VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR */, &debugUtilsMessengerCreateInfo);
         }
 
         else  {
-            instanceCreateInfo = GenerateInstanceCreateInfo(&applicationInfo, enabledExtensions, validationLayers, VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR);
+            instanceCreateInfo = GenerateInstanceCreateInfo(&applicationInfo, enabledExtensions, validationLayers, 0 /* VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR */);
         }
         
         auto instance = Instance(instanceCreateInfo); // create instance
@@ -278,9 +160,9 @@ int main(int argc, char* argv[]) {
         for (PhysicalDevice const& enumeratedPhysicalDevice : enumeratedPhysicalDevices) {
             //std::clog << "Physical device found: <VkPhysicalDevice " << enumeratedPhysicalDevice.Handle() << ">" << std::endl;
             
-            auto physicalDeviceProperties = GeneratePhysicalDeviceProperties(enumeratedPhysicalDevice); // get physical device's properties
-            auto physicalDeviceFeatures = GeneratePhysicalDeviceFeatures(enumeratedPhysicalDevice); // get physical device's features
-            auto physicalDeviceQueueFamilyProperties = EnumerateQueueFamilyProperties(enumeratedPhysicalDevice); // get physical device's queue family properties
+            auto physicalDeviceProperties = enumeratedPhysicalDevice.Properties(); // get physical device's properties
+            auto physicalDeviceFeatures = enumeratedPhysicalDevice.Features(); // get physical device's features
+            auto physicalDeviceQueueFamilyProperties = enumeratedPhysicalDevice.QueueFamilyProperties(); // get physical device's queue family properties
         
             int queueFamilyIndex = 0;
             //std::clog << " - Queue families (count: " << physicalDeviceQueueFamilyProperties.size() << ")" << std::endl;
@@ -343,8 +225,8 @@ int main(int argc, char* argv[]) {
 
             // check if device is suitable
             if (std::string deviceName = std::string(physicalDeviceProperties.properties.deviceName);
-                physicalDeviceProperties.properties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
-            && deviceName.find("Microsoft Direct3D") == std::string::npos
+               deviceName.find("Microsoft Direct3D") == std::string::npos
+            && physicalDeviceProperties.properties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
             && physicalDeviceFeatures.features.geometryShader
             && queueFamilyIndexWithGraphicsCapabilities.has_value()
             && queueFamilyIndexWithPresentCapabilities.has_value()
@@ -367,12 +249,12 @@ int main(int argc, char* argv[]) {
 
         /// TODO: IMPLEMENT THESE LAMBDAS CORRECTLY TO BE USED AS PREDICATE FOR FUTURE IMPLEMENTATION OF ISSUITABLE()
         // user defined so that the user can choose specifically which format to use
-        auto selectPreferredSurfaceFormat = [&physicalDevice, &surface]() -> bool {
+        [[maybe_unused]] auto selectPreferredSurfaceFormat = [&physicalDevice, &surface]() -> bool {
             return true;
         };
 
         // user defined so that the user can choose specifically which present mode to use
-        auto selectPreferredPresentMode = [&physicalDevice, &surface]() -> bool {
+        [[maybe_unused]] auto selectPreferredPresentMode = [&physicalDevice, &surface]() -> bool {
             return true;
         };
 
@@ -437,7 +319,53 @@ int main(int argc, char* argv[]) {
         std::vector<VkDynamicState> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
         auto pipelineDynamicStateCreateInfo = GeneratePipelineDynamicStateCreateInfo(dynamicStates); // specify pipeline dynamic states
 
-        auto pipelineVertexInputStateCreateInfo = GeneratePipelineVertexInputStateCreateInfo(); // specify pipeline vertex inputs
+        // vertex buffer creation
+        std::vector<Vertex> vertices = {
+            Vertex { Math::Vector2( 0.0f, -0.5f), Math::Vector3(1.0f, 1.0f, 1.0f) },
+            Vertex { Math::Vector2( 0.5f,  0.5f), Math::Vector3(0.0f, 1.0f, 0.0f) },
+            Vertex { Math::Vector2(-0.5f,  0.5f), Math::Vector3(0.0f, 0.0f, 1.0f) },
+        };
+
+        std::vector<VkVertexInputBindingDescription> vertexInputBindingDescription = { GenerateVertexInputBindingDescription(0) };
+        std::vector<VkVertexInputAttributeDescription> vertexInputBinding0Attributes = {
+            GenerateVertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, position)),
+            GenerateVertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color))
+        };
+
+        auto vertexBufferCreateInfo = GenerateBufferCreateInfo(
+            sizeof(vertices[0]) * vertices.size(),
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_SHARING_MODE_EXCLUSIVE
+        );
+        auto vertexBuffer = Buffer(vertexBufferCreateInfo, device); // create vertex buffer
+
+        auto vertexBufferMemoryRequirementsInfo = GenerateBufferMemoryRequirementsInfo(vertexBuffer);
+        auto vertexBufferMemoryRequirements = vertexBuffer.MemoryRequirements(vertexBufferMemoryRequirementsInfo);
+
+        auto vertexBufferMemoryAllocateInfo = GenerateMemoryAllocateInfo(
+            vertexBufferMemoryRequirements.memoryRequirements.size,
+            FindMemoryType(
+                *physicalDevice,
+                vertexBufferMemoryRequirements.memoryRequirements.memoryTypeBits,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+            )
+        );
+
+        auto vertexBufferMemory = DeviceMemory(vertexBufferMemoryAllocateInfo, device);
+
+        std::vector<VkBindBufferMemoryInfo> vertexBufferBindBufferMemoryInfos = { GenerateBindBufferMemoryInfo(vertexBufferMemory, 0, vertexBuffer) };
+        device.BindBufferMemory(vertexBufferBindBufferMemoryInfos);
+
+        void* data = nullptr;
+        auto vertexBufferMapInfo = GenerateMemoryMapInfo(vertexBufferMemory, vertexBufferCreateInfo.size, 0);
+        vertexBufferMemory.Map(vertexBufferMapInfo, &data);
+        
+        std::memcpy(data, vertices.data(), static_cast<size_t>(vertexBufferCreateInfo.size));
+        
+        auto vertexBufferUnmapInfo = GenerateMemoryUnmapInfo(vertexBufferMemory);
+        vertexBufferMemory.Unmap(vertexBufferUnmapInfo);
+
+        auto pipelineVertexInputStateCreateInfo = GeneratePipelineVertexInputStateCreateInfo(vertexInputBindingDescription, vertexInputBinding0Attributes); // specify pipeline vertex inputs
         auto pipelineInputAssemblyStateCreateInfo = GeneratePipelineInputAssemblyStateCreateInfo(); // specify pipeline input assemblies
         
         std::vector<VkViewport> viewport = { GenerateViewport(static_cast<float>(swapchainExtent.width), static_cast<float>(swapchainExtent.height)) }; // specify viewport
@@ -569,7 +497,12 @@ int main(int argc, char* argv[]) {
             commandBuffer.SetViewport(0, 1, viewport);
             commandBuffer.SetScissor(0, 1, scissor);
 
-            commandBuffer.Draw(3, 1, 0, 0);
+            std::vector<VkBuffer> vertexBuffers = { vertexBuffer.Handle() };
+            std::vector<VkDeviceSize> offsets = { 0 };
+            std::vector<VkDeviceSize> sizes = { vertexBufferCreateInfo.size };
+            commandBuffer.BindVertexBuffers(0, vertexBuffers, offsets, sizes, {});
+
+            commandBuffer.Draw(static_cast<uint32_t>(vertices.size()), 1, 0, 0);
 
             auto subpassEndInfo = GenerateSubpassEndInfo();
             commandBuffer.EndRenderPass(subpassEndInfo); // end render pass
@@ -617,6 +550,7 @@ int main(int argc, char* argv[]) {
 
     catch (std::exception const& err) {
         std::cerr << err.what() << std::endl;
+        return CleanOnExit(EXIT_FAILURE);
     }
 
     return CleanOnExit(EXIT_SUCCESS);

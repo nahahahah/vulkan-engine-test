@@ -30,6 +30,24 @@ void CommandBuffer::BindPipeline(VkPipelineBindPoint bindpoint, Pipeline const& 
     vkCmdBindPipeline(_handle, bindpoint, pipeline.Handle());
 }
 
+void CommandBuffer::BindVertexBuffers(
+    uint32_t firstBinding,
+    std::span<VkBuffer> vertexBuffers,
+    std::span<VkDeviceSize> offsets,
+    std::span<VkDeviceSize> sizes,
+    std::span<VkDeviceSize> strides
+) {
+    vkCmdBindVertexBuffers2(
+        _handle,
+        firstBinding,
+        static_cast<uint32_t>(vertexBuffers.size()),
+        vertexBuffers.data(),
+        offsets.data(),
+        sizes.data(),
+        ((strides.size() != 0) ? (strides.data()) : (VK_NULL_HANDLE))
+    );
+}
+
 void CommandBuffer::SetViewport(uint32_t first, uint32_t count, std::span<VkViewport> viewports) {
     vkCmdSetViewport(_handle, first, count, viewports.data());
 }

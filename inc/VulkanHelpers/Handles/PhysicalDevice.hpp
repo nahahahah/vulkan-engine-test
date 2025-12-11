@@ -23,6 +23,9 @@ class PhysicalDevice {
 
         bool IsSuitable(Surface const& surface) const;
 
+        VkPhysicalDeviceProperties2 Properties() const;
+        VkPhysicalDeviceFeatures2 Features() const;
+        std::vector<VkQueueFamilyProperties2> QueueFamilyProperties() const;
         VkSurfaceCapabilities2KHR SurfaceCapabilities(VkPhysicalDeviceSurfaceInfo2KHR const& surfaceInfo) const;
         std::vector<VkSurfaceFormat2KHR> SurfaceFormats(VkPhysicalDeviceSurfaceInfo2KHR const& surfaceInfo) const;
         std::vector<VkPresentModeKHR> PresentModes(Surface const& surface) const;
@@ -30,6 +33,8 @@ class PhysicalDevice {
         static std::vector<PhysicalDevice> Enumerate(Instance const& instance);
 
         bool IsSurfaceSupportedByQueueFamily(Surface const& surface, uint32_t queueFamilyIndex) const;
+
+        VkPhysicalDeviceMemoryProperties2 MemoryProperties() const;
 
     private:
         VkPhysicalDevice _handle = nullptr;

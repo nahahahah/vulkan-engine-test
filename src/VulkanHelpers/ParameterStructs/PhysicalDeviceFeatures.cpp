@@ -1,17 +1,5 @@
 #include "VulkanHelpers/ParameterStructs/PhysicalDeviceFeatures.hpp"
 
-VkPhysicalDeviceFeatures2 GeneratePhysicalDeviceFeatures(PhysicalDevice const& physicalDevice) {
-    VkPhysicalDeviceFeatures2 features {};
-
-    features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    features.features = {};
-    features.pNext = VK_NULL_HANDLE;
-
-    vkGetPhysicalDeviceFeatures2(physicalDevice.Handle(), &features);
-
-    return features;
-}
-
 std::ostream& operator << (std::ostream& out, VkPhysicalDeviceFeatures2 const& physicalDeviceFeatures) {
     out << std::boolalpha;
     out << " - Features:" << std::endl;
