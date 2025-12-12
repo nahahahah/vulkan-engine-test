@@ -11,7 +11,9 @@
 
 class DeviceMemory {
     public:
-        DeviceMemory(VkMemoryAllocateInfo const& allocateInfo, Device& device);
+        DeviceMemory(VkMemoryAllocateInfo const& allocateInfo, Device* device);
+        DeviceMemory(DeviceMemory const& other) = delete;
+        DeviceMemory(DeviceMemory&& other);
         ~DeviceMemory();
 
         VkDeviceMemory Handle() { return _handle; }
@@ -22,7 +24,7 @@ class DeviceMemory {
 
     private:
         VkDeviceMemory _handle = VK_NULL_HANDLE;
-        Device& _device;
+        Device* _device;
 };
 
 #endif // VK_WRAPPER_DEVICE_MEMORY_HPP

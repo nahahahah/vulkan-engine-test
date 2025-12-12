@@ -1,6 +1,8 @@
 #ifndef APPLICATION_HPP
 #define APPLICATION_HPP
 
+#include <utility>
+
 #include <vulkan/vulkan.h>
 
 #include "SDLHelpers/Window.hpp"
@@ -39,6 +41,27 @@ void HandleFrameInvalidity(
     std::vector<ImageView>& swapchainImageViews,
     std::vector<Framebuffer>& framebuffers,
     RenderPass const& renderPass
+);
+
+uint32_t FindMemoryType(PhysicalDevice const& physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
+std::pair<Buffer, DeviceMemory> CreateBuffer(
+    PhysicalDevice const& physicalDevice,
+    Device& device,
+    VkDeviceSize size,
+    VkBufferUsageFlags usage,
+    VkSharingMode sharingMode,
+    VkMemoryPropertyFlags properties
+);
+
+std::pair<Buffer, DeviceMemory> CreateVertexBuffer(
+    std::span<Vertex> vertices,
+    PhysicalDevice const& physicalDevice,
+    Device& device,
+    [[maybe_unused]] VkDeviceSize size,
+    VkBufferUsageFlags usage,
+    VkSharingMode sharingMode,
+    VkMemoryPropertyFlags properties
 );
 
 #endif // APPLICATION_HPP

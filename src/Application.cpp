@@ -121,3 +121,87 @@ void HandleFrameInvalidity(
         framebuffers[i].CreateHandle(frameBufferCreateInfo);
     }
 }
+
+uint32_t FindMemoryType(PhysicalDevice const& physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+    auto memoryProperties = physicalDevice.MemoryProperties().memoryProperties;
+    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i) {
+        if (typeFilter & (1 << i) && (memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            return i;
+        }
+    }
+
+    throw std::runtime_error("Failed to find suitable memory type");
+}
+
+std::pair<Buffer, DeviceMemory> CreateBuffer(
+    PhysicalDevice const& physicalDevice,
+    Device& device,
+    VkDeviceSize size,
+    VkBufferUsageFlags usage,
+    VkSharingMode sharingMode,
+    VkMemoryPropertyFlags properties
+) {
+    try {
+        VkBufferCreateInfo bufferCreateInfo = GenerateBufferCreateInfo(size, usage, sharingMode);
+        auto buffer = Buffer(bufferCreateInfo, &device);
+
+        auto bufferMemoryRequirementsInfo = GenerateBufferMemoryRequirementsInfo(buffer);
+        auto bufferMemoryRequirements = buffer.MemoryRequirements(bufferMemoryRequirementsInfo);
+
+        auto bufferMemoryAllocateInfo = GenerateMemoryAllocateInfo(
+            bufferMemoryRequirements.memoryRequirements.size,
+            FindMemoryType(
+                physicalDevice,
+                bufferMemoryRequirements.memoryRequirements.memoryTypeBits,
+                properties
+            )
+        );
+        auto bufferMemory = DeviceMemory(bufferMemoryAllocateInfo, &device);
+
+        std::vector<VkBindBufferMemoryInfo> bufferBindMemoryInfos = { GenerateBindBufferMemoryInfo(bufferMemory, 0, buffer) };
+        device.BindBufferMemory(bufferBindMemoryInfos);
+
+        return std::make_pair(std::move(buffer), std::move(bufferMemory));
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
+std::pair<Buffer, DeviceMemory> CreateVertexBuffer(
+    std::span<Vertex> vertices,
+    PhysicalDevice const& physicalDevice,
+    Device& device,
+    [[maybe_unused]] VkDeviceSize size,
+    VkBufferUsageFlags usage,
+    VkSharingMode sharingMode,
+    VkMemoryPropertyFlags properties
+) {
+    try {
+        VkDeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
+        auto&& [vertexBuffer, vertexBufferMemory] = CreateBuffer(
+            physicalDevice,
+            device,
+            vertexBufferSize,
+            usage,
+            sharingMode,
+            properties
+        );
+
+        void* data = nullptr;
+        auto vertexBufferMemoryMapInfo = GenerateMemoryMapInfo(vertexBufferMemory, vertexBufferSize, 0);
+        vertexBufferMemory.Map(vertexBufferMemoryMapInfo, &data);
+        
+        std::memcpy(data, vertices.data(), static_cast<size_t>(vertexBufferSize));
+
+        auto vertexBufferMemoryUnmapInfo = GenerateMemoryUnmapInfo(vertexBufferMemory);
+        vertexBufferMemory.Unmap(vertexBufferMemoryUnmapInfo);
+
+        return std::make_pair(std::move(vertexBuffer), std::move(vertexBufferMemory));
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}

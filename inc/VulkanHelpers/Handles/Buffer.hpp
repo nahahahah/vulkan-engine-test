@@ -11,7 +11,9 @@
 
 class Buffer {
     public:
-        Buffer(VkBufferCreateInfo const& createInfo, Device& device);
+        Buffer(VkBufferCreateInfo const& createInfo, Device* device);
+        Buffer(Buffer const& other) = delete;
+        Buffer(Buffer&& other);
         ~Buffer();
 
         VkBuffer Handle() { return _handle; }
@@ -21,7 +23,7 @@ class Buffer {
 
     private:
         VkBuffer _handle = VK_NULL_HANDLE;
-        Device& _device;
+        Device* _device = nullptr;
 };
 
 #endif // VK_WRAPPER_BUFFER_HPP
