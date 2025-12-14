@@ -74,6 +74,10 @@ void CommandBuffer::BindIndexBuffers(
     );
 }
 
+void CommandBuffer::BindDescriptorSets(VkBindDescriptorSetsInfo const& bindInfo) {
+    vkCmdBindDescriptorSets2(_handle, &bindInfo);
+}
+
 void CommandBuffer::CopyBuffer(VkCopyBufferInfo2 const& copyInfo) {
     vkCmdCopyBuffer2(_handle, &copyInfo);
 }

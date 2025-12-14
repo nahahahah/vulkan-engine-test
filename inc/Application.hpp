@@ -19,6 +19,12 @@
 
 #include "Assets.hpp"
 
+class Application {
+    public:
+        Application() = default;
+        ~Application() = default;
+};
+
 // debug callback
 #ifndef NDEBUG
 VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(

@@ -4,6 +4,7 @@
 #include "VulkanHelpers/CreateInfos/BufferCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/CommandPoolCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/DebugUtilsMessengerCreateInfo.hpp"
+#include "VulkanHelpers/CreateInfos/DescriptorPoolCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/DescriptorSetLayoutCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/DeviceCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/DeviceQueueCreateInfo.hpp"

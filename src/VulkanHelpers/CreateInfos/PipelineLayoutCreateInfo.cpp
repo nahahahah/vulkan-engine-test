@@ -1,15 +1,9 @@
 #include "VulkanHelpers/CreateInfos/PipelineLayoutCreateInfo.hpp"
 
 VkPipelineLayoutCreateInfo GeneratePipelineLayoutCreateInfo(
-    std::span<DescriptorSetLayout> setLayouts,
+    std::span<VkDescriptorSetLayout> setLayouts,
     std::span<VkPushConstantRange> pushConstants
 ) {
-    std::vector<VkDescriptorSetLayout> setLayoutsHandles;
-    setLayoutsHandles.reserve(setLayouts.size());
-    for (auto& layout : setLayouts) {
-        setLayoutsHandles.push_back(layout.Handle());
-    }
-    
     VkPipelineLayoutCreateInfo createInfo {};
 
     // structure type and flags
@@ -18,7 +12,7 @@ VkPipelineLayoutCreateInfo GeneratePipelineLayoutCreateInfo(
 
     // set layouts
     createInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
-    createInfo.pSetLayouts = (setLayouts.size() > 0) ? setLayoutsHandles.data() : VK_NULL_HANDLE;
+    createInfo.pSetLayouts = (setLayouts.size() > 0) ? setLayouts.data() : VK_NULL_HANDLE;
 
     // push constants
     createInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstants.size());

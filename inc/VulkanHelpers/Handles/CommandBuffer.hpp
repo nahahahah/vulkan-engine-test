@@ -43,6 +43,7 @@ class CommandBuffer {
             VkDeviceSize size,
             VkIndexType indexType
         );
+        void BindDescriptorSets(VkBindDescriptorSetsInfo const& bindInfo);
         void CopyBuffer(VkCopyBufferInfo2 const& copyInfo);
         void SetViewport(uint32_t first, uint32_t count, std::span<VkViewport> viewports);
         void SetScissor(uint32_t first, uint32_t count, std::span<VkRect2D> scissors);

@@ -9,7 +9,7 @@
 #include "VulkanHelpers/Handles/DescriptorSetLayout.hpp"
 
 VkPipelineLayoutCreateInfo GeneratePipelineLayoutCreateInfo(
-    std::span<DescriptorSetLayout> setLayouts,
+    std::span<VkDescriptorSetLayout> setLayouts,
     std::span<VkPushConstantRange> pushConstants
 );
 

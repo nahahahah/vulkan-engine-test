@@ -391,7 +391,47 @@ int main(int argc, char* argv[]) {
             GenerateDescriptorSetLayoutBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT)
         };
         auto uniformBufferDescriptorSetCreateInfo = GenerateDescriptorSetLayoutCreateInfo(uniformBufferDescriptorSetLayoutBinding);
-        std::vector<DescriptorSetLayout> descriptorSetLayouts = { DescriptorSetLayout(uniformBufferDescriptorSetCreateInfo, device) };
+        std::vector<DescriptorSetLayout> descriptorSetLayouts {};
+        descriptorSetLayouts.emplace_back(uniformBufferDescriptorSetCreateInfo, device);
+
+        std::vector<VkDescriptorPoolSize> descriptorPoolSizes = { 
+            GenerateDescriptorPoolSize(
+                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
+            )
+        };
+        auto descriptorPoolCreateInfo = GenerateDescriptorPoolCreateInfo(
+            descriptorPoolSizes,
+            static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
+        );
+        auto descriptorPool = DescriptorPool(descriptorPoolCreateInfo, device);
+
+        std::vector<VkDescriptorSetLayout> layouts {};
+        layouts.reserve(MAX_FRAMES_IN_FLIGHT);
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+            layouts.push_back(descriptorSetLayouts[0].Handle());
+        }
+
+        auto descriptorSetAllocateInfo = GenerateDescriptorSetAllocateInfo(
+            descriptorPool,
+            layouts
+        );
+
+        auto descriptorSets = DescriptorSets(descriptorSetAllocateInfo, device, descriptorPool);
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+            auto descriptorBufferInfo = GenerateDescriptorBufferInfo(uniformBuffers[i], sizeof(UniformBufferObject));
+
+            auto writeBufferDescriptorSet = GenerateWriteDescriptorSet(
+                1,
+                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                descriptorSets.Handles()[i],
+                0,
+                0,
+                &descriptorBufferInfo
+            );
+
+            vkUpdateDescriptorSets(device.Handle(), 1, &writeBufferDescriptorSet, 0, nullptr);
+        }
 
         auto pipelineVertexInputStateCreateInfo = GeneratePipelineVertexInputStateCreateInfo(vertexInputBinding0Description, vertexInputBinding0Attributes); // specify pipeline vertex inputs
         auto pipelineInputAssemblyStateCreateInfo = GeneratePipelineInputAssemblyStateCreateInfo(); // specify pipeline input assemblies
@@ -407,7 +447,13 @@ int main(int argc, char* argv[]) {
         std::vector<VkPipelineColorBlendAttachmentState> pipelineColorBlendAttachmentState =  { GeneratePipelineColorBlendAttachmentState() }; // specify pipeline color blend attachment state
         auto pipelineColorBlendStateCreateInfo = GeneratePipelineColorBlendStateCreateInfo(pipelineColorBlendAttachmentState);
 
-        auto pipelineLayoutCreateInfo = GeneratePipelineLayoutCreateInfo(descriptorSetLayouts, {}); // create pipeline layout
+        std::vector<VkDescriptorSetLayout> descriptorSetLayoutsHandle {};
+        descriptorSetLayoutsHandle.reserve(descriptorSetLayouts.size());
+        for (auto const& layout : descriptorSetLayouts) {
+            descriptorSetLayoutsHandle.emplace_back(layout.Handle());
+        }
+
+        auto pipelineLayoutCreateInfo = GeneratePipelineLayoutCreateInfo(descriptorSetLayoutsHandle, {}); // create pipeline layout
         auto pipelineLayout = PipelineLayout(pipelineLayoutCreateInfo, device);
 
         std::vector<VkAttachmentDescription2> attachmentDescription = { GenerateAttachmentDescription(preferredFormat.surfaceFormat.format) }; // specify attachment description
@@ -515,6 +561,8 @@ int main(int argc, char* argv[]) {
                 throw std::runtime_error("Could not aquire swapchain image");
             }
 
+            UpdateUniformBuffer(uniformBuffersMapped[frameIndex], static_cast<float>(WINDOW_WIDTH) / WINDOW_HEIGHT);
+
             ResetFences(device, fencesToResetAndWaitFor);
             
             // REALLY IMPORTANT: USE SWAPCHAIN IMAGE INDEX RETRIEVED FROM ANI TO PROPERLY RE-USE SEMAPHORES
@@ -548,6 +596,15 @@ int main(int argc, char* argv[]) {
                 (sizeof(indices[0]) * indices.size()),
                 VK_INDEX_TYPE_UINT16
             );
+            std::vector<VkDescriptorSet> descriptorSetsToBind = { descriptorSets.Handles()[frameIndex] };
+            auto bindDescriptorSetsInfo = GenerateBindDescriptorSetsInfo(
+                pipelineLayout,
+                VK_SHADER_STAGE_VERTEX_BIT,
+                0,
+                descriptorSetsToBind,
+                {}
+            );
+            commandBuffer.BindDescriptorSets(bindDescriptorSetsInfo);
 
             commandBuffer.DrawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
@@ -555,8 +612,6 @@ int main(int argc, char* argv[]) {
             commandBuffer.EndRenderPass(subpassEndInfo); // end render pass
 
             commandBuffer.End();
-
-            UpdateUniformBuffer(uniformBuffersMapped[frameIndex], static_cast<float>(WINDOW_WIDTH) / WINDOW_HEIGHT);
 
             std::vector<VkCommandBufferSubmitInfo> commandBufferSubmitInfo = { GenerateCommandBufferSubmitInfo(commandBuffer) }; // specify command buffer submit info for submission
             std::vector<VkSemaphoreSubmitInfo> signalSemaphoreSubmitInfo = { GenerateSemaphoreSubmitInfo(submitSemaphore, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT) };
