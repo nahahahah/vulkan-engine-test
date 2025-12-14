@@ -3,7 +3,9 @@
 
 #include "VulkanHelpers/ParameterStructs/AttachmentDescription.hpp"
 #include "VulkanHelpers/ParameterStructs/AttachmentReference.hpp"
+#include "VulkanHelpers/ParameterStructs/BufferCopy.hpp"
 #include "VulkanHelpers/ParameterStructs/ClearValue.hpp"
+#include "VulkanHelpers/ParameterStructs/DescriptorSetLayoutBinding.hpp"
 #include "VulkanHelpers/ParameterStructs/ExtensionProperties.hpp"
 #include "VulkanHelpers/ParameterStructs/LayerProperties.hpp"
 #include "VulkanHelpers/ParameterStructs/PhysicalDeviceFeatures.hpp"

@@ -10,8 +10,6 @@ DeviceMemory::DeviceMemory(VkMemoryAllocateInfo const& allocateInfo, Device* dev
 }
 
 DeviceMemory::DeviceMemory(DeviceMemory&& other) {
-    std::cout << "DeviceMemory::DeviceMemory(DeviceMemory&&) called" << std::endl;
-
     _handle = other._handle;
     other._handle = VK_NULL_HANDLE;
 
@@ -20,12 +18,21 @@ DeviceMemory::DeviceMemory(DeviceMemory&& other) {
 }
 
 DeviceMemory::~DeviceMemory() {
-    std::clog << "Memory set for deallocation: <VkDeviceMemory " << _handle << ">" << std::endl;
     if (_handle != VK_NULL_HANDLE) {
         vkFreeMemory(_device->Handle(), _handle, VK_NULL_HANDLE);
         std::clog << "Memory freed successfully" << std::endl;
         _handle = VK_NULL_HANDLE;
     }
+}
+
+DeviceMemory& DeviceMemory::operator = (DeviceMemory&& other) {
+    _handle = other._handle;
+    other._handle = VK_NULL_HANDLE;
+
+    _device = other._device;
+    other._device = nullptr;
+
+    return *this;
 }
 
 void DeviceMemory::Map(VkMemoryMapInfo const& memoryMapInfo, void** data) {

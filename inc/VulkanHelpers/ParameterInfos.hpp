@@ -8,6 +8,7 @@
 #include "VulkanHelpers/ParameterInfos/CommandBufferAllocateInfo.hpp"
 #include "VulkanHelpers/ParameterInfos/CommandBufferBeginInfo.hpp"
 #include "VulkanHelpers/ParameterInfos/CommandBufferSubmitInfo.hpp"
+#include "VulkanHelpers/ParameterInfos/CopyBufferInfo.hpp"
 #include "VulkanHelpers/ParameterInfos/DeviceQueueInfo.hpp"
 #include "VulkanHelpers/ParameterInfos/MemoryAllocateInfo.hpp"
 #include "VulkanHelpers/ParameterInfos/MemoryMapInfo.hpp"

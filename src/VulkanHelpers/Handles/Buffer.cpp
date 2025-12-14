@@ -10,8 +10,6 @@ Buffer::Buffer(VkBufferCreateInfo const& createInfo, Device* device) : _device(d
 }
 
 Buffer::Buffer(Buffer&& other) {
-    std::cout << "Buffer::Buffer(Buffer&&) called" << std::endl;
-
     _handle = other._handle;
     other._handle = VK_NULL_HANDLE;
 
@@ -24,6 +22,16 @@ Buffer::~Buffer() {
         vkDestroyBuffer(_device->Handle(), _handle, VK_NULL_HANDLE);
         _handle = VK_NULL_HANDLE;
     }
+}
+
+Buffer& Buffer::operator = (Buffer&& other) {
+    _handle = other._handle;
+    other._handle = VK_NULL_HANDLE;
+
+    _device = other._device;
+    _device = nullptr;
+
+    return *this;
 }
 
 VkMemoryRequirements2 Buffer::MemoryRequirements(VkBufferMemoryRequirementsInfo2 info) {

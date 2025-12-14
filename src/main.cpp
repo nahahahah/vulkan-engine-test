@@ -31,7 +31,10 @@ int main(int argc, char* argv[]) {
 
     std::clog << "Vulkan header version: " << VK_HEADER_VERSION << std::endl;
 
-    auto window = Window(800, 800);
+    constexpr int WINDOW_WIDTH = 800;
+    constexpr int WINDOW_HEIGHT = 800;
+
+    auto window = Window(WINDOW_WIDTH, WINDOW_HEIGHT);
 #ifndef NDEBUG
     bool enableValidationLayers = true;
 #else
@@ -163,7 +166,6 @@ int main(int argc, char* argv[]) {
 
                 if (queueFamilyProperties.queueFamilyProperties.queueFlags & VK_QUEUE_TRANSFER_BIT) {
                     queueFamilyIndexWithTransferCapabilities = queueFamilyIndex;
-                    std::cout << "Got transfer queue family index: " << queueFamilyIndexWithTransferCapabilities.value() << std::endl;
                 }
 
                 // check that the retrieved surface is supported by a specific queue family for the current physical device
@@ -319,12 +321,14 @@ int main(int argc, char* argv[]) {
 
         // vertex buffer creation
         std::vector<Vertex> vertices = {
-            Vertex { Math::Vector2(-0.5f, -0.5f), Math::Vector3(1.0f, 1.0f, 1.0f) },
+            Vertex { Math::Vector2(-0.5f, -0.5f), Math::Vector3(1.0f, 0.0f, 0.0f) },
             Vertex { Math::Vector2( 0.5f, -0.5f), Math::Vector3(0.0f, 1.0f, 0.0f) },
-            Vertex { Math::Vector2(-0.5f,  0.5f), Math::Vector3(0.0f, 0.0f, 1.0f) },
-            Vertex { Math::Vector2( 0.5f, -0.5f), Math::Vector3(0.0f, 1.0f, 0.0f) },
-            Vertex { Math::Vector2( 0.5f,  0.5f), Math::Vector3(1.0f, 1.0f, 1.0f) },
-            Vertex { Math::Vector2(-0.5f,  0.5f), Math::Vector3(0.0f, 0.0f, 1.0f) }
+            Vertex { Math::Vector2( 0.5f,  0.5f), Math::Vector3(0.0f, 0.0f, 1.0f) },
+            Vertex { Math::Vector2(-0.5f,  0.5f), Math::Vector3(1.0f, 1.0f, 1.0f) }
+        };
+
+        std::vector<uint16_t> indices = {
+            0, 1, 2, 2, 3, 0
         };
 
         std::vector<VkVertexInputBindingDescription> vertexInputBinding0Description = { GenerateVertexInputBindingDescription(0) };
@@ -337,11 +341,57 @@ int main(int argc, char* argv[]) {
             vertices,
             *physicalDevice,
             device,
-            sizeof(vertices[0]) * vertices.size(),
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VK_SHARING_MODE_EXCLUSIVE,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            queueFamilyIndexWithGraphicsCapabilities.value(),
+            graphicsQueue
         );
+
+        auto&& [indexBuffer, indexBufferMemory] = CreateIndexBuffer(
+            indices,
+            *physicalDevice,
+            device,
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+            VK_SHARING_MODE_EXCLUSIVE,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            queueFamilyIndexWithGraphicsCapabilities.value(),
+            graphicsQueue
+        );
+
+        size_t uniformBufferSize = sizeof(UniformBufferObject);
+
+        std::vector<Buffer> uniformBuffers {};
+        std::vector<DeviceMemory> uniformBuffersMemory {};
+        std::vector<void*> uniformBuffersMapped {};
+
+        uniformBuffers.reserve(MAX_FRAMES_IN_FLIGHT);
+        uniformBuffersMemory.reserve(MAX_FRAMES_IN_FLIGHT);
+        uniformBuffersMapped.reserve(MAX_FRAMES_IN_FLIGHT);
+
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+            auto [uniformBuffer, uniformBufferMemory] = CreateBuffer(
+                *physicalDevice,
+                device,
+                uniformBufferSize,
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_SHARING_MODE_EXCLUSIVE,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+            );
+
+            uniformBuffers.emplace_back(std::move(uniformBuffer));
+            uniformBuffersMemory.emplace_back(std::move(uniformBufferMemory));
+            uniformBuffersMapped.emplace_back(nullptr);
+
+            auto uniformBufferMemoryMapInfo = GenerateMemoryMapInfo(uniformBuffersMemory[i], uniformBufferSize, 0);
+            uniformBuffersMemory[i].Map(uniformBufferMemoryMapInfo, &uniformBuffersMapped[i]);
+        }
+
+        std::vector<VkDescriptorSetLayoutBinding> uniformBufferDescriptorSetLayoutBinding = { 
+            GenerateDescriptorSetLayoutBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT)
+        };
+        auto uniformBufferDescriptorSetCreateInfo = GenerateDescriptorSetLayoutCreateInfo(uniformBufferDescriptorSetLayoutBinding);
+        std::vector<DescriptorSetLayout> descriptorSetLayouts = { DescriptorSetLayout(uniformBufferDescriptorSetCreateInfo, device) };
 
         auto pipelineVertexInputStateCreateInfo = GeneratePipelineVertexInputStateCreateInfo(vertexInputBinding0Description, vertexInputBinding0Attributes); // specify pipeline vertex inputs
         auto pipelineInputAssemblyStateCreateInfo = GeneratePipelineInputAssemblyStateCreateInfo(); // specify pipeline input assemblies
@@ -357,7 +407,7 @@ int main(int argc, char* argv[]) {
         std::vector<VkPipelineColorBlendAttachmentState> pipelineColorBlendAttachmentState =  { GeneratePipelineColorBlendAttachmentState() }; // specify pipeline color blend attachment state
         auto pipelineColorBlendStateCreateInfo = GeneratePipelineColorBlendStateCreateInfo(pipelineColorBlendAttachmentState);
 
-        auto pipelineLayoutCreateInfo = GeneratePipelineLayoutCreateInfo(); // create pipeline layout
+        auto pipelineLayoutCreateInfo = GeneratePipelineLayoutCreateInfo(descriptorSetLayouts, {}); // create pipeline layout
         auto pipelineLayout = PipelineLayout(pipelineLayoutCreateInfo, device);
 
         std::vector<VkAttachmentDescription2> attachmentDescription = { GenerateAttachmentDescription(preferredFormat.surfaceFormat.format) }; // specify attachment description
@@ -395,6 +445,18 @@ int main(int argc, char* argv[]) {
         auto commandBuffers = std::vector<CommandBuffer>(MAX_FRAMES_IN_FLIGHT);
         auto commandBufferAllocateInfo = GenerateCommandBufferAllocateInfo(commandPool, static_cast<uint32_t>(commandBuffers.size())); // create command buffer
         commandBuffers = AllocateCommandBuffers(commandBufferAllocateInfo, device);
+        
+        /// TODO: MAKE THIS SHIT WORK. NEED A WHOLE LOT OF REFACTOR
+        //// TO DELETE //////////////////////////////////////////////////////////////////////////////////////////////
+
+        // auto commandBuffersAllocateInfoTmp = commandBufferAllocateInfo;
+        // commandBuffersAllocateInfoTmp.commandBufferCount = 5;
+
+        // std::cout << "Allocating " << commandBuffersAllocateInfoTmp.commandBufferCount << " command buffers" << std::endl;
+
+        // auto commandBuffersTmp = CommandBuffers(commandBuffersAllocateInfoTmp, device, commandPool);
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // create synchronization primitive objects
         auto semaphoreCreateInfo = GenerateSemaphoreCreateInfo();
@@ -475,18 +537,27 @@ int main(int argc, char* argv[]) {
             commandBuffer.SetViewport(0, 1, viewport);
             commandBuffer.SetScissor(0, 1, scissor);
 
-            std::vector<VkBuffer> vertexBuffers = { vertexBuffer.Handle() };
+            std::vector<Buffer*> vertexBuffers = { &vertexBuffer };
             std::vector<VkDeviceSize> offsets = { 0 };
             std::vector<VkDeviceSize> sizes = { sizeof(vertices[0]) * vertices.size() };
             commandBuffer.BindVertexBuffers(0, vertexBuffers, offsets, sizes, {});
             
-            commandBuffer.Draw(static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+            commandBuffer.BindIndexBuffers(
+                indexBuffer,
+                0,
+                (sizeof(indices[0]) * indices.size()),
+                VK_INDEX_TYPE_UINT16
+            );
+
+            commandBuffer.DrawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
             auto subpassEndInfo = GenerateSubpassEndInfo();
             commandBuffer.EndRenderPass(subpassEndInfo); // end render pass
 
             commandBuffer.End();
-            
+
+            UpdateUniformBuffer(uniformBuffersMapped[frameIndex], static_cast<float>(WINDOW_WIDTH) / WINDOW_HEIGHT);
+
             std::vector<VkCommandBufferSubmitInfo> commandBufferSubmitInfo = { GenerateCommandBufferSubmitInfo(commandBuffer) }; // specify command buffer submit info for submission
             std::vector<VkSemaphoreSubmitInfo> signalSemaphoreSubmitInfo = { GenerateSemaphoreSubmitInfo(submitSemaphore, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT) };
             std::vector<VkSemaphore> signalSemaphores = { submitSemaphore.Handle() };

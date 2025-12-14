@@ -5,6 +5,7 @@
 #include "VulkanHelpers/Handles/CommandBuffer.hpp"
 #include "VulkanHelpers/Handles/CommandPool.hpp"
 #include "VulkanHelpers/Handles/DebugutilsMessenger.hpp"
+#include "VulkanHelpers/Handles/DescriptorSetLayout.hpp"
 #include "VulkanHelpers/Handles/Device.hpp"
 #include "VulkanHelpers/Handles/DeviceMemory.hpp"
 #include "VulkanHelpers/Handles/Fence.hpp"

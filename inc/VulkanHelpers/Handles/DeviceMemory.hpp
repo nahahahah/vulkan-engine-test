@@ -16,6 +16,8 @@ class DeviceMemory {
         DeviceMemory(DeviceMemory&& other);
         ~DeviceMemory();
 
+        DeviceMemory& operator = (DeviceMemory&& other);
+
         VkDeviceMemory Handle() { return _handle; }
         VkDeviceMemory Handle() const { return _handle; }
 

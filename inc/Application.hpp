@@ -1,7 +1,10 @@
 #ifndef APPLICATION_HPP
 #define APPLICATION_HPP
 
+#include <vector>
 #include <utility>
+#include <chrono>
+#include <numbers>
 
 #include <vulkan/vulkan.h>
 
@@ -13,9 +16,6 @@
 #include "VulkanHelpers/ParameterEnums.hpp"
 #include "VulkanHelpers/ParameterInfos.hpp"
 #include "VulkanHelpers/ParameterStructs.hpp"
-
-#include "Math/Vector2.hpp"
-#include "Math/Vector3.hpp"
 
 #include "Assets.hpp"
 
@@ -58,10 +58,33 @@ std::pair<Buffer, DeviceMemory> CreateVertexBuffer(
     std::span<Vertex> vertices,
     PhysicalDevice const& physicalDevice,
     Device& device,
-    [[maybe_unused]] VkDeviceSize size,
     VkBufferUsageFlags usage,
     VkSharingMode sharingMode,
-    VkMemoryPropertyFlags properties
+    VkMemoryPropertyFlags properties,
+    uint32_t queueFamilyIndex,
+    Queue& graphicsQueue
 );
+
+std::pair<Buffer, DeviceMemory> CreateIndexBuffer(
+    std::span<uint16_t> indices,
+    PhysicalDevice const& physicalDevice,
+    Device& device,
+    VkBufferUsageFlags usage,
+    VkSharingMode sharingMode,
+    VkMemoryPropertyFlags properties,
+    uint32_t queueFamilyIndex,
+    Queue& graphicsQueue
+);
+
+void CopyBuffer(
+    uint32_t queueFamilyIndex,
+    Device& device,
+    Queue& graphicsQueue,
+    Buffer& src,
+    Buffer& dst,
+    VkDeviceSize size
+);
+
+void UpdateUniformBuffer(void* mappedUniformBuffer, float ratio);
 
 #endif // APPLICATION_HPP

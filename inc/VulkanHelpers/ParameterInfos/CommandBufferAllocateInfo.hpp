@@ -5,6 +5,7 @@
 
 #include "VulkanHelpers/Handles/CommandPool.hpp"
 
+VkCommandBufferAllocateInfo GenerateCommandBufferAllocateInfo(CommandPool const& commandPool);
 VkCommandBufferAllocateInfo GenerateCommandBufferAllocateInfo(CommandPool const& commandPool, uint32_t count);
 
 #endif // VK_WRAPPER_COMMAND_BUFFER_ALLOCATE_INFO_HPP
