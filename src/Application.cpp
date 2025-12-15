@@ -315,15 +315,21 @@ void UpdateUniformBuffer(void* mappedUniformBuffer, float ratio) {
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     UniformBufferObject ubo {};
-    ubo.model = Math::Matrix4x4::RotateZ(time / 2);
+    //ubo.model = Math::Matrix4x4::RotateZ(time / 2);
+    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    /*
     ubo.view = Math::Matrix4x4::LookAt(
         Math::Vector3(2.0f, 2.0f, 2.0f),
         Math::Vector3(0.0f, 0.0f, 0.0f),
         Math::Vector3(0.0f, 0.0f, 1.0f)
     );
-    ubo.projection = Math::Matrix4x4::Perspective(std::numbers::pi_v<float> / 4, ratio, 0.1f, 10.0f);
+    */
+    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    //ubo.projection = Math::Matrix4x4::Perspective(std::numbers::pi_v<float> / 4, ratio, 0.1f, 10.0f);
+    ubo.proj = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 10.0f);
 
-    ubo.projection(1, 1) *= -1;
+    //ubo.projection(1, 1) *= -1;
+    ubo.proj[1][1] *= -1;
 
     std::memcpy(mappedUniformBuffer, &ubo, sizeof(ubo));
 }

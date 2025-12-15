@@ -2,14 +2,14 @@ add_rules("mode.debug", "mode.release")
 add_languages("cxx20")
 set_warnings("extra", "all", "error")
 
-add_requires("vulkan-headers", "vulkan-loader", "libsdl3")
+add_requires("vulkan-headers", "vulkan-loader", "libsdl3", "glm")
 
 add_rules("plugin.compile_commands.autoupdate", { outputdir = ".vscode" })
 target("vulkan_test")
     set_kind("binary")
 
     add_packages("vulkan-headers", "libsdl3")
-    add_packages("vulkan-loader")
+    add_packages("vulkan-loader", "glm")
 
     if is_mode("debug") then
         set_optimize("none")

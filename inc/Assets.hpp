@@ -1,6 +1,10 @@
 #ifndef ASSETS_HPP
 #define ASSETS_HPP
 
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "Math/Vector2.hpp"
 #include "Math/Vector3.hpp"
 #include "Math/Matrix4x4.hpp"
@@ -11,9 +15,14 @@ struct Vertex {
 };
 
 struct UniformBufferObject {
+/*
     Math::Matrix4x4 model {};
     Math::Matrix4x4 view {};
     Math::Matrix4x4 projection {};
+*/
+    glm::mat4 model {};
+    glm::mat4 view {};
+    glm::mat4 proj {};
 };
 
 #endif // ASSETS_HPP
