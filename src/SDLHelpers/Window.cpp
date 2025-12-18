@@ -23,8 +23,6 @@ Window::Window() {
 }
 
 Window::Window(int width, int height) {
-    //assert("");
-
     SDL_PropertiesID windowProperties = SDL_CreateProperties();
     SDL_SetStringProperty(windowProperties, SDL_PROP_WINDOW_CREATE_TITLE_STRING, "Window");
     SDL_SetNumberProperty(windowProperties, SDL_PROP_WINDOW_CREATE_X_NUMBER, SDL_WINDOWPOS_CENTERED);

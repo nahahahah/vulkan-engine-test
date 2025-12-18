@@ -1,5 +1,270 @@
 #include "Application.hpp"
 
+Application::Application() {
+    std::clog << "Vulkan header version: " << VK_HEADER_VERSION << std::endl;
+
+    InitSDL();
+    InitWindow();
+    InitVulkan();
+}
+
+Application::~Application() {
+    QuitSDL();
+}
+
+void Application::InitSDL() {
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
+        std::string error = "Unable to initialize the SDL (reason: " + std::string(SDL_GetError()) + ")";
+        throw std::runtime_error(error);
+    }
+    std::clog << "SDL initialized successfully" << std::endl;
+}
+
+void QuitSDL() {
+    SDL_Quit();
+}
+
+void Application::InitWindow() {
+    try {
+        _window = std::make_unique<Window>(WINDOW_WIDTH, WINDOW_HEIGHT);
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
+void Application::InitVulkan() {
+    CreateInstance();
+    SetupDebugMessenger();
+    CreateSurface();
+    SelectPhysicalDevice();
+    CreateDevice();
+    CreateQueues();
+    CreateSwapchain();
+}
+
+void Application::CreateInstance() {
+    auto applicationInfo = GenerateApplicationInfo(); // create application info
+        auto instanceLayersProperties = EnumerateLayerProperties(); // enumerate instance layers properties
+
+        bool validationLayersSupported = AreValidationLayerSupported(validationLayers, instanceLayersProperties); // check validation layers support and enable them if available
+        if (enableValidationLayers && !validationLayersSupported) {
+            std::string error = "Validation layers requested, but not available";
+            throw std::runtime_error(error);
+        }
+
+        // get enabled instance extensions
+        Uint32 enabledExtensionsCount = 0;
+        char const* const* enabledExtensionsArray = SDL_Vulkan_GetInstanceExtensions(&enabledExtensionsCount);
+        std::vector<char const*> enabledExtensions {};
+        for (int i = 0; i < static_cast<int>(enabledExtensionsCount); ++i) {
+            enabledExtensions.emplace_back(enabledExtensionsArray[i]);
+        }
+
+        //enabledExtensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME); // for MacOS, to avoid VK_ERROR_INCOMPATIBLE_DRIVER on vkCreateInstance
+        enabledExtensions.emplace_back("VK_KHR_get_surface_capabilities2");
+        if (enableValidationLayers) {
+            enabledExtensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        }
+
+        auto instanceExtensionsProperties = EnumerateInstanceExtensionProperties();
+
+    #ifdef NDEBUG
+        //auto instanceCreateInfo = GenerateInstanceCreateInfo(&applicationInfo, enabledExtensions, validationLayers, VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR);
+        auto instanceCreateInfo = GenerateInstanceCreateInfo(&applicationInfo, enabledExtensions, validationLayers);
+        _instance = std::make_unique<Instance>(instanceCreateInfo); // create instance
+
+    #else
+        auto instanceCreateInfo = GenerateInstanceCreateInfo(
+            &applicationInfo,
+            enabledExtensions,
+            validationLayers,
+            0 /* VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR */
+        );
+
+        VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo {};
+        if (enableValidationLayers) {
+            debugUtilsMessengerCreateInfo = GenerateDebugUtilsMessengerCreateInfo(DebugCallback);
+            instanceCreateInfo.pNext = &debugUtilsMessengerCreateInfo;
+        }
+        
+        _instance = std::make_unique<Instance>(instanceCreateInfo); // create instance
+    #endif
+}
+
+void Application::SetupDebugMessenger() {
+    if (!enableValidationLayers) {
+        return;
+    }
+
+    if (enableValidationLayers) {
+        try {
+            auto debugUtilsMessengerCreateInfo = GenerateDebugUtilsMessengerCreateInfo(DebugCallback);
+            _debugUtilsMessenger = std::make_unique<DebugUtilsMessenger>(*_instance, debugUtilsMessengerCreateInfo); // create the global debug messenger
+        }
+
+        catch (std::exception const& e) {
+            throw e;
+        }
+    }
+}
+
+void Application::CreateSurface() {
+    try {
+        _surface = std::make_unique<Surface>(*_instance, *_window); // create the surface from SDL
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
+void Application::SelectPhysicalDevice() {
+    auto physicalDevices = EnumeratedPhysicalDevices(*_instance); // enumerate physical devices
+
+    if (physicalDevices.size() == 0) {
+        std::string error = "Could not find GPUs with Vulkan support";
+        throw std::runtime_error(error);
+    }
+
+    // check if device is suitable
+    for (auto const& physicalDevice : physicalDevices) {
+        if (IsPhysicalDeviceSuitable(physicalDevice)) {
+            _physicalDevice = std::make_unique<PhysicalDevice>(std::move(physicalDevice));
+            break;
+        }
+    }
+
+    if (_physicalDevice == nullptr) {
+        std::string error = "Could not find a suitable GPU";
+        throw std::runtime_error(error);
+    }
+}
+
+void Application::CreateDevice() {    
+    QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(*_physicalDevice);
+
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos {};
+    std::set<uint32_t> uniqueQueueFamilies = { 
+        queueFamilyIndices.graphicsFamily.value(), 
+        queueFamilyIndices.presentFamily.value()
+    };
+    queueCreateInfos.reserve(uniqueQueueFamilies.size());
+
+    float queuePriority = 1.0f;
+    for (auto queueFamily : uniqueQueueFamilies) {
+        queueCreateInfos.emplace_back(GenerateDeviceQueueCreateInfo(queueFamily, &queuePriority));
+    }
+
+    auto physicalDeviceFeatures = _physicalDevice->Features();
+    auto physicalDeviceSynchronizationFeature2 = GeneratePhysicalDeviceSynchronization2Features(); // enable synchronization2 feature
+
+    auto deviceCreateInfo = GenerateDeviceCreateInfo(
+        queueCreateInfos,
+        deviceExtensions,
+        {},
+        physicalDeviceFeatures,
+        0,
+        &physicalDeviceSynchronizationFeature2
+    );
+
+    if (enableValidationLayers) {
+        deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
+    }
+
+    try {
+        _device = std::make_unique<Device>(deviceCreateInfo, *_physicalDevice);
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
+void Application::CreateQueues() {
+    QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(*_physicalDevice);
+
+    try {
+        auto graphicsQueueInfo = GenerateDeviceQueueInfo(0, queueFamilyIndices.graphicsFamily.value());
+        _graphicsQueue = std::make_unique<Queue>(graphicsQueueInfo, *_device);
+
+        auto presentQueueInfo = GenerateDeviceQueueInfo(0, queueFamilyIndices.presentFamily.value());
+        _presentQueue = std::make_unique<Queue>(presentQueueInfo, *_device);
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
+void Application::CreateSwapchain() {
+    SwapchainSupportDetails swapchainSupportDetails = QuerySwapchainSupport(*_physicalDevice);
+
+}
+
+QueueFamilyIndices Application::FindQueueFamilies(PhysicalDevice const& physicalDevice) {
+    QueueFamilyIndices indices {};
+
+    auto properties = physicalDevice.QueueFamilyProperties(); // get physical device's queue family properties
+
+    int queueFamilyIndex = 0;
+    //std::clog << " - Queue families (count: " << physicalDeviceQueueFamilyProperties.size() << ", "  << physicalDeviceProperties.properties.deviceName << ")" << std::endl;
+    for (auto const& queueFamilyProperties : properties) {
+        if (queueFamilyProperties.queueFamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            indices.graphicsFamily = queueFamilyIndex; 
+        }
+
+        if (queueFamilyProperties.queueFamilyProperties.queueFlags & VK_QUEUE_TRANSFER_BIT) {
+            indices.transferFamily = queueFamilyIndex;
+        }
+
+        // check that the retrieved surface is supported by a specific queue family for the current physical device
+        bool supportedSurface = physicalDevice.IsSurfaceSupportedByQueueFamily(*_surface, queueFamilyIndex);
+        if (supportedSurface) {
+            indices.presentFamily = queueFamilyIndex;
+        }
+
+        if (indices.IsComplete()) {
+            break;
+        }
+
+        ++queueFamilyIndex;
+    }
+
+    return indices;
+}
+
+SwapchainSupportDetails Application::QuerySwapchainSupport(PhysicalDevice const& physicalDevice) {
+    SwapchainSupportDetails details {};
+    
+    auto physicalDeviceSurfaceInfo = GeneratePhysicalDeviceSurfaceInfo(*_surface); // get surface info
+    details.capabilities = physicalDevice.SurfaceCapabilities(physicalDeviceSurfaceInfo); // get capabilities of the surface
+    details.formats = physicalDevice.SurfaceFormats(physicalDeviceSurfaceInfo); // get formats of the surface
+    details.presentModes = physicalDevice.PresentModes(*_surface); // get present modes of the surface
+
+    return details;
+}
+
+bool Application::IsPhysicalDeviceSuitable(PhysicalDevice const& physicalDevice) {
+    QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(physicalDevice);
+
+    // enumerate device extensions
+    auto deviceExtensionsProperties = EnumerateDeviceExtensionProperties(physicalDevice); // enumerate device extensions
+    bool deviceExtensionsAreSupported = AreDeviceExtensionsSupported(deviceExtensions, deviceExtensionsProperties);
+    //std::clog << (deviceExtensionsSupported ? "All device extensions are supported" : "Some or all device extensions aren't supported") << std::endl;
+
+    // check is swapchain has mandatory properties
+    bool swapchainIsAdequate = false;
+    if (deviceExtensionsAreSupported) {
+        SwapchainSupportDetails swapchainSupportDetails = QuerySwapchainSupport(physicalDevice);
+        swapchainIsAdequate = !swapchainSupportDetails.formats.empty() && ! swapchainSupportDetails.presentModes.empty();
+    }
+
+    return queueFamilyIndices.IsComplete() && deviceExtensionsAreSupported && swapchainIsAdequate;
+}
+
 // debug callback
 #ifndef NDEBUG
 VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
@@ -309,6 +574,8 @@ void CopyBuffer(uint32_t queueFamilyIndex, Device& device, Queue& graphicsQueue,
 }
 
 void UpdateUniformBuffer(void* mappedUniformBuffer, float ratio) {
+    static bool logged = false;
+
     static auto startTime = std::chrono::high_resolution_clock::now();
 
     auto currentTime = std::chrono::high_resolution_clock::now();
@@ -317,19 +584,73 @@ void UpdateUniformBuffer(void* mappedUniformBuffer, float ratio) {
     UniformBufferObject ubo {};
     //ubo.model = Math::Matrix4x4::RotateZ(time / 2);
     ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    /*
-    ubo.view = Math::Matrix4x4::LookAt(
+    ubo.model *= glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    
+    ubo.view = Math::Matrix4x4::Transpose(Math::Matrix4x4::LookAt(
         Math::Vector3(2.0f, 2.0f, 2.0f),
         Math::Vector3(0.0f, 0.0f, 0.0f),
         Math::Vector3(0.0f, 0.0f, 1.0f)
-    );
-    */
-    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    )) * Math::Matrix4x4(-1.0f, 1.0f, -1.0f, 1.0f);
+    auto view = Math::Matrix4x4::Transpose(Math::Matrix4x4::LookAt(
+        Math::Vector3(2.0f, 2.0f, 2.0f),
+        Math::Vector3(0.0f, 0.0f, 0.0f),
+        Math::Vector3(0.0f, 0.0f, 1.0f)
+    )) * Math::Matrix4x4(-1.0f, 1.0f, -1.0f, 1.0f);
+    //ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     //ubo.projection = Math::Matrix4x4::Perspective(std::numbers::pi_v<float> / 4, ratio, 0.1f, 10.0f);
+    auto proj = Math::Matrix4x4::Transpose(Math::Matrix4x4::Perspective(std::numbers::pi_v<float> / 4, ratio, 0.1f, 10.0f));
     ubo.proj = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 10.0f);
+
+    if (!logged) {
+        logged = true;
+
+        std::cout << "Own look at matrix: " << std::endl;
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                std::cout << std::showpos << std::fixed << std::setprecision(2) << view(i, j) << " ";                
+            }
+            std::cout << std::endl;
+        }
+
+        std::cout << std::endl;
+
+        std::cout << "GLM's look at matrix: " << std::endl;
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                std::cout << std::showpos << std::fixed << std::setprecision(2) << ubo.view(i, j) << " ";                
+            }
+            std::cout << std::endl;
+        }
+
+        std::cout << std::endl;
+
+        std::cout << "Own perspective matrix: " << std::endl;
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                std::cout << std::showpos << std::fixed << std::setprecision(2) << proj(i, j) << " ";                
+            }
+            std::cout << std::endl;
+        }
+
+        std::cout << std::endl;
+
+        std::cout << "GLM's perspective matrix: " << std::endl;
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                std::cout << std::showpos << std::fixed << std::setprecision(2) << ubo.proj[i][j] << " ";                
+            }
+            std::cout << std::endl;
+        }
+
+        std::cout << std::endl;
+    }
 
     //ubo.projection(1, 1) *= -1;
     ubo.proj[1][1] *= -1;
+
+    ubo.time = time;
+
+    std::cout << time << std::endl;
 
     std::memcpy(mappedUniformBuffer, &ubo, sizeof(ubo));
 }

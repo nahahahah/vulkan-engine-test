@@ -5,6 +5,18 @@
 
 PhysicalDevice::PhysicalDevice(VkPhysicalDevice physicalDevice) : _handle(physicalDevice) {}
 
+PhysicalDevice::PhysicalDevice(PhysicalDevice&& other) {
+    _handle = other._handle;
+    other._handle = VK_NULL_HANDLE;
+}
+
+PhysicalDevice& PhysicalDevice::operator = (PhysicalDevice&& other) {
+    _handle = other._handle;
+    other._handle = VK_NULL_HANDLE;
+
+    return *this;
+}
+
 VkPhysicalDeviceProperties2 PhysicalDevice::Properties() const {
     VkPhysicalDeviceProperties2 properties {};
     
@@ -184,4 +196,33 @@ VkPhysicalDeviceMemoryProperties2 PhysicalDevice::MemoryProperties() const {
     properties.pNext = VK_NULL_HANDLE;
 
     return properties;
+}
+
+EnumeratedPhysicalDevices::EnumeratedPhysicalDevices(Instance const& instance) {
+    uint32_t count = 0;
+    vkEnumeratePhysicalDevices(instance.Handle(), &count, nullptr);
+    std::cout << "Physical device count: " << count << std::endl;
+
+    _wrappers.reserve(count);
+
+    _handles.resize(count);
+    vkEnumeratePhysicalDevices(instance.Handle(), &count, _handles.data());
+
+    for (auto const& physicalDevice : _handles) {
+        _wrappers.emplace_back(physicalDevice);
+    }
+}
+
+PhysicalDevice& EnumeratedPhysicalDevices::operator [] (size_t index) {
+    assert("`index` must be within the bounds of the container" &&
+           index >= 0 && index < _wrappers.size());
+
+    return _wrappers[index];
+}
+
+PhysicalDevice const& EnumeratedPhysicalDevices::operator [] (size_t index) const {
+    assert("`index` must be within the bounds of the container" &&
+           index >= 0 && index < _wrappers.size());
+
+    return _wrappers[index];
 }

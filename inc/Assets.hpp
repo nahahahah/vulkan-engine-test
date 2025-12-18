@@ -21,8 +21,9 @@ struct UniformBufferObject {
     Math::Matrix4x4 projection {};
 */
     alignas(16) glm::mat4 model {};
-    alignas(16) glm::mat4 view {};
+    alignas(16) Math::Matrix4x4 view {};
     alignas(16) glm::mat4 proj {};
+    alignas(16) float time {};
 };
 
 #endif // ASSETS_HPP
