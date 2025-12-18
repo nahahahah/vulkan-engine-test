@@ -26,7 +26,7 @@ struct QueueFamilyIndices {
     std::optional<uint32_t> presentFamily {};
     std::optional<uint32_t> transferFamily {};
 
-    bool IsComplete() { graphicsFamily.has_value() && presentFamily.has_value(); }
+    bool IsComplete() { return graphicsFamily.has_value() && presentFamily.has_value(); }
 };
 
 struct SwapchainSupportDetails {
@@ -63,6 +63,13 @@ class Application {
         void Run();
 
     private: // methods
+        static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
+            VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+            VkDebugUtilsMessageTypeFlagsEXT messageType,
+            VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
+            void* pUserData
+        );
+
         void InitSDL();
         void QuitSDL();
 
@@ -75,6 +82,7 @@ class Application {
         void CreateDevice();
         void CreateQueues();
         void CreateSwapchain();
+        void GetSwapchainImages();
         void CreateImageViews();
         void CreateRenderPass();
         void CreateDescriptorSetLayout();
@@ -94,6 +102,11 @@ class Application {
         QueueFamilyIndices FindQueueFamilies(PhysicalDevice const& physicalDevice);
         SwapchainSupportDetails QuerySwapchainSupport(PhysicalDevice const& physicalDevice);
         bool IsPhysicalDeviceSuitable(PhysicalDevice const& physicalDevice);
+        
+        VkSurfaceFormat2KHR ChooseSwapSurfaceFormat(std::span<VkSurfaceFormat2KHR> availableFormats);
+        VkPresentModeKHR ChooseSwapPresentMode(std::span<VkPresentModeKHR> availablePresentModes);
+        VkExtent2D ChooseSwapExtent(VkSurfaceCapabilities2KHR const& surfaceCapabilities);
+
         void CleanUpSwapchain();
         void RecreateSwapchain();
 
@@ -108,8 +121,11 @@ class Application {
         std::unique_ptr<Device> _device = nullptr;
         std::unique_ptr<Queue> _graphicsQueue = nullptr;
         std::unique_ptr<Queue> _presentQueue = nullptr;
+        std::vector<VkImage> _swapchainImages {};
         std::unique_ptr<Swapchain> _swapchain = nullptr;
-        std::vector<ImageView> _imageViews {};
+        VkFormat _swapchainImageFormat = VkFormat::VK_FORMAT_UNDEFINED;
+        VkExtent2D _swapchainExtent {};
+        std::vector<ImageView> _swapchainImageViews {};
         std::unique_ptr<RenderPass> _renderPass = nullptr;
         std::unique_ptr<DescriptorSetLayout> _descriptorSetLayout = nullptr;
         std::unique_ptr<PipelineLayout> _pipelineLayout = nullptr;

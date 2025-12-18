@@ -12,6 +12,78 @@ Application::~Application() {
     QuitSDL();
 }
 
+// debug callback
+#ifndef NDEBUG
+VKAPI_ATTR VkBool32 VKAPI_CALL Application::DebugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
+    void* pUserData
+) {
+    (void)(pUserData);
+
+    std::clog << "\n[ ";
+    switch (messageSeverity) {
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: {
+            std::clog << "VERBOSE";
+            break;
+        }
+
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: {
+            std::clog << "INFO";
+            break;
+        }
+
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: {
+            std::clog << "WARNING";
+            break;
+        }
+
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: {
+            std::clog << "ERROR";
+            break;
+        }
+
+        default: {
+            break;
+        }
+    }
+
+    std::clog << "::";
+    
+    switch (messageType) {
+        case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT: {
+            std::clog << "GENERAL"; 
+            break;
+        }
+
+        case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT: {
+            std::clog << "VALIDATION";
+            break;
+        }
+
+        case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT: {
+            std::clog << "PERFORMANCE";
+            break;
+        }
+
+        case VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT: {
+            std::clog << "DEVICE ADRESS BINDING";
+            break; 
+        }
+
+        default: {
+            break;
+        }
+    }
+
+    std::cout << " ] ";
+
+    std::cerr << "Validation layer: " << pCallbackData->pMessage << std::endl << std::endl;
+    return VK_FALSE;
+}
+#endif
+
 void Application::InitSDL() {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         std::string error = "Unable to initialize the SDL (reason: " + std::string(SDL_GetError()) + ")";
@@ -42,6 +114,8 @@ void Application::InitVulkan() {
     CreateDevice();
     CreateQueues();
     CreateSwapchain();
+    GetSwapchainImages();
+    CreateImageViews();
 }
 
 void Application::CreateInstance() {
@@ -129,7 +203,7 @@ void Application::SelectPhysicalDevice() {
     }
 
     // check if device is suitable
-    for (auto const& physicalDevice : physicalDevices) {
+    for (auto& physicalDevice : physicalDevices) {
         if (IsPhysicalDeviceSuitable(physicalDevice)) {
             _physicalDevice = std::make_unique<PhysicalDevice>(std::move(physicalDevice));
             break;
@@ -202,6 +276,58 @@ void Application::CreateQueues() {
 void Application::CreateSwapchain() {
     SwapchainSupportDetails swapchainSupportDetails = QuerySwapchainSupport(*_physicalDevice);
 
+    auto surfaceFormat = ChooseSwapSurfaceFormat(swapchainSupportDetails.formats);
+    auto presentMode = ChooseSwapPresentMode(swapchainSupportDetails.presentModes);
+    auto extent = ChooseSwapExtent(swapchainSupportDetails.capabilities);
+
+    uint32_t imageCount = swapchainSupportDetails.capabilities.surfaceCapabilities.minImageCount + 1;
+    if (swapchainSupportDetails.capabilities.surfaceCapabilities.maxImageCount > 0
+     && imageCount > swapchainSupportDetails.capabilities.surfaceCapabilities.maxImageCount) {
+        imageCount = swapchainSupportDetails.capabilities.surfaceCapabilities.maxImageCount;
+    }
+
+    QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(*_physicalDevice);
+
+    auto swapchainCreateInfo = GenerateSwapchainCreateInfo(
+        surfaceFormat.surfaceFormat.colorSpace,
+        extent,
+        surfaceFormat.surfaceFormat.format,
+        queueFamilyIndices.graphicsFamily.value(),
+        queueFamilyIndices.presentFamily.value(),
+        imageCount,
+        presentMode,
+        swapchainSupportDetails.capabilities.surfaceCapabilities.currentTransform,
+        *_surface
+    );
+
+    try {
+        _swapchain = std::make_unique<Swapchain>(swapchainCreateInfo, *_device);
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+
+    _swapchainImageFormat = surfaceFormat.surfaceFormat.format;
+    _swapchainExtent = extent;
+}
+
+void Application::GetSwapchainImages() {
+    try {
+        _swapchainImages = EnumerateSwapChainImages(*_device, *_swapchain);
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
+void Application::CreateImageViews() {
+    _swapchainImageViews.reserve(_swapchainImages.size());
+    for (size_t i = 0; i < _swapchainImages.size(); ++i) {
+        auto swapchainImageViewCreateInfo = GenerateImageViewCreateInfo(_swapchainImageFormat, _swapchainImages[i]);
+        _swapchainImageViews.emplace_back(swapchainImageViewCreateInfo, *_device); // create swap chain image view
+    }
 }
 
 QueueFamilyIndices Application::FindQueueFamilies(PhysicalDevice const& physicalDevice) {
@@ -265,77 +391,36 @@ bool Application::IsPhysicalDeviceSuitable(PhysicalDevice const& physicalDevice)
     return queueFamilyIndices.IsComplete() && deviceExtensionsAreSupported && swapchainIsAdequate;
 }
 
-// debug callback
-#ifndef NDEBUG
-VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
-    void* pUserData
-) {
-    (void)(pUserData);
-
-    std::clog << "\n[ ";
-    switch (messageSeverity) {
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: {
-            std::clog << "VERBOSE";
-            break;
-        }
-
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: {
-            std::clog << "INFO";
-            break;
-        }
-
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: {
-            std::clog << "WARNING";
-            break;
-        }
-
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: {
-            std::clog << "ERROR";
-            break;
-        }
-
-        default: {
-            break;
+VkSurfaceFormat2KHR Application::ChooseSwapSurfaceFormat(std::span<VkSurfaceFormat2KHR> availableFormats) {
+    for (auto const& availableFormat : availableFormats) {
+        if (availableFormat.surfaceFormat.format == VK_FORMAT_B8G8R8A8_SRGB
+         && availableFormat.surfaceFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+            return availableFormat;
         }
     }
 
-    std::clog << "::";
-    
-    switch (messageType) {
-        case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT: {
-            std::clog << "GENERAL"; 
-            break;
-        }
-
-        case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT: {
-            std::clog << "VALIDATION";
-            break;
-        }
-
-        case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT: {
-            std::clog << "PERFORMANCE";
-            break;
-        }
-
-        case VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT: {
-            std::clog << "DEVICE ADRESS BINDING";
-            break; 
-        }
-
-        default: {
-            break;
-        }
-    }
-
-    std::cout << " ] ";
-
-    std::cerr << "Validation layer: " << pCallbackData->pMessage << std::endl << std::endl;
-    return VK_FALSE;
+    return availableFormats[0];
 }
-#endif
+
+VkPresentModeKHR Application::ChooseSwapPresentMode(std::span<VkPresentModeKHR> availablePresentModes) {
+    for (auto const availablePresentMode : availablePresentModes) {
+        if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+            return availablePresentMode;
+        }
+    }
+
+    return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkExtent2D Application::ChooseSwapExtent(VkSurfaceCapabilities2KHR const& surfaceCapabilities) {
+    if (surfaceCapabilities.surfaceCapabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+        return surfaceCapabilities.surfaceCapabilities.currentExtent;
+    }
+    
+    else {
+        return Swapchain::Extent2DFromSDLWindow(*_window, surfaceCapabilities);
+    }
+}
 
 /// TODO: VERY BAD IDEA HERE. Find a way to NOT give access to the handle (especially giving the right to create/destroy it)
 void HandleFrameInvalidity(

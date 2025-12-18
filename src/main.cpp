@@ -34,29 +34,6 @@ int main(int argc, char* argv[]) {
     try {
         app.Run();
 
-
-
-        auto swapchainCreateInfo = GenerateSwapchainCreateInfo(
-            preferredFormat.surfaceFormat.colorSpace,
-            swapchainExtent,
-            preferredFormat.surfaceFormat.format,
-            queueFamilyIndexWithGraphicsCapabilities.value(),
-            queueFamilyIndexWithPresentCapabilities.value(),
-            imageCount,
-            preferredPresentMode,
-            currentTransform,
-            surface
-        );
-        auto swapchain = Swapchain(swapchainCreateInfo, device); // create swapchain
-
-        std::vector<VkImage> swapchainImages = EnumerateSwapChainImages(device, swapchain); // retrieve swap chain images
-
-        std::vector<ImageView> swapchainImageViews;
-        for (size_t i = 0; i < swapchainImages.size(); ++i) {
-            auto swapchainImageViewCreateInfo = GenerateImageViewCreateInfo(preferredFormat.surfaceFormat.format, swapchainImages[i]);
-            swapchainImageViews.emplace_back(swapchainImageViewCreateInfo, device); // create swap chain image view
-        }
-        
         std::vector<char> vertexShaderFileBuffer;
         auto vertexShaderModuleCreateInfo = GenerateShaderModuleCreateInfo("resources/shaders/triangle.vertex.spv", vertexShaderFileBuffer);
         auto vertexShaderModule = ShaderModule(vertexShaderModuleCreateInfo, device); // create vertex shader module
