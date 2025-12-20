@@ -136,7 +136,7 @@ class Application {
 
         void CopyBuffer(Buffer& src, Buffer& dst, VkDeviceSize size);
 
-        void CleanUpSwapchain();
+        void CleanupSwapchain();
         void RecreateSwapchain();
 
 

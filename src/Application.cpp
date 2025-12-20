@@ -112,7 +112,7 @@ void Application::QuitSDL() {
 
 void Application::InitWindow() {
     try {
-        _window = std::make_unique<Window>(WINDOW_WIDTH, WINDOW_HEIGHT);
+        _window = std::make_unique<Window>(1200, 1000);
     }
 
     catch (std::exception const& e) {
@@ -731,8 +731,8 @@ void Application::MainLoop() {
         if (acquireNextImageResult == VK_ERROR_OUT_OF_DATE_KHR) {
             std::cerr << "Swap chain image is out of date" << std::endl;
 
-            //HandleFrameInvalidity(*_physicalDevice, *_device, *_surface, swapchainCreateInfo, swapchain, preferredFormat.surfaceFormat.format, swapchainImages, swapchainImageViews, framebuffers, renderPass);
-            continue;
+            RecreateSwapchain();
+            return;
         }
 
         else if (acquireNextImageResult != VK_SUCCESS && acquireNextImageResult != VK_SUBOPTIMAL_KHR) {
@@ -767,18 +767,15 @@ void Application::MainLoop() {
 
         VkPresentInfoKHR presentInfo = GeneratePresentInfo(imageIndices, swapchains, signalSemaphores);
         VkResult queuePresentResult = vkQueuePresentKHR(_presentQueue->Handle(), &presentInfo); // present
-        if (queuePresentResult != VK_SUCCESS) {
-            std::string error = "Unable to present image with queue (status: " + std::to_string(queuePresentResult) + ")";
-            throw std::runtime_error(error);
-        }
         
         if (queuePresentResult == VK_ERROR_OUT_OF_DATE_KHR || queuePresentResult == VK_SUBOPTIMAL_KHR || _framebufferResized) {
             _framebufferResized = false;
-            //HandleFrameInvalidity(*physicalDevice, device, surface, swapchainCreateInfo, swapchain, preferredFormat.surfaceFormat.format, swapchainImages, swapchainImageViews, framebuffers, renderPass);
+            RecreateSwapchain();
         }
         
         else if (queuePresentResult != VK_SUCCESS) {
-            throw std::runtime_error("Could not present swap chain image");
+            std::string error = "Unable to present image with queue (status: " + std::to_string(queuePresentResult) + ")";
+            throw std::runtime_error(error);
         }
 
         // cap frame index to MAX_FRAMES_IN_FLIGHT
@@ -1091,52 +1088,38 @@ void Application::CopyBuffer(Buffer& src, Buffer& dst, VkDeviceSize size) {
     }
 }
 
-/// TODO: VERY BAD IDEA HERE. Find a way to NOT give access to the handle (especially giving the right to create/destroy it)
-void HandleFrameInvalidity(
-    PhysicalDevice const& physicalDevice,
-    Device& device,
-    Surface const& surface,
-    VkSwapchainCreateInfoKHR const& swapchainCreateInfo,
-    Swapchain& swapchain,
-    VkFormat imageFormat,
-    std::vector<VkImage>& swapchainImages,
-    std::vector<ImageView>& swapchainImageViews,
-    std::vector<Framebuffer>& framebuffers,
-    RenderPass const& renderPass
-) {
-    device.WaitIdle();
+void Application::CleanupSwapchain() {
+    _framebuffers.clear();
+    _swapchainImageViews.clear();
+    _swapchainImages.clear();
+    _swapchain.reset();
+}
 
-    for (auto& framebuffer : framebuffers) {
-        framebuffer.DestroyHandle();
+void Application::RecreateSwapchain() {
+    int width = 0, height = 0;
+    
+    if (!SDL_GetWindowSizeInPixels(_window->Handle(), &width, &height)) {
+        std::string error = "Could not get window size in pixels (reason: " + std::string(SDL_GetError()) + ")";
+        throw std::runtime_error(error);
     }
 
-    for (auto& swapchainImageView : swapchainImageViews) {
-        swapchainImageView.DestroyHandle();
+    std::cout << "SDL_GetWindowFlags(_window->Handle()) & SDL_WINDOW_MINIMIZED = " << (SDL_GetWindowFlags(_window->Handle()) & SDL_WINDOW_MINIMIZED) << std::endl;
+    
+    while (SDL_GetWindowFlags(_window->Handle()) & SDL_WINDOW_MINIMIZED) {
+        if (!SDL_GetWindowSizeInPixels(_window->Handle(), &width, &height)) {
+            std::string error = "Could not get window size in pixels (reason: " + std::string(SDL_GetError()) + ")";
+            throw std::runtime_error(error);
+        }
+
+        SDL_WaitEvent(&_event);
     }
 
-    swapchainImages.clear();
+    _device->WaitIdle();
 
-    swapchain.DestroyHandle();
+    CleanupSwapchain();
 
-    std::cout << swapchainCreateInfo.imageExtent.width << "x" << swapchainCreateInfo.imageExtent.height << std::endl;
-
-    auto physicalDeviceSurfaceInfo = GeneratePhysicalDeviceSurfaceInfo(surface); // get surface info
-    physicalDevice.SurfaceCapabilities(physicalDeviceSurfaceInfo);
-    physicalDevice.SurfaceFormats(physicalDeviceSurfaceInfo); // get formats of the surface
-    physicalDevice.PresentModes(surface); // get present modes of the surface
-
-    swapchain.CreateHandle(swapchainCreateInfo);
-
-    swapchainImages = EnumerateSwapChainImages(device, swapchain);
-
-    for (int i = 0; i < static_cast<int>(swapchainImages.size()); ++i) {
-        auto swapchainImageViewCreateInfo = GenerateImageViewCreateInfo(imageFormat, swapchainImages[i]);
-        swapchainImageViews[i].CreateHandle(swapchainImageViewCreateInfo);
-    }
-
-    for (int i = 0; i < static_cast<int>(swapchainImageViews.size()); ++i) {
-        std::vector<VkImageView> attachments = { swapchainImageViews[i].Handle() };
-        auto frameBufferCreateInfo = GenerateFramebufferCreateInfo(swapchainCreateInfo.imageExtent, attachments, renderPass);
-        framebuffers[i].CreateHandle(frameBufferCreateInfo);
-    }
+    CreateSwapchain();
+    GetSwapchainImages();
+    CreateImageViews();
+    CreateFramebuffers();
 }
