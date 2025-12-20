@@ -45,4 +45,23 @@ target("vulkan_test")
     add_installfiles("resources/shaders/*", { prefixdir = "bin/resources/shaders" })
 
     add_includedirs("inc")
+
+    before_run(function (target)
+        local project_path = path.absolute(os.scriptdir())
+        os.cd(project_path)
+
+        local fragment_shader_input_path = path.join(project_path, "resources/shaders/triangle.fragment.glsl")
+        local fragment_shader_output_path = path.join(project_path, "resources/shaders/triangle.fragment.spv")
+        print("Compiling fragment shader...")
+        print("\tInput: " .. fragment_shader_input_path)
+        print("\tOutput: " .. fragment_shader_output_path)
+        os.runv("glslc", { "-fshader-stage=fragment", fragment_shader_input_path, "-o", fragment_shader_output_path })
+
+        local vertex_shader_input_path = path.join(project_path, "resources/shaders/triangle.vertex.glsl")
+        local vertex_shader_output_path = path.join(project_path, "resources/shaders/triangle.vertex.spv")
+        print("Compiling vertex shader...")
+        print("\tInput: " .. vertex_shader_input_path)
+        print("\tOutput: " .. vertex_shader_output_path)
+        os.runv("glslc", { "-fshader-stage=vertex", vertex_shader_input_path, "-o", vertex_shader_output_path })
+    end)
 target_end()

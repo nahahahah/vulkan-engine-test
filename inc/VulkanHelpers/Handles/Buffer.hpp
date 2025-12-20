@@ -17,6 +17,7 @@ class Buffer {
         Buffer(Buffer&& other);
         ~Buffer();
 
+        Buffer& operator = (Buffer const& other) = delete;
         Buffer& operator = (Buffer&& other);
 
         VkBuffer Handle() { return _handle; }
