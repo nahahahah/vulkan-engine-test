@@ -12,9 +12,9 @@
 VkAcquireNextImageInfoKHR GenerateAcquireNextImageInfo(
     Swapchain const& swapChain,
     Semaphore* semaphore = nullptr,
-    Fence* fence = nullptr,
+    Fence const* fence = nullptr,
     uint32_t deviceMask = 1,
-    void* next = VK_NULL_HANDLE,
+    void const* next = VK_NULL_HANDLE,
     uint64_t timeout = UINT64_MAX
 );
 
