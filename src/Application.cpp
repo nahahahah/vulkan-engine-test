@@ -910,8 +910,6 @@ void Application::UpdateUniformBuffer(uint32_t currentImage) {
 
     ubo.time = time;
 
-    std::cout << time << std::endl;
-
     std::memcpy(_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 

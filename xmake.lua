@@ -1,12 +1,42 @@
 add_rules("mode.debug", "mode.release")
 add_languages("cxx20")
 set_warnings("extra", "all", "error")
-
 add_requires("vulkan-headers", "vulkan-loader", "libsdl3", "glm")
+
+rule("vertex_shader")
+    set_extensions(".vertex.glsl")
+
+    on_build_file(function (target, sourcefile, opt)
+        print("Compiling vertex shader '" .. path.filename(sourcefile) .. "'...")
+        local project_path = path.absolute(os.scriptdir())
+        local input = path.join(project_path, sourcefile)
+        local output = path.join(project_path, path.directory(sourcefile) .. path.basename(sourcefile) .. ".spv")
+        print("\tInput: " .. input)
+        print("\tOutput: " .. output)
+        os.runv("glslc", { "-fshader-stage=vertex", input, "-o", output })
+    end)
+rule_end()
+
+rule("fragment_shader")
+    set_extensions(".fragment.glsl")
+
+    on_build_file(function (target, sourcefile, opt)
+        print("Compiling fragment shader '" .. path.filename(sourcefile) .. "'...")
+        local project_path = path.absolute(os.scriptdir())
+        local input = path.join(project_path, sourcefile)
+        local output = path.join(project_path,  path.directory(sourcefile) .. path.basename(sourcefile) .. ".spv")
+        print("\tInput: " .. input)
+        print("\tOutput: " .. output)
+        os.runv("glslc", { "-fshader-stage=fragment", input, "-o", output })
+    end)
+rule_end()
 
 add_rules("plugin.compile_commands.autoupdate", { outputdir = ".vscode" })
 target("vulkan_test")
     set_kind("binary")
+
+    add_rules("vertex_shader", "fragment_shader")
+    add_files("resources/shaders/triangle.*.glsl")
 
     add_packages("vulkan-headers", "libsdl3")
     add_packages("vulkan-loader", "glm")
@@ -45,23 +75,4 @@ target("vulkan_test")
     add_installfiles("resources/shaders/*", { prefixdir = "bin/resources/shaders" })
 
     add_includedirs("inc")
-
-    before_run(function (target)
-        local project_path = path.absolute(os.scriptdir())
-        os.cd(project_path)
-
-        local fragment_shader_input_path = path.join(project_path, "resources/shaders/triangle.fragment.glsl")
-        local fragment_shader_output_path = path.join(project_path, "resources/shaders/triangle.fragment.spv")
-        print("Compiling fragment shader...")
-        print("\tInput: " .. fragment_shader_input_path)
-        print("\tOutput: " .. fragment_shader_output_path)
-        os.runv("glslc", { "-fshader-stage=fragment", fragment_shader_input_path, "-o", fragment_shader_output_path })
-
-        local vertex_shader_input_path = path.join(project_path, "resources/shaders/triangle.vertex.glsl")
-        local vertex_shader_output_path = path.join(project_path, "resources/shaders/triangle.vertex.spv")
-        print("Compiling vertex shader...")
-        print("\tInput: " .. vertex_shader_input_path)
-        print("\tOutput: " .. vertex_shader_output_path)
-        os.runv("glslc", { "-fshader-stage=vertex", vertex_shader_input_path, "-o", vertex_shader_output_path })
-    end)
 target_end()
