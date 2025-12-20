@@ -10,6 +10,24 @@ DescriptorSetLayout::DescriptorSetLayout(VkDescriptorSetLayoutCreateInfo const& 
     std::clog << "Descriptor set layout created successfully: <VkDescriptorSetLayout " << _handle << ">" << std::endl;
 }
 
+DescriptorSetLayout::DescriptorSetLayout(DescriptorSetLayout&& other) {
+    _handle = other._handle;
+    other._handle = nullptr;
+
+    _device = other._device;
+    other._device = nullptr;
+}
+
+DescriptorSetLayout& DescriptorSetLayout::operator = (DescriptorSetLayout&& other) {
+    _handle = other._handle;
+    other._handle = nullptr;
+
+    _device = other._device;
+    other._device = nullptr;
+
+    return *this;
+}
+
 DescriptorSetLayout::~DescriptorSetLayout() {
     if (_handle != VK_NULL_HANDLE) {
         vkDestroyDescriptorSetLayout(_device->Handle(), _handle, VK_NULL_HANDLE);

@@ -42,7 +42,7 @@ std::vector<VkExtensionProperties> EnumerateDeviceExtensionProperties(PhysicalDe
 
 bool AreDeviceExtensionsSupported(std::span<char const*> deviceExtensions, std::span<VkExtensionProperties> deviceExtensionsProperties) {
     std::set<std::string> requiredDeviceExtensions(deviceExtensions.begin(), deviceExtensions.end());
-    for (VkExtensionProperties const& deviceExtensionProperties : deviceExtensionsProperties) {
+    for (auto const& deviceExtensionProperties : deviceExtensionsProperties) {
         requiredDeviceExtensions.erase(deviceExtensionProperties.extensionName);
     }
 

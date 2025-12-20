@@ -11,7 +11,8 @@
 
 class DeviceMemory {
     public:
-        DeviceMemory(VkMemoryAllocateInfo const& allocateInfo, Device* device);
+        DeviceMemory() = default;
+        DeviceMemory(VkMemoryAllocateInfo const& allocateInfo, Device& device);
         DeviceMemory(DeviceMemory const& other) = delete;
         DeviceMemory(DeviceMemory&& other);
         ~DeviceMemory();

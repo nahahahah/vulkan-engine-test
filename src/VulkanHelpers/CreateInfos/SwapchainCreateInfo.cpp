@@ -13,9 +13,12 @@ VkSwapchainCreateInfoKHR GenerateSwapchainCreateInfo(
 ) {
     VkSwapchainCreateInfoKHR createInfo {};
 
+    // structure type and flags
+    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.flags = 0;
+
     createInfo.clipped = VK_TRUE;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    createInfo.flags = 0;
     createInfo.imageArrayLayers = 1;
     createInfo.imageColorSpace = imageColorSpace;
     createInfo.imageExtent = extent;
@@ -41,11 +44,12 @@ VkSwapchainCreateInfoKHR GenerateSwapchainCreateInfo(
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     createInfo.minImageCount = imageCount;
     createInfo.oldSwapchain = VK_NULL_HANDLE;
-    createInfo.pNext = VK_NULL_HANDLE;
     createInfo.presentMode = presentMode;
     createInfo.preTransform = surfaceTransform;
-    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     createInfo.surface = surface.Handle();
+
+    // extend create info
+    createInfo.pNext = VK_NULL_HANDLE;
 
     return createInfo;
 }

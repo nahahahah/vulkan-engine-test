@@ -11,7 +11,8 @@
 
 class Buffer {
     public:
-        Buffer(VkBufferCreateInfo const& createInfo, Device* device);
+        Buffer() = default;
+        Buffer(VkBufferCreateInfo const& createInfo, Device& device);
         Buffer(Buffer const& other) = delete;
         Buffer(Buffer&& other);
         ~Buffer();

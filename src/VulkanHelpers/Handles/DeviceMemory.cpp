@@ -1,7 +1,7 @@
 #include "VulkanHelpers/Handles/DeviceMemory.hpp"
 
-DeviceMemory::DeviceMemory(VkMemoryAllocateInfo const& allocateInfo, Device* device) : _device(device) {
-    VkResult result = vkAllocateMemory(device->Handle(), &allocateInfo, VK_NULL_HANDLE, &_handle);
+DeviceMemory::DeviceMemory(VkMemoryAllocateInfo const& allocateInfo, Device& device) : _device(&device) {
+    VkResult result = vkAllocateMemory(_device->Handle(), &allocateInfo, VK_NULL_HANDLE, &_handle);
     if (result != VK_SUCCESS) {
         std::string error = "Could not allocate memory (result: code " + std::to_string(result) + ")";
         throw std::runtime_error(error);

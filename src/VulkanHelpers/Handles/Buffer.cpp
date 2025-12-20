@@ -1,7 +1,7 @@
 #include "VulkanHelpers/Handles/Buffer.hpp"
 
-Buffer::Buffer(VkBufferCreateInfo const& createInfo, Device* device) : _device(device) {
-    VkResult result = vkCreateBuffer(device->Handle(), &createInfo, VK_NULL_HANDLE, &_handle);
+Buffer::Buffer(VkBufferCreateInfo const& createInfo, Device& device) : _device(&device) {
+    VkResult result = vkCreateBuffer(_device->Handle(), &createInfo, VK_NULL_HANDLE, &_handle);
     if (result != VK_SUCCESS) {
         std::string error = "Could not create a buffer (result: code " + std::to_string(result) + ")";
         throw std::runtime_error(error);
@@ -29,7 +29,7 @@ Buffer& Buffer::operator = (Buffer&& other) {
     other._handle = VK_NULL_HANDLE;
 
     _device = other._device;
-    _device = nullptr;
+    other._device = nullptr;
 
     return *this;
 }

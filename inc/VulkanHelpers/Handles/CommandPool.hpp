@@ -11,7 +11,7 @@
 
 class CommandPool {
     public:
-        CommandPool(VkCommandPoolCreateInfo const& createinfo, Device const& device);
+        CommandPool(VkCommandPoolCreateInfo const& createInfo, Device& device);
         ~CommandPool();
 
         VkCommandPool Handle() { return _handle; }
@@ -19,7 +19,7 @@ class CommandPool {
 
     private:
         VkCommandPool _handle = VK_NULL_HANDLE;
-        Device const& _device;
+        Device* _device = nullptr;
 };
 
 #endif // VK_WRAPPER_COMMAND_POOL_HPP
