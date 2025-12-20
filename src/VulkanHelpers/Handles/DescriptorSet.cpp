@@ -15,6 +15,17 @@ DescriptorSets::DescriptorSets(VkDescriptorSetAllocateInfo const& allocateInfo, 
     }
 }
 
+DescriptorSets::DescriptorSets(DescriptorSets&& other) {
+    _handles = other._handles;
+    other._handles = {};
+
+    _device = other._device;
+    other._device = nullptr;
+
+    _descriptorPool = other._descriptorPool;
+    other._descriptorPool = nullptr;
+}
+
 DescriptorSets::~DescriptorSets() {
     /*
     // add this case when the pool allows it
@@ -25,4 +36,17 @@ DescriptorSets::~DescriptorSets() {
         _handles.data()
     );
     */
+}
+
+DescriptorSets& DescriptorSets::operator = (DescriptorSets&& other) {
+    _handles = other._handles;
+    other._handles = {};
+
+    _device = other._device;
+    other._device = nullptr;
+
+    _descriptorPool = other._descriptorPool;
+    other._descriptorPool = nullptr;
+
+    return *this;
 }

@@ -1,6 +1,9 @@
 #ifndef ASSETS_HPP
 #define ASSETS_HPP
 
+#include <vector>
+#include <cstdint>
+
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>

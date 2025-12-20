@@ -14,8 +14,14 @@
 
 class DescriptorSets {
     public:
+        DescriptorSets() = default;
         DescriptorSets(VkDescriptorSetAllocateInfo const& allocateInfo, Device& device, DescriptorPool& descriptorPool);
+        DescriptorSets(DescriptorSets const& other) = delete;
+        DescriptorSets(DescriptorSets&& other);
         ~DescriptorSets();
+
+        DescriptorSets& operator = (DescriptorSets const& other) = delete;
+        DescriptorSets& operator = (DescriptorSets&& other);
 
         VkDescriptorSet* Handles() { return _handles.data(); }
         VkDescriptorSet const* Handles() const { return _handles.data(); }

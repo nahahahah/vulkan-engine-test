@@ -1,6 +1,6 @@
 #include "VulkanHelpers/Handles/Framebuffer.hpp"
 
-Framebuffer::Framebuffer(VkFramebufferCreateInfo const& createInfo, Device const& device) : _device(device) {
+Framebuffer::Framebuffer(VkFramebufferCreateInfo const& createInfo, Device& device) : _device(&device) {
     try {
         CreateHandle(createInfo);
     }
@@ -10,11 +10,13 @@ Framebuffer::Framebuffer(VkFramebufferCreateInfo const& createInfo, Device const
     }
 }
 
-Framebuffer::Framebuffer(Framebuffer&& other) : _device(other._device) {
-    if (other._handle != VK_NULL_HANDLE) {
-        _handle = other._handle;
-        other._handle = VK_NULL_HANDLE;
-    }
+Framebuffer::Framebuffer(Framebuffer&& other) {
+    _handle = other._handle;
+    other._handle = VK_NULL_HANDLE;
+
+    _device = other._device;
+    other._device = nullptr;
+    
 }
 
 Framebuffer::~Framebuffer() {
@@ -22,7 +24,7 @@ Framebuffer::~Framebuffer() {
 }
 
 void Framebuffer::CreateHandle(VkFramebufferCreateInfo const& createInfo) {
-    VkResult result = vkCreateFramebuffer(_device.Handle(), &createInfo, VK_NULL_HANDLE, &_handle);
+    VkResult result = vkCreateFramebuffer(_device->Handle(), &createInfo, VK_NULL_HANDLE, &_handle);
     if (result != VK_SUCCESS) {
         std::string error = "Could not create frame buffer (status: " + std::to_string(result) + ")";
         throw std::runtime_error(error);
@@ -32,7 +34,7 @@ void Framebuffer::CreateHandle(VkFramebufferCreateInfo const& createInfo) {
 
 void Framebuffer::DestroyHandle() {
     if (_handle != VK_NULL_HANDLE) {
-        vkDestroyFramebuffer(_device.Handle(), _handle, VK_NULL_HANDLE);
+        vkDestroyFramebuffer(_device->Handle(), _handle, VK_NULL_HANDLE);
         std::clog << "Framebuffer destroyed successfully" << std::endl;
         _handle = VK_NULL_HANDLE;
     }
