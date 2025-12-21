@@ -1,11 +1,20 @@
 #include "Application.hpp"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb/stb_image.h>
+
 Application::Application() {
     std::clog << "Vulkan header version: " << VK_HEADER_VERSION << std::endl;
 
-    InitSDL();
-    InitWindow();
-    InitVulkan();
+    try {
+        InitSDL();
+        InitWindow();
+        InitVulkan();
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
 
     _running = true;
 }
@@ -15,9 +24,8 @@ Application::~Application() {
 }
 
 void Application::Run() {
-    MainLoop(); /// TODO: Remove this extra call (potentially remove MainLoop as it's redundant)
-
     try {
+        MainLoop(); /// TODO: Remove this extra call (potentially remove MainLoop as it's redundant)
         _device->WaitIdle();
     }
     
@@ -121,27 +129,34 @@ void Application::InitWindow() {
 }
 
 void Application::InitVulkan() {
-    CreateInstance();
-    SetupDebugMessenger();
-    CreateSurface();
-    SelectPhysicalDevice();
-    CreateDevice();
-    CreateQueues();
-    CreateSwapchain();
-    GetSwapchainImages();
-    CreateImageViews();
-    CreateRenderPass();
-    CreateDescriptorSetLayout();
-    CreateGraphicsPipeline();
-    CreateFramebuffers();
-    CreateCommandPool();
-    CreateVertexBuffer();
-    CreateIndexBuffer();
-    CreateUniformBuffers();
-    CreateDescriptorPool();
-    CreateDescriptorSets();
-    CreateCommandBuffers();
-    CreateSynchronizationObjects();
+    try {
+        CreateInstance();
+        SetupDebugMessenger();
+        CreateSurface();
+        SelectPhysicalDevice();
+        CreateDevice();
+        CreateQueues();
+        CreateSwapchain();
+        GetSwapchainImages();
+        CreateImageViews();
+        CreateRenderPass();
+        CreateDescriptorSetLayout();
+        CreateGraphicsPipeline();
+        CreateFramebuffers();
+        CreateCommandPool();
+        CreateTextureImage();
+        CreateVertexBuffer();
+        CreateIndexBuffer();
+        CreateUniformBuffers();
+        CreateDescriptorPool();
+        CreateDescriptorSets();
+        CreateCommandBuffers();
+        CreateSynchronizationObjects();
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
 }
 
 void Application::CreateInstance() {
@@ -504,6 +519,48 @@ void Application::CreateCommandPool() {
     catch (std::exception const& e) {
         throw e;
     }
+}
+
+void Application::CreateTextureImage() {
+    int textureWidth = 0;
+    int textureHeight = 0;
+    int textureChannels = 0;
+    stbi_uc* pixels = stbi_load(
+        "resources/textures/texture.jpg",
+        &textureWidth,
+        &textureHeight,
+        &textureChannels,
+        STBI_rgb_alpha
+    );
+
+    if (!pixels) {
+        std::string error = "Could not load the texture image file (reason: " + std::string(stbi_failure_reason()) + ")";
+        throw std::runtime_error(error);
+    }
+
+    VkDeviceSize imageSize = textureWidth * textureHeight * static_cast<int>(STBI_rgb_alpha);
+
+    std::unique_ptr<Buffer> stagingBuffer = nullptr;
+    std::unique_ptr<DeviceMemory> stagingBufferMemory = nullptr;
+    CreateBuffer(
+        imageSize,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_SHARING_MODE_EXCLUSIVE,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        stagingBuffer,
+        stagingBufferMemory
+    );
+
+    void* data = nullptr;
+    auto stagingBufferMemoryMapInfo = GenerateMemoryMapInfo(*stagingBufferMemory, imageSize, 0);
+    _device->MapMemory(stagingBufferMemoryMapInfo, &data);
+
+    std::memcpy(data, pixels, static_cast<size_t>(imageSize));
+    
+    auto stagingBufferMemoryUnmapInfo = GenerateMemoryUnmapInfo(*stagingBufferMemory);
+    _device->UnmapMemory(stagingBufferMemoryUnmapInfo);
+
+    stbi_image_free(pixels);
 }
 
 void Application::CreateVertexBuffer() {

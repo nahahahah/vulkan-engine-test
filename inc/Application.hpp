@@ -8,6 +8,15 @@
 #include <cstdint>
 #include <set>
 
+#define SDL_MAIN_HANDLED
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
+#include <SDL3/SDL_main.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_vulkan.h>
+
 #include <vulkan/vulkan.h>
 
 #include "SDLHelpers/Window.hpp"
@@ -66,7 +75,6 @@ inline std::vector<uint16_t> shapeIndices = {
     0, 1, 2, 2, 3, 0
 };
 
-
 class Application {
     public: // constructors / destructor
         Application();
@@ -103,6 +111,7 @@ class Application {
         void CreateGraphicsPipeline();
         void CreateFramebuffers();
         void CreateCommandPool();
+        void CreateTextureImage();
         void CreateVertexBuffer();
         void CreateIndexBuffer();
         void CreateUniformBuffers();
