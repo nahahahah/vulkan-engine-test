@@ -1,6 +1,8 @@
 #include "VulkanHelpers/Handles/Buffer.hpp"
 
-Buffer::Buffer(VkBufferCreateInfo const& createInfo, Device& device) : _device(&device) {
+#include "VulkanHelpers/Handles/Device.hpp"
+
+Buffer::Buffer(VkBufferCreateInfo const& createInfo, Device const& device) : _device(&device) {
     VkResult result = vkCreateBuffer(_device->Handle(), &createInfo, VK_NULL_HANDLE, &_handle);
     if (result != VK_SUCCESS) {
         std::string error = "Could not create a buffer (result: code " + std::to_string(result) + ")";
@@ -32,18 +34,4 @@ Buffer& Buffer::operator = (Buffer&& other) {
     other._device = nullptr;
 
     return *this;
-}
-
-VkMemoryRequirements2 Buffer::MemoryRequirements(VkBufferMemoryRequirementsInfo2 info) {
-    VkMemoryRequirements2 requirements {};
-
-    // structure type
-    requirements.sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2; 
-
-    vkGetBufferMemoryRequirements2(_device->Handle(), &info, &requirements);
-
-    // extend requirements
-    requirements.pNext = VK_NULL_HANDLE;
-
-    return requirements;
 }

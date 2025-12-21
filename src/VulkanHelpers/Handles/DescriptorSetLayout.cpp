@@ -1,6 +1,6 @@
 #include "VulkanHelpers/Handles/DescriptorSetLayout.hpp"
 
-DescriptorSetLayout::DescriptorSetLayout(VkDescriptorSetLayoutCreateInfo const& createInfo, Device& device)
+DescriptorSetLayout::DescriptorSetLayout(VkDescriptorSetLayoutCreateInfo const& createInfo, Device const& device)
     : _device(&device) {
     VkResult result = vkCreateDescriptorSetLayout(_device->Handle(), &createInfo, VK_NULL_HANDLE, &_handle);
     if (result != VK_SUCCESS) {

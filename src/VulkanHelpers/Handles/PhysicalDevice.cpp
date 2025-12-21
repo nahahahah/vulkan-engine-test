@@ -137,40 +137,6 @@ std::vector<VkPresentModeKHR> PhysicalDevice::PresentModes(Surface const& surfac
 	return presentModes;
 }
 
-std::vector<PhysicalDevice> PhysicalDevice::Enumerate(Instance const& instance) {
-    // get physical devices count
-    uint32_t count = 0;
-    VkResult result = vkEnumeratePhysicalDevices(instance.Handle(), &count, VK_NULL_HANDLE);
-    if (result != VkResult::VK_SUCCESS) {
-        std::string error = "Unable to enumerate physical devices (1st call, status: " + std::to_string(result) + ")";
-        throw std::runtime_error(error);
-    }
-    //std::clog << "Physical devices enumerated successfully (1st call, count: " << count << ")" << std::endl;
-
-    // should not happen on a modern PC because the CPU can be used
-    if (count == 0) {
-        std::string error = "No physical devices found";
-        throw std::runtime_error(error);
-    }
-
-    // enumerate physical devices
-    std::vector<VkPhysicalDevice> tmpPhysicalDevices(count, VK_NULL_HANDLE);
-    result = vkEnumeratePhysicalDevices(instance.Handle(), &count, tmpPhysicalDevices.data());
-    if (result != VkResult::VK_SUCCESS) {
-        std::string error = "Unable to enumerate physical devices (2nd call, status: " + std::to_string(result) + ")";
-        throw std::runtime_error(error);
-    }
-    //std::clog << "Physical devices enumerated successfully (2nd call, retrieved in array)" << std::endl;
-
-    std::vector<PhysicalDevice> physicalDevices {};
-    physicalDevices.reserve(count);
-    for (size_t i = 0; i < count; ++i) {
-        physicalDevices.emplace_back(tmpPhysicalDevices[i]);
-    }
-
-    return physicalDevices;
-}
-
 bool PhysicalDevice::IsSurfaceSupportedByQueueFamily(Surface const& surface, uint32_t queueFamilyIndex) const {
     VkBool32 supportedSurface = VK_FALSE;
     VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(_handle, queueFamilyIndex, surface.Handle(), &supportedSurface);
@@ -198,31 +164,46 @@ VkPhysicalDeviceMemoryProperties2 PhysicalDevice::MemoryProperties() const {
     return properties;
 }
 
-EnumeratedPhysicalDevices::EnumeratedPhysicalDevices(Instance const& instance) {
+PhysicalDeviceCollection::PhysicalDeviceCollection(Instance const& instance) {
     uint32_t count = 0;
-    vkEnumeratePhysicalDevices(instance.Handle(), &count, nullptr);
-    std::cout << "Physical device count: " << count << std::endl;
+    VkResult result = vkEnumeratePhysicalDevices(instance.Handle(), &count, VK_NULL_HANDLE);
+    if (result != VkResult::VK_SUCCESS) {
+        std::string error = "Unable to enumerate physical devices (1st call, status: " + std::to_string(result) + ")";
+        throw std::runtime_error(error);
+    }
+    //std::clog << "Physical devices enumerated successfully (1st call, count: " << count << ")" << std::endl;
+
+    // should not happen on a modern PC because the CPU can be used
+    if (count == 0) {
+        std::string error = "No physical devices found";
+        throw std::runtime_error(error);
+    }
+
+    // enumerate physical devices
+    _handles.resize(count);
+    result = vkEnumeratePhysicalDevices(instance.Handle(), &count, _handles.data());
+    if (result != VkResult::VK_SUCCESS) {
+        std::string error = "Unable to enumerate physical devices (2nd call, status: " + std::to_string(result) + ")";
+        throw std::runtime_error(error);
+    }
+    //std::clog << "Physical devices enumerated successfully (2nd call, retrieved in array)" << std::endl;
 
     _wrappers.reserve(count);
-
-    _handles.resize(count);
-    vkEnumeratePhysicalDevices(instance.Handle(), &count, _handles.data());
-
-    for (auto const& physicalDevice : _handles) {
-        _wrappers.emplace_back(physicalDevice);
+    for (size_t i = 0; i < count; ++i) {
+        _wrappers.emplace_back(_handles[i]);
     }
 }
 
-PhysicalDevice& EnumeratedPhysicalDevices::operator [] (size_t index) {
+PhysicalDevice& PhysicalDeviceCollection::operator [] (size_t index) {
     assert("`index` must be within the bounds of the container" &&
-           index >= 0 && index < _wrappers.size());
+           index < _wrappers.size());
 
     return _wrappers[index];
 }
 
-PhysicalDevice const& EnumeratedPhysicalDevices::operator [] (size_t index) const {
+PhysicalDevice const& PhysicalDeviceCollection::operator [] (size_t index) const {
     assert("`index` must be within the bounds of the container" &&
-           index >= 0 && index < _wrappers.size());
+           index < _wrappers.size());
 
     return _wrappers[index];
 }

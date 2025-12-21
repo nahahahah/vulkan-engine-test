@@ -15,10 +15,11 @@ class Surface;
 
 class PhysicalDevice {
     public:
-        PhysicalDevice() = default;
+        PhysicalDevice() = delete;
         PhysicalDevice(PhysicalDevice const& other) = delete;
         PhysicalDevice(PhysicalDevice&& other);
         PhysicalDevice(VkPhysicalDevice physicalDevice);
+        ~PhysicalDevice() = default;
 
         PhysicalDevice& operator = (PhysicalDevice const& other) = delete;
         PhysicalDevice& operator = (PhysicalDevice&& other);
@@ -26,16 +27,12 @@ class PhysicalDevice {
         VkPhysicalDevice Handle() { return _handle; }
         VkPhysicalDevice Handle() const { return _handle; }
 
-        bool IsSuitable(Surface const& surface) const;
-
         VkPhysicalDeviceProperties2 Properties() const;
         VkPhysicalDeviceFeatures2 Features() const;
         std::vector<VkQueueFamilyProperties2> QueueFamilyProperties() const;
         VkSurfaceCapabilities2KHR SurfaceCapabilities(VkPhysicalDeviceSurfaceInfo2KHR const& surfaceInfo) const;
         std::vector<VkSurfaceFormat2KHR> SurfaceFormats(VkPhysicalDeviceSurfaceInfo2KHR const& surfaceInfo) const;
         std::vector<VkPresentModeKHR> PresentModes(Surface const& surface) const;
-
-        static std::vector<PhysicalDevice> Enumerate(Instance const& instance);
 
         bool IsSurfaceSupportedByQueueFamily(Surface const& surface, uint32_t queueFamilyIndex) const;
 
@@ -45,30 +42,30 @@ class PhysicalDevice {
         VkPhysicalDevice _handle = nullptr;
 };
 
-class EnumeratedPhysicalDevices {
+class PhysicalDeviceCollection {
     public:
         using Iterator = std::vector<PhysicalDevice>::iterator;
         using ConstIterator = std::vector<PhysicalDevice>::const_iterator;
         using ConstReverseIterator = std::vector<PhysicalDevice>::const_reverse_iterator;
 
-        EnumeratedPhysicalDevices() = default;
-        EnumeratedPhysicalDevices(Instance const& instance);
-        EnumeratedPhysicalDevices(EnumeratedPhysicalDevices const& other) = delete;
-        EnumeratedPhysicalDevices(EnumeratedPhysicalDevices&& other) = default;
+        PhysicalDeviceCollection() = default;
+        PhysicalDeviceCollection(Instance const& instance);
+        PhysicalDeviceCollection(PhysicalDeviceCollection const& other) = delete;
+        PhysicalDeviceCollection(PhysicalDeviceCollection&& other) = default;
         /**
          * @note Nothing to destroy specifically. The physical devices will be freed internally by the Vulkan instance.
          */
-        ~EnumeratedPhysicalDevices() = default;
+        ~PhysicalDeviceCollection() = default;
 
-        EnumeratedPhysicalDevices& operator = (EnumeratedPhysicalDevices const& other) = delete;
-        EnumeratedPhysicalDevices& operator = (EnumeratedPhysicalDevices&& other) = default;
+        PhysicalDeviceCollection& operator = (PhysicalDeviceCollection const& other) = delete;
+        PhysicalDeviceCollection& operator = (PhysicalDeviceCollection&& other) = default;
 
         PhysicalDevice& operator [] (size_t index);
         PhysicalDevice const& operator [] (size_t index) const;
 
         size_t size() { return _wrappers.size(); }
         
-        VkPhysicalDevice const* const Handles() { return _handles.data(); }
+        VkPhysicalDevice const* Handles() { return _handles.data(); }
 
         Iterator begin() { return _wrappers.begin(); }
         ConstIterator begin() const { return _wrappers.begin(); }

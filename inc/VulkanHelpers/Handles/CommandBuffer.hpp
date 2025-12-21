@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <vector>
 #include <span>
+#include <cassert>
 
 #include <vulkan/vulkan.h>
 
@@ -16,15 +17,22 @@
 
 class CommandBuffer {
     public:
-        CommandBuffer() = default;
-        CommandBuffer(CommandBuffer const&& other) = delete;
-        CommandBuffer(CommandBuffer&& other);
+        CommandBuffer() = delete;
         CommandBuffer(VkCommandBuffer commandBuffer);
+        CommandBuffer(
+            VkCommandBufferAllocateInfo const& allocateInfo,
+            Device const& device,
+            CommandPool const* commandPool = nullptr
+        );
+        CommandBuffer(CommandBuffer const& other) = delete;
+        CommandBuffer(CommandBuffer&& other);
+        ~CommandBuffer();
+
+        CommandBuffer& operator = (CommandBuffer const& other) = delete;
+        CommandBuffer& operator = (CommandBuffer&& other);
 
         VkCommandBuffer Handle() { return _handle; }
         VkCommandBuffer Handle() const { return _handle; }
-        VkCommandBuffer* HandleAddress() { return &_handle; }
-        VkCommandBuffer const* HandleAddress() const { return &_handle; }
 
         void Reset(VkCommandBufferResetFlags flags = 0);
         void Begin(VkCommandBufferBeginInfo const& beginInfo);
@@ -60,50 +68,60 @@ class CommandBuffer {
 
     private:
         VkCommandBuffer _handle = VK_NULL_HANDLE;
+        Device const* _device = nullptr;
+        CommandPool const* _commandPool = nullptr;
 };
 
-/// TODO: EDIT THIS CRAP!
-class CommandBuffers {
+class CommandBufferCollection {
     public:
-        CommandBuffers(VkCommandBufferAllocateInfo const& allocateInfo, Device& device, CommandPool& commandPool) : _device(&device), _commandPool(&commandPool) {
-            std::vector<VkCommandBuffer> commandBuffers(allocateInfo.commandBufferCount);
-            VkResult result = vkAllocateCommandBuffers(device.Handle(), &allocateInfo, commandBuffers.data());
-            if (result != VK_SUCCESS) {
-                std::string error = "Unable to allocate " + std::to_string(allocateInfo.commandBufferCount) + " command buffers (status: " + std::to_string(result) + ")";
-                throw std::runtime_error(error);
-            }
-            std::clog << commandBuffers.size() << " command buffers allocated successfully" << std::endl;
+        using Iterator = std::vector<CommandBuffer>::iterator;
+        using ConstIterator = std::vector<CommandBuffer>::const_iterator;
+        using ReverseIterator = std::vector<CommandBuffer>::reverse_iterator;
+        using ConstReverseIterator = std::vector<CommandBuffer>::const_reverse_iterator;
 
-            _wrappers.reserve(allocateInfo.commandBufferCount);
-            for (int i = 0; i < static_cast<int>(allocateInfo.commandBufferCount); ++i) {
-                _wrappers.emplace_back(commandBuffers[i]);
-            }
-        }
+        CommandBufferCollection() = default;
+        CommandBufferCollection(VkCommandBufferAllocateInfo const& allocateInfo, Device const& device);
+        CommandBufferCollection(CommandBufferCollection const& other) = delete;
+        CommandBufferCollection(CommandBufferCollection&& other) = default;
+        /**
+         * @note Nothing to destroy specifically. The command buffers will be freed internally by the command pool which was used to allocate them.
+         */
+        ~CommandBufferCollection() = default;
 
-        ~CommandBuffers() {
-            std::vector<VkCommandBuffer> handles;
-            handles.reserve(_wrappers.size());
-            for (auto& wrapper : _wrappers) {
-                handles.push_back(wrapper.Handle());
-            }
+        CommandBufferCollection& operator = (CommandBufferCollection const& other) = delete;
+        CommandBufferCollection& operator = (CommandBufferCollection&& other) = default;
 
-            vkFreeCommandBuffers(
-                _device->Handle(),
-                _commandPool->Handle(),
-                static_cast<uint32_t>(handles.size()),
-                handles.data()
-            );
+        CommandBuffer& operator [] (size_t index);
+        CommandBuffer const& operator [] (size_t index) const;
 
-            std::clog << "Destroyed " << handles.size() << " command buffers" << std::endl;
-        }
+        size_t size() { return _wrappers.size(); }
+
+        CommandBuffer* Wrappers() { return _wrappers.data(); }
+        CommandBuffer const* Wrappers() const { return _wrappers.data(); }
+        VkCommandBuffer* Handles() { return _handles.data(); }
+        VkCommandBuffer const* Handles() const { return _handles.data(); }
+
+        Iterator begin() { return _wrappers.begin(); }
+        ConstIterator begin() const { return _wrappers.begin(); }
+        
+        Iterator end() { return _wrappers.end(); }
+        ConstIterator end() const { return _wrappers.end(); }
+        
+        ConstIterator cbegin() const { return _wrappers.cbegin(); }
+        ConstIterator cend() const { return _wrappers.cend(); }
+        
+        ReverseIterator rbegin() { return _wrappers.rbegin(); }
+        ConstReverseIterator rbegin() const { return _wrappers.rbegin(); }
+        
+        ReverseIterator rend() { return _wrappers.rend(); }
+        ConstReverseIterator rend() const{ return _wrappers.rend(); }
+        
+        ConstReverseIterator crbegin() const { return _wrappers.crbegin(); }
+        ConstReverseIterator crend() const { return _wrappers.crend(); }
 
     private:
+        std::vector<VkCommandBuffer> _handles {};
         std::vector<CommandBuffer> _wrappers {};
-        CommandPool* _commandPool = nullptr;
-        Device* _device = nullptr;
 };
-
-CommandBuffer AllocateCommandBuffer(VkCommandBufferAllocateInfo const& allocateInfo, Device const& device);
-std::vector<CommandBuffer> AllocateCommandBuffers(VkCommandBufferAllocateInfo const& allocateInfo, Device const& device);
 
 #endif // VK_WRAPPER_COMMAND_BUFFER_HPP

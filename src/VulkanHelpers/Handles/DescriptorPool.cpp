@@ -1,6 +1,6 @@
 #include "VulkanHelpers/Handles/DescriptorPool.hpp"
 
-DescriptorPool::DescriptorPool(VkDescriptorPoolCreateInfo const& createInfo, Device& device) : _device(&device) {
+DescriptorPool::DescriptorPool(VkDescriptorPoolCreateInfo const& createInfo, Device const& device) : _device(&device) {
     VkResult result = vkCreateDescriptorPool(_device->Handle(), &createInfo, VK_NULL_HANDLE, &_handle);
     if (result != VK_SUCCESS) {
         std::string error = "Could not create a descriptor pool (result: code " + std::to_string(result) + ")";
@@ -9,10 +9,28 @@ DescriptorPool::DescriptorPool(VkDescriptorPoolCreateInfo const& createInfo, Dev
     std::clog << "Descriptor pool created successfully: <VkDescriptorPool " << _handle << ">" << std::endl;
 }
 
+DescriptorPool::DescriptorPool(DescriptorPool&& other) {
+    _handle = other._handle;
+    other._handle = VK_NULL_HANDLE;
+
+    _device = other._device;
+    other._device = nullptr;
+}
+
 DescriptorPool::~DescriptorPool() {
     if (_handle != VK_NULL_HANDLE) {
         vkDestroyDescriptorPool(_device->Handle(), _handle, VK_NULL_HANDLE);
         _handle = VK_NULL_HANDLE;
         std::clog << "Descriptor pool destroyed successfully" << std::endl;
     }
+}
+
+DescriptorPool& DescriptorPool::operator = (DescriptorPool&& other) {
+    _handle = other._handle;
+    other._handle = VK_NULL_HANDLE;
+
+    _device = other._device;
+    other._device = nullptr;
+
+    return *this;
 }

@@ -16,15 +16,21 @@ class PhysicalDevice;
 
 class Surface {
     public:
+        Surface() = delete;
         Surface(Instance const& instance, Window const& window);
+        Surface(Surface const& other) = delete;
+        Surface(Surface&& other);
         ~Surface();
+
+        Surface& operator = (Surface const& other) = delete;
+        Surface& operator = (Surface&& other);
 
         VkSurfaceKHR Handle() { return _handle; }
         VkSurfaceKHR Handle() const { return _handle; }
 
     private:
         VkSurfaceKHR _handle = VK_NULL_HANDLE;
-        Instance const& _instance;
+        Instance const* _instance = nullptr;
 };
 
 #endif // VK_WRAPPER_SURFACE_HPP

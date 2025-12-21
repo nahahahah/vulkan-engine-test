@@ -300,6 +300,7 @@ namespace Math
 
     Matrix4x4 Matrix4x4::Perspective(float fov, float ratio, float near, float far)
     {
+        /*
         float focalLength = 1.0f / std::tan(fov / 2.0f);
         float divider = 1.0f / (far - near);
         return Matrix4x4(
@@ -307,6 +308,14 @@ namespace Math
             0.0f, focalLength, 0.0f, 0.0f,
             0.0f, 0.0f, far * divider, -far * near * divider,
             0.0f, 0.0f, 1.0f, 0.0f);
+        */
+        float focalLength = 1.0f / std::tan(fov / 2.0f);
+        float divider = 2.0f / (far - near);
+        return Matrix4x4(
+            focalLength / ratio, 0.0f, 0.0f, 0.0f,
+            0.0f, focalLength, 0.0f, 0.0f,
+            0.0f, 0.0f, (far * divider) - 1, far * near * divider,
+            0.0f, 0.0f, -1.0f, 0.0f);
     }
 
     Matrix4x4 Matrix4x4::Orthographic(float ratio, float near, float far)

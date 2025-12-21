@@ -12,7 +12,7 @@
 class DescriptorSetLayout {
     public:
         DescriptorSetLayout() = default;
-        DescriptorSetLayout(VkDescriptorSetLayoutCreateInfo const& createInfo, Device& device);
+        DescriptorSetLayout(VkDescriptorSetLayoutCreateInfo const& createInfo, Device const& device);
         DescriptorSetLayout(DescriptorSetLayout const& other) = delete;
         DescriptorSetLayout(DescriptorSetLayout&& other);
         ~DescriptorSetLayout();
@@ -25,7 +25,7 @@ class DescriptorSetLayout {
 
     private:
         VkDescriptorSetLayout _handle = VK_NULL_HANDLE;
-        Device* _device = nullptr;
+        Device const* _device = nullptr;
 };
 
 #endif // VK_WRAPPER_DESCRIPTOR_SET_LAYOUT_HPP

@@ -1,7 +1,10 @@
 #include "VulkanHelpers/Handles/DescriptorSet.hpp"
 
-DescriptorSets::DescriptorSets(VkDescriptorSetAllocateInfo const& allocateInfo, Device& device, DescriptorPool& descriptorPool)
-    : _device(&device), _descriptorPool(&descriptorPool) {
+DescriptorSetCollection::DescriptorSetCollection(
+    VkDescriptorSetAllocateInfo const& allocateInfo,
+    Device const& device,
+    DescriptorPool const* descriptorPool
+) : _device(&device), _descriptorPool(descriptorPool) {
         _handles.resize(allocateInfo.descriptorSetCount);
     VkResult result = vkAllocateDescriptorSets(_device->Handle(), &allocateInfo, _handles.data());
     if (result != VK_SUCCESS) {
@@ -15,7 +18,7 @@ DescriptorSets::DescriptorSets(VkDescriptorSetAllocateInfo const& allocateInfo, 
     }
 }
 
-DescriptorSets::DescriptorSets(DescriptorSets&& other) {
+DescriptorSetCollection::DescriptorSetCollection(DescriptorSetCollection&& other) {
     _handles = other._handles;
     other._handles = {};
 
@@ -26,10 +29,10 @@ DescriptorSets::DescriptorSets(DescriptorSets&& other) {
     other._descriptorPool = nullptr;
 }
 
-DescriptorSets::~DescriptorSets() {
+DescriptorSetCollection::~DescriptorSetCollection() {
     /*
     // add this case when the pool allows it
-    vkFreeDescriptorSets(
+    vkFreeDescriptorSetCollection(
         _device->Handle(),
         _descriptorPool->Handle(),
         static_cast<uint32_t>(_handles.size()),
@@ -38,7 +41,7 @@ DescriptorSets::~DescriptorSets() {
     */
 }
 
-DescriptorSets& DescriptorSets::operator = (DescriptorSets&& other) {
+DescriptorSetCollection& DescriptorSetCollection::operator = (DescriptorSetCollection&& other) {
     _handles = other._handles;
     other._handles = {};
 
@@ -49,4 +52,18 @@ DescriptorSets& DescriptorSets::operator = (DescriptorSets&& other) {
     other._descriptorPool = nullptr;
 
     return *this;
+}
+
+VkDescriptorSet& DescriptorSetCollection::operator [] (size_t index) {
+    assert("`index` must be within the bounds of the container" &&
+           index < _handles.size());
+
+    return _handles[index];
+}
+
+VkDescriptorSet const& DescriptorSetCollection::operator [] (size_t index) const {
+    assert("`index` must be within the bounds of the container" &&
+           index < _handles.size());
+
+    return _handles[index];
 }
