@@ -7,12 +7,12 @@
 
 #include <vulkan/vulkan.h>
 
-#include "VulkanHelpers/Handles/Device.hpp"
+class Device;
 
 class Buffer {
     public:
-        Buffer() = default;
-        Buffer(VkBufferCreateInfo const& createInfo, Device& device);
+        Buffer() = delete;
+        Buffer(VkBufferCreateInfo const& createInfo, Device const& device);
         Buffer(Buffer const& other) = delete;
         Buffer(Buffer&& other);
         ~Buffer();
@@ -23,11 +23,9 @@ class Buffer {
         VkBuffer Handle() { return _handle; }
         VkBuffer Handle() const { return _handle; }
 
-        VkMemoryRequirements2 MemoryRequirements(VkBufferMemoryRequirementsInfo2 info);
-
     private:
         VkBuffer _handle = VK_NULL_HANDLE;
-        Device* _device = nullptr;
+        Device const* _device = nullptr;
 };
 
 #endif // VK_WRAPPER_BUFFER_HPP

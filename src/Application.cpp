@@ -214,7 +214,7 @@ void Application::SetupDebugMessenger() {
 
     try {
         auto debugUtilsMessengerCreateInfo = GenerateDebugUtilsMessengerCreateInfo(DebugCallback);
-        _debugUtilsMessenger = std::make_unique<DebugUtilsMessenger>(*_instance, debugUtilsMessengerCreateInfo); // create the global debug messenger
+        _debugUtilsMessenger = std::make_unique<DebugUtilsMessenger>(debugUtilsMessengerCreateInfo, *_instance); // create the global debug messenger
     }
 
     catch (std::exception const& e) {
@@ -233,7 +233,7 @@ void Application::CreateSurface() {
 }
 
 void Application::SelectPhysicalDevice() {
-    auto physicalDevices = EnumeratedPhysicalDevices(*_instance); // enumerate physical devices
+    auto physicalDevices = PhysicalDeviceCollection(*_instance); // enumerate physical devices
 
     if (physicalDevices.size() == 0) {
         std::string error = "Could not find GPUs with Vulkan support";
@@ -510,8 +510,8 @@ void Application::CreateVertexBuffer() {
     try {
         VkDeviceSize vertexBufferSize = sizeof(shapeVertices[0]) * shapeVertices.size();
 
-        auto stagingBuffer = Buffer();
-        auto stagingBufferMemory = DeviceMemory();
+        std::unique_ptr<Buffer> stagingBuffer = nullptr;
+        std::unique_ptr<DeviceMemory> stagingBufferMemory = nullptr;
         CreateBuffer(
             vertexBufferSize,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -522,26 +522,24 @@ void Application::CreateVertexBuffer() {
         );
 
         void* data = nullptr;
-        auto stagingBufferMemoryMapInfo = GenerateMemoryMapInfo(stagingBufferMemory, vertexBufferSize, 0);
-        stagingBufferMemory.Map(stagingBufferMemoryMapInfo, &data);
+        auto stagingBufferMemoryMapInfo = GenerateMemoryMapInfo(*stagingBufferMemory, vertexBufferSize, 0);
+        _device->MapMemory(stagingBufferMemoryMapInfo, &data);
         
         std::memcpy(data, shapeVertices.data(), static_cast<size_t>(vertexBufferSize));
 
-        auto stagingBufferMemoryUnmapInfo = GenerateMemoryUnmapInfo(stagingBufferMemory);
-        stagingBufferMemory.Unmap(stagingBufferMemoryUnmapInfo);
+        auto stagingBufferMemoryUnmapInfo = GenerateMemoryUnmapInfo(*stagingBufferMemory);
+        _device->UnmapMemory(stagingBufferMemoryUnmapInfo);
 
-        _vertexBuffer = std::make_unique<Buffer>();
-        _vertexBufferMemory = std::make_unique<DeviceMemory>();
         CreateBuffer(
             vertexBufferSize,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VK_SHARING_MODE_EXCLUSIVE,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            *_vertexBuffer,
-            *_vertexBufferMemory
+            _vertexBuffer,
+            _vertexBufferMemory
         );
 
-        CopyBuffer(stagingBuffer, *_vertexBuffer, vertexBufferSize);
+        CopyBuffer(*stagingBuffer, *_vertexBuffer, vertexBufferSize);
     }
 
     catch (std::exception const& e) {
@@ -553,8 +551,8 @@ void Application::CreateIndexBuffer() {
     try {
         VkDeviceSize indexBufferSize = sizeof(shapeIndices[0]) * shapeIndices.size();
 
-        auto stagingBuffer = Buffer();
-        auto stagingBufferMemory = DeviceMemory();
+        std::unique_ptr<Buffer> stagingBuffer = nullptr;
+        std::unique_ptr<DeviceMemory> stagingBufferMemory = nullptr;
         CreateBuffer(
             indexBufferSize,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -565,26 +563,24 @@ void Application::CreateIndexBuffer() {
         );
 
         void* data = nullptr;
-        auto stagingBufferMemoryMapInfo = GenerateMemoryMapInfo(stagingBufferMemory, indexBufferSize, 0);
-        stagingBufferMemory.Map(stagingBufferMemoryMapInfo, &data);
+        auto stagingBufferMemoryMapInfo = GenerateMemoryMapInfo(*stagingBufferMemory, indexBufferSize, 0);
+        _device->MapMemory(stagingBufferMemoryMapInfo, &data);
         
         std::memcpy(data, shapeIndices.data(), static_cast<size_t>(indexBufferSize));
 
-        auto stagingBufferMemoryUnmapInfo = GenerateMemoryUnmapInfo(stagingBufferMemory);
-        stagingBufferMemory.Unmap(stagingBufferMemoryUnmapInfo);
+        auto stagingBufferMemoryUnmapInfo = GenerateMemoryUnmapInfo(*stagingBufferMemory);
+        _device->UnmapMemory(stagingBufferMemoryUnmapInfo);
 
-        _indexBuffer = std::make_unique<Buffer>();
-        _indexBufferMemory = std::make_unique<DeviceMemory>();
         CreateBuffer(
             indexBufferSize,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
             VK_SHARING_MODE_EXCLUSIVE,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            *_indexBuffer,
-            *_indexBufferMemory
+            _indexBuffer,
+            _indexBufferMemory
         );
 
-        CopyBuffer(stagingBuffer, *_indexBuffer, indexBufferSize);
+        CopyBuffer(*stagingBuffer, *_indexBuffer, indexBufferSize);
     }
 
     catch (std::exception const& e) {
@@ -611,8 +607,8 @@ void Application::CreateUniformBuffers() {
 
         _uniformBuffersMapped[i] = nullptr;
 
-        auto uniformBufferMemoryMapInfo = GenerateMemoryMapInfo(_uniformBuffersMemory[i], uniformBufferSize, 0);
-        _uniformBuffersMemory[i].Map(uniformBufferMemoryMapInfo, &_uniformBuffersMapped[i]);
+        auto uniformBufferMemoryMapInfo = GenerateMemoryMapInfo(*_uniformBuffersMemory[i], uniformBufferSize, 0);
+        _device->MapMemory(uniformBufferMemoryMapInfo, &_uniformBuffersMapped[i]);
     }
 }
 
@@ -646,14 +642,14 @@ void Application::CreateDescriptorSets() {
     );
 
     try {
-        _descriptorSets = DescriptorSets(descriptorSetAllocateInfo, *_device, *_descriptorPool);
+        _descriptorSets = std::make_unique<DescriptorSetCollection>(descriptorSetAllocateInfo, *_device);
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-            auto descriptorBufferInfo = GenerateDescriptorBufferInfo(_uniformBuffers[i], sizeof(UniformBufferObject));
+            auto descriptorBufferInfo = GenerateDescriptorBufferInfo(*_uniformBuffers[i], sizeof(UniformBufferObject));
 
             auto writeBufferDescriptorSet = GenerateWriteDescriptorSet(
                 1,
                 VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                _descriptorSets.Handles()[i],
+                (*_descriptorSets)[i],
                 0,
                 0,
                 &descriptorBufferInfo
@@ -669,11 +665,10 @@ void Application::CreateDescriptorSets() {
 }
 
 void Application::CreateCommandBuffers() {
-    _commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-    auto commandBufferAllocateInfo = GenerateCommandBufferAllocateInfo(*_commandPool, static_cast<uint32_t>(_commandBuffers.size())); // create command buffer
+    auto commandBufferAllocateInfo = GenerateCommandBufferAllocateInfo(*_commandPool, static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)); // create command buffer
     
     try {
-        _commandBuffers = AllocateCommandBuffers(commandBufferAllocateInfo, *_device);
+        _commandBuffers = std::make_unique<CommandBufferCollection>(commandBufferAllocateInfo, *_device);
     }
 
     catch (std::exception const& e) {
@@ -709,11 +704,11 @@ void Application::MainLoop() {
     while (_running) {
         Fence& frameFence = _inFlightFences[_frameIndex];
         std::vector<VkFence> fencesToResetAndWaitFor = { frameFence.Handle() };
-        WaitForFences(*_device, fencesToResetAndWaitFor);
+        _device->WaitForFences(fencesToResetAndWaitFor);
 
         uint32_t imageIndex = 0;
         Semaphore& acquireSemaphore = _imageAvailableSemaphores[_frameIndex];
-        CommandBuffer& commandBuffer = _commandBuffers[_frameIndex];
+        CommandBuffer& commandBuffer = (*_commandBuffers)[_frameIndex];
 
         while (SDL_PollEvent(&_event)) {
             if (_event.type == SDL_EVENT_QUIT) {
@@ -741,13 +736,13 @@ void Application::MainLoop() {
 
         UpdateUniformBuffer(_frameIndex);
 
-        ResetFences(*_device, fencesToResetAndWaitFor);
+        _device->ResetFences(fencesToResetAndWaitFor);
         
         // REALLY IMPORTANT: USE SWAPCHAIN IMAGE INDEX RETRIEVED FROM ANI TO PROPERLY RE-USE SEMAPHORES
         Semaphore& submitSemaphore = _renderFinishedSemaphores[imageIndex];
 
         commandBuffer.Reset();
-        RecordCommandBuffer(_commandBuffers[_frameIndex], imageIndex);
+        RecordCommandBuffer((*_commandBuffers)[_frameIndex], imageIndex);
 
         std::vector<VkCommandBufferSubmitInfo> commandBufferSubmitInfo = { GenerateCommandBufferSubmitInfo(commandBuffer) }; // specify command buffer submit info for submission
         std::vector<VkSemaphoreSubmitInfo> signalSemaphoreSubmitInfo = { GenerateSemaphoreSubmitInfo(submitSemaphore, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT) };
@@ -813,15 +808,15 @@ void Application::RecordCommandBuffer(CommandBuffer& commandBuffer, uint32_t ima
         (sizeof(shapeIndices[0]) * shapeIndices.size()),
         VK_INDEX_TYPE_UINT16
     );
-    std::vector<VkDescriptorSet> descriptorSetsToBind = { _descriptorSets.Handles()[_frameIndex] };
-    auto bindDescriptorSetsInfo = GenerateBindDescriptorSetsInfo(
+    std::vector<VkDescriptorSet> DescriptorSetCollectionToBind = { (*_descriptorSets)[_frameIndex] };
+    auto bindDescriptorSetCollectionInfo = GenerateBindDescriptorSetsInfo(
         *_pipelineLayout,
         VK_SHADER_STAGE_VERTEX_BIT,
         0,
-        descriptorSetsToBind,
+        DescriptorSetCollectionToBind,
         {}
     );
-    commandBuffer.BindDescriptorSets(bindDescriptorSetsInfo);
+    commandBuffer.BindDescriptorSets(bindDescriptorSetCollectionInfo);
 
     commandBuffer.DrawIndexed(static_cast<uint32_t>(shapeIndices.size()), 1, 0, 0, 0);
 
@@ -843,44 +838,24 @@ void Application::UpdateUniformBuffer(uint32_t currentImage) {
 
     UniformBufferObject ubo {};
     //ubo.model = Math::Matrix4x4::RotateZ(time / 2);
+    //ubo.model *= Math::Matrix4x4::RotateX(time / 2);
+    //ubo.model = Math::Matrix4x4::Transpose(ubo.model) * Math::Matrix4x4(-1.0f, 1.0f, -1.0f, 1.0f);
+
     ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.model *= glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    
+
     ubo.view = Math::Matrix4x4::Transpose(Math::Matrix4x4::LookAt(
-        Math::Vector3(2.0f, 2.0f, 2.0f),
-        Math::Vector3(0.0f, 0.0f, 0.0f),
-        Math::Vector3(0.0f, 0.0f, 1.0f)
-    )) * Math::Matrix4x4(-1.0f, 1.0f, -1.0f, 1.0f);
-    auto view = Math::Matrix4x4::Transpose(Math::Matrix4x4::LookAt(
         Math::Vector3(2.0f, 2.0f, 2.0f),
         Math::Vector3(0.0f, 0.0f, 0.0f),
         Math::Vector3(0.0f, 0.0f, 1.0f)
     )) * Math::Matrix4x4(-1.0f, 1.0f, -1.0f, 1.0f);
     //ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     //ubo.projection = Math::Matrix4x4::Perspective(std::numbers::pi_v<float> / 4, ratio, 0.1f, 10.0f);
-    auto proj = Math::Matrix4x4::Transpose(Math::Matrix4x4::Perspective(std::numbers::pi_v<float> / 4, ratio, 0.1f, 10.0f));
+    auto proj = Math::Matrix4x4::Transpose(Math::Matrix4x4::Perspective(std::numbers::pi_v<float> / 4, ratio, 0.1f, 10.0f)) * Math::Matrix4x4(1.0f, 1.0f, -1.0f, 1.0f);
     ubo.proj = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 10.0f);
 
     if (!logged) {
         logged = true;
-
-        std::cout << "Own look at matrix: " << std::endl;
-        for (int i = 0; i < 4; ++i) {
-            for (int j = 0; j < 4; ++j) {
-                std::cout << std::showpos << std::fixed << std::setprecision(2) << view(i, j) << " ";                
-            }
-            std::cout << std::endl;
-        }
-
-        std::cout << std::endl;
-
-        std::cout << "GLM's look at matrix: " << std::endl;
-        for (int i = 0; i < 4; ++i) {
-            for (int j = 0; j < 4; ++j) {
-                std::cout << std::showpos << std::fixed << std::setprecision(2) << ubo.view(i, j) << " ";                
-            }
-            std::cout << std::endl;
-        }
 
         std::cout << std::endl;
 
@@ -1021,15 +996,15 @@ void Application::CreateBuffer(
     VkBufferUsageFlags usage,
     VkSharingMode sharingMode,
     VkMemoryPropertyFlags properties,
-    Buffer& buffer,
-    DeviceMemory& bufferMemory
+    std::unique_ptr<Buffer>& buffer,
+    std::unique_ptr<DeviceMemory>& bufferMemory
 ) {
     try {
         VkBufferCreateInfo bufferCreateInfo = GenerateBufferCreateInfo(size, usage, sharingMode);
-        buffer = Buffer(bufferCreateInfo, *_device); // will be moved
+        buffer = std::make_unique<Buffer>(bufferCreateInfo, *_device); // will be moved
 
-        auto bufferMemoryRequirementsInfo = GenerateBufferMemoryRequirementsInfo(buffer);
-        auto bufferMemoryRequirements = buffer.MemoryRequirements(bufferMemoryRequirementsInfo);
+        auto bufferMemoryRequirementsInfo = GenerateBufferMemoryRequirementsInfo(*buffer);
+        auto bufferMemoryRequirements = _device->BufferMemoryRequirements(bufferMemoryRequirementsInfo);
 
         auto bufferMemoryAllocateInfo = GenerateMemoryAllocateInfo(
             bufferMemoryRequirements.memoryRequirements.size,
@@ -1038,9 +1013,9 @@ void Application::CreateBuffer(
                 properties
             )
         );
-        bufferMemory = DeviceMemory(bufferMemoryAllocateInfo, *_device); // will be moved
+        bufferMemory = std::make_unique<DeviceMemory>(bufferMemoryAllocateInfo, *_device); // will be moved
 
-        std::vector<VkBindBufferMemoryInfo> bufferBindMemoryInfos = { GenerateBindBufferMemoryInfo(bufferMemory, 0, buffer) };
+        std::vector<VkBindBufferMemoryInfo> bufferBindMemoryInfos = { GenerateBindBufferMemoryInfo(*bufferMemory, 0, *buffer) };
         _device->BindBufferMemory(bufferBindMemoryInfos);
     }
 
@@ -1052,7 +1027,7 @@ void Application::CreateBuffer(
 void Application::CopyBuffer(Buffer& src, Buffer& dst, VkDeviceSize size) {
     try {
         VkCommandBufferAllocateInfo commandBufferAllocateInfo = GenerateCommandBufferAllocateInfo(*_commandPool);
-        auto commandBuffer = AllocateCommandBuffer(commandBufferAllocateInfo, *_device);
+        auto commandBuffer = CommandBuffer(commandBufferAllocateInfo, *_device, _commandPool.get());
         
         VkCommandBufferBeginInfo commandBufferBeginInfo = GenerateCommandBufferBeginInfo();
         commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -1077,8 +1052,6 @@ void Application::CopyBuffer(Buffer& src, Buffer& dst, VkDeviceSize size) {
             std::string error = "Could not wait on graphics queue: (result: code " + std::to_string(queueSubmitResult) + ")";
             throw std::runtime_error(error);
         }
-
-        vkFreeCommandBuffers(_device->Handle(), _commandPool->Handle(), 1, commandBuffer.HandleAddress());
     }
 
     catch (std::exception const& e) {

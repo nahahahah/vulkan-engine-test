@@ -6,33 +6,59 @@
 #include <stdexcept>
 #include <span>
 #include <vector>
+#include <cassert>
 
 #include <vulkan/vulkan.h>
 
 #include "VulkanHelpers/Handles/Device.hpp"
 #include "VulkanHelpers/Handles/DescriptorPool.hpp"
 
-class DescriptorSets {
+class DescriptorSetCollection {
     public:
-        DescriptorSets() = default;
-        DescriptorSets(VkDescriptorSetAllocateInfo const& allocateInfo, Device& device, DescriptorPool& descriptorPool);
-        DescriptorSets(DescriptorSets const& other) = delete;
-        DescriptorSets(DescriptorSets&& other);
-        ~DescriptorSets();
+        using Iterator = std::vector<VkDescriptorSet>::iterator;
+        using ConstIterator = std::vector<VkDescriptorSet>::const_iterator;
+        using ReverseIterator = std::vector<VkDescriptorSet>::reverse_iterator;
+        using ConstReverseIterator = std::vector<VkDescriptorSet>::const_reverse_iterator;
 
-        DescriptorSets& operator = (DescriptorSets const& other) = delete;
-        DescriptorSets& operator = (DescriptorSets&& other);
+        DescriptorSetCollection() = default;
+        DescriptorSetCollection(VkDescriptorSetAllocateInfo const& allocateInfo, Device const& device, DescriptorPool const* descriptorPool = nullptr);
+        DescriptorSetCollection(DescriptorSetCollection const& other) = delete;
+        DescriptorSetCollection(DescriptorSetCollection&& other);
+        ~DescriptorSetCollection();
 
-        VkDescriptorSet* Handles() { return _handles.data(); }
-        VkDescriptorSet const* Handles() const { return _handles.data(); }
+        DescriptorSetCollection& operator = (DescriptorSetCollection const& other) = delete;
+        DescriptorSetCollection& operator = (DescriptorSetCollection&& other);
 
-        std::vector<VkDescriptorSet>& HandlesContainer() { return _handles; }
-        std::vector<VkDescriptorSet> const& HandlesContainer() const { return _handles; }
+        VkDescriptorSet& operator [] (size_t index);
+        VkDescriptorSet const& operator [] (size_t index) const;
+
+        size_t size() { return _handles.size(); }
+
+        VkDescriptorSet* data() { return _handles.data(); }
+        VkDescriptorSet const* data() const { return _handles.data(); }
+
+        Iterator begin() { return _handles.begin(); }
+        ConstIterator begin() const { return _handles.begin(); }
+        
+        Iterator end() { return _handles.end(); }
+        ConstIterator end() const { return _handles.end(); }
+        
+        ConstIterator cbegin() const { return _handles.cbegin(); }
+        ConstIterator cend() const { return _handles.cend(); }
+        
+        ReverseIterator rbegin() { return _handles.rbegin(); }
+        ConstReverseIterator rbegin() const { return _handles.rbegin(); }
+        
+        ReverseIterator rend() { return _handles.rend(); }
+        ConstReverseIterator rend() const{ return _handles.rend(); }
+        
+        ConstReverseIterator crbegin() const { return _handles.crbegin(); }
+        ConstReverseIterator crend() const { return _handles.crend(); }
 
     private:
         std::vector<VkDescriptorSet> _handles {};
-        Device* _device = nullptr;
-        DescriptorPool* _descriptorPool = nullptr;
+        Device const* _device = nullptr;
+        DescriptorPool const* _descriptorPool = nullptr;
 };
 
 #endif // VK_WRAPPER_DESCRIPTOR_SET_HPP

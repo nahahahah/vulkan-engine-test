@@ -11,23 +11,21 @@
 
 class DeviceMemory {
     public:
-        DeviceMemory() = default;
-        DeviceMemory(VkMemoryAllocateInfo const& allocateInfo, Device& device);
+        DeviceMemory() = delete;
+        DeviceMemory(VkMemoryAllocateInfo const& allocateInfo, Device const& device);
         DeviceMemory(DeviceMemory const& other) = delete;
         DeviceMemory(DeviceMemory&& other);
         ~DeviceMemory();
 
+        DeviceMemory& operator = (DeviceMemory const& other) = delete;
         DeviceMemory& operator = (DeviceMemory&& other);
 
         VkDeviceMemory Handle() { return _handle; }
         VkDeviceMemory Handle() const { return _handle; }
 
-        void Map(VkMemoryMapInfo const& memoryMapInfo, void** data);
-        void Unmap(VkMemoryUnmapInfo const& memoryUnmapInfo);
-
     private:
         VkDeviceMemory _handle = VK_NULL_HANDLE;
-        Device* _device;
+        Device const* _device = nullptr;
 };
 
 #endif // VK_WRAPPER_DEVICE_MEMORY_HPP

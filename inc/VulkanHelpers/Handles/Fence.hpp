@@ -14,21 +14,21 @@
 
 class Fence {
     public:
-        Fence() = default;
+        Fence() = delete;
+        Fence(VkFenceCreateInfo const& createInfo, Device const& device);
         Fence(Fence const& other) = delete;
         Fence(Fence&& other);
-        Fence(VkFenceCreateInfo const& createInfo, Device const& device);
         ~Fence();
+
+        Fence& operator = (Fence const& other) = delete;
+        Fence& operator = (Fence&& other);
 
         VkFence Handle() { return _handle; }
         VkFence Handle() const { return _handle; }
 
     private:
         VkFence _handle = VK_NULL_HANDLE;
-        Device const& _device;
+        Device const* _device = nullptr;
 };
-
-void WaitForFences(Device const& device, std::span<VkFence> const& fences, VkBool32 waitAll = VK_TRUE, uint64_t timeout = UINT64_MAX);
-void ResetFences(Device const& device, std::span<VkFence> const& fences);
 
 #endif // VK_WRAPPER_FENCE_HPP

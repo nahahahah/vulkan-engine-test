@@ -11,8 +11,8 @@
 
 class Framebuffer {
     public:
-        Framebuffer() = default;
-        Framebuffer(VkFramebufferCreateInfo const& createInfo, Device& device);
+        Framebuffer() = delete;
+        Framebuffer(VkFramebufferCreateInfo const& createInfo, Device const& device);
         Framebuffer(Framebuffer const& other) = delete;
         Framebuffer(Framebuffer&& other);
         ~Framebuffer();
@@ -23,12 +23,9 @@ class Framebuffer {
         VkFramebuffer Handle() { return _handle; }
         VkFramebuffer Handle() const { return _handle; }
 
-        void CreateHandle(VkFramebufferCreateInfo const& createInfo);
-        void DestroyHandle();
-
     private:
         VkFramebuffer _handle = VK_NULL_HANDLE;
-        Device* _device = nullptr;
+        Device const* _device = nullptr;
 };
 
 #endif // VK_WRAPPER_FRAMEBUFFER_HPP

@@ -9,6 +9,11 @@ Instance::Instance(VkInstanceCreateInfo const& createInfo) {
     std::clog << "Vulkan instance created successfully: <VkInstance " << _handle << ">" << std::endl;
 }
 
+Instance::Instance(Instance&& other) {
+    _handle = other._handle;
+    other._handle = VK_NULL_HANDLE;
+}
+
 Instance::~Instance() {
     if (_handle != VK_NULL_HANDLE) {
         // destroy instance and enumerated physical devices
@@ -16,4 +21,11 @@ Instance::~Instance() {
         std::clog << "Vulkan instance destroyed successfully" << std::endl;
         _handle = VK_NULL_HANDLE;
     }
+}
+
+Instance& Instance::operator = (Instance&& other) {
+    _handle = other._handle;
+    other._handle = VK_NULL_HANDLE;
+
+    return *this;
 }

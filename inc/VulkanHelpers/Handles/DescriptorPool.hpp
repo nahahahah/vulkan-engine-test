@@ -11,15 +11,21 @@
 
 class DescriptorPool {
     public:
-        DescriptorPool(VkDescriptorPoolCreateInfo const& createInfo, Device& device);
+        DescriptorPool() = delete;
+        DescriptorPool(VkDescriptorPoolCreateInfo const& createInfo, Device const& device);
+        DescriptorPool(DescriptorPool const& other) = delete;
+        DescriptorPool(DescriptorPool&& other); 
         ~DescriptorPool();
+
+        DescriptorPool& operator = (DescriptorPool const& other) = delete;
+        DescriptorPool& operator = (DescriptorPool&& other);
 
         VkDescriptorPool Handle() { return _handle; }
         VkDescriptorPool Handle() const { return _handle; }
 
     private:
         VkDescriptorPool _handle = VK_NULL_HANDLE;
-        Device* _device = nullptr;
+        Device const* _device = nullptr;
 };
 
 #endif // VK_WRAPPER_DESCRIPTOR_POOL_HPP

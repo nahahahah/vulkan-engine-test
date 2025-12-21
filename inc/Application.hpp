@@ -130,8 +130,8 @@ class Application {
             VkBufferUsageFlags usage,
             VkSharingMode sharingMode,
             VkMemoryPropertyFlags properties,
-            Buffer& buffer,
-            DeviceMemory& bufferMemory
+            std::unique_ptr<Buffer>& buffer,
+            std::unique_ptr<DeviceMemory>& bufferMemory
         );
 
         void CopyBuffer(Buffer& src, Buffer& dst, VkDeviceSize size);
@@ -145,7 +145,7 @@ class Application {
         std::unique_ptr<Instance> _instance = nullptr;
         std::unique_ptr<Surface> _surface = nullptr;
         std::unique_ptr<DebugUtilsMessenger> _debugUtilsMessenger = nullptr;
-        std::unique_ptr<EnumeratedPhysicalDevices> _physicalDevices = nullptr;
+        std::unique_ptr<PhysicalDeviceCollection> _physicalDevices = nullptr;
         std::unique_ptr<PhysicalDevice> _physicalDevice = nullptr;
         std::unique_ptr<Device> _device = nullptr;
         std::unique_ptr<Queue> _graphicsQueue = nullptr;
@@ -167,14 +167,14 @@ class Application {
         std::unique_ptr<Buffer> _indexBuffer = nullptr;
         std::unique_ptr<DeviceMemory> _indexBufferMemory = nullptr;
 
-        std::vector<Buffer> _uniformBuffers {};
-        std::vector<DeviceMemory> _uniformBuffersMemory {};
+        std::vector<std::unique_ptr<Buffer>> _uniformBuffers {};
+        std::vector<std::unique_ptr<DeviceMemory>> _uniformBuffersMemory {};
         std::vector<void*> _uniformBuffersMapped {};
 
         std::unique_ptr<DescriptorPool> _descriptorPool = nullptr;
-        DescriptorSets _descriptorSets;
+        std::unique_ptr<DescriptorSetCollection> _descriptorSets = nullptr;
 
-        std::vector<CommandBuffer> _commandBuffers {};
+        std::unique_ptr<CommandBufferCollection> _commandBuffers = nullptr;
 
         std::vector<Semaphore> _imageAvailableSemaphores {};
         std::vector<Semaphore> _renderFinishedSemaphores {};
@@ -185,19 +185,5 @@ class Application {
         SDL_Event _event {};
         bool _running = false;
 };
-
-/// TODO: VERY BAD IDEA HERE. Find a way to NOT give access to the handles (especially giving the right to create/destroy it)
-void HandleFrameInvalidity(
-    PhysicalDevice const& physicalDevice,
-    Device& device,
-    Surface const& surface,
-    VkSwapchainCreateInfoKHR const& swapchainCreateInfo,
-    Swapchain& swapchain,
-    VkFormat imageFormat,
-    std::vector<VkImage>& swapchainImages,
-    std::vector<ImageView>& swapchainImageViews,
-    std::vector<Framebuffer>& framebuffers,
-    RenderPass const& renderPass
-);
 
 #endif // APPLICATION_HPP

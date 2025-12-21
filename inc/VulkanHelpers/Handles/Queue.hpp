@@ -11,8 +11,14 @@
 
 class Queue {
     public:
+        Queue() = delete;
         Queue(VkDeviceQueueInfo2 const& queueInfo, Device const& device);
+        Queue(Queue const& other) = delete;
+        Queue(Queue&& other);
         ~Queue() = default;
+
+        Queue& operator = (Queue const& other) = delete;
+        Queue& operator = (Queue&& other);
 
         VkQueue Handle() { return _handle; }
         VkQueue Handle() const { return _handle; }

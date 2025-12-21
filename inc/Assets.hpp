@@ -19,9 +19,9 @@ struct Vertex {
 
 struct UniformBufferObject {
 /*
-    Math::Matrix4x4 model {};
-    Math::Matrix4x4 view {};
-    Math::Matrix4x4 projection {};
+    alignas(16) Math::Matrix4x4 model {};
+    alignas(16) Math::Matrix4x4 view {};
+    alignas(16) Math::Matrix4x4 projection {};
 */
     alignas(16) glm::mat4 model {};
     alignas(16) Math::Matrix4x4 view {};

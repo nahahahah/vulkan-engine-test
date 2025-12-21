@@ -11,18 +11,21 @@
 
 class Semaphore {
     public:
-        Semaphore() = default;
+        Semaphore() = delete;
         Semaphore(Semaphore const& other) = delete;
         Semaphore(Semaphore&& other);
         Semaphore(VkSemaphoreCreateInfo const& createInfo, Device const& device);
         ~Semaphore();
+
+        Semaphore& operator = (Semaphore const& other) = delete;
+        Semaphore& operator = (Semaphore&& other);
 
         VkSemaphore Handle() { return _handle; }
         VkSemaphore Handle() const { return _handle; }
 
     private:
         VkSemaphore _handle = VK_NULL_HANDLE;
-        Device const& _device;
+        Device const* _device = nullptr;
 };
 
 #endif // VK_WRAPPER_SEMAPHORE_HPP
