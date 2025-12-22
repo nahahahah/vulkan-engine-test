@@ -129,34 +129,29 @@ void Application::InitWindow() {
 }
 
 void Application::InitVulkan() {
-    try {
-        CreateInstance();
-        SetupDebugMessenger();
-        CreateSurface();
-        SelectPhysicalDevice();
-        CreateDevice();
-        CreateQueues();
-        CreateSwapchain();
-        GetSwapchainImages();
-        CreateImageViews();
-        CreateRenderPass();
-        CreateDescriptorSetLayout();
-        CreateGraphicsPipeline();
-        CreateFramebuffers();
-        CreateCommandPool();
-        CreateTextureImage();
-        CreateVertexBuffer();
-        CreateIndexBuffer();
-        CreateUniformBuffers();
-        CreateDescriptorPool();
-        CreateDescriptorSets();
-        CreateCommandBuffers();
-        CreateSynchronizationObjects();
-    }
-
-    catch (std::exception const& e) {
-        throw e;
-    }
+    CreateInstance();
+#ifndef NDEBUG
+    SetupDebugMessenger();
+#endif
+    CreateSurface();
+    SelectPhysicalDevice();
+    CreateDevice();
+    CreateQueues();
+    CreateSwapchain();
+    GetSwapchainImages();
+    CreateImageViews();
+    CreateRenderPass();
+    CreateDescriptorSetLayout();
+    CreateGraphicsPipeline();
+    CreateFramebuffers();
+    CreateCommandPool();
+    CreateVertexBuffer();
+    CreateIndexBuffer();
+    CreateUniformBuffers();
+    CreateDescriptorPool();
+    CreateDescriptorSets();
+    CreateCommandBuffers();
+    CreateSynchronizationObjects();
 }
 
 void Application::CreateInstance() {
@@ -222,6 +217,7 @@ void Application::CreateInstance() {
     #endif
 }
 
+#ifndef NDEBUG
 void Application::SetupDebugMessenger() {
     if (!enableValidationLayers) {
         return;
@@ -236,6 +232,7 @@ void Application::SetupDebugMessenger() {
         throw e;
     }
 }
+#endif
 
 void Application::CreateSurface() {
     try {
