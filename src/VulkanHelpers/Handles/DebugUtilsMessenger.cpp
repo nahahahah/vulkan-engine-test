@@ -1,4 +1,4 @@
-#include "VulkanHelpers/Handles/DebugutilsMessenger.hpp"
+#include "VulkanHelpers/Handles/DebugUtilsMessenger.hpp"
 
 DebugUtilsMessenger::DebugUtilsMessenger(VkDebugUtilsMessengerCreateInfoEXT const& createInfo, Instance const& instance) : _instance(&instance) {
     auto CreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)(vkGetInstanceProcAddr(_instance->Handle(), "vkCreateDebugUtilsMessengerEXT"));
