@@ -122,7 +122,9 @@ void Application::InitWindow() {
 
 void Application::InitVulkan() {
     CreateInstance();
+#ifndef NDEBUG
     SetupDebugMessenger();
+#endif
     CreateSurface();
     SelectPhysicalDevice();
     CreateDevice();
@@ -207,6 +209,7 @@ void Application::CreateInstance() {
     #endif
 }
 
+#ifndef NDEBUG
 void Application::SetupDebugMessenger() {
     if (!enableValidationLayers) {
         return;
@@ -221,6 +224,7 @@ void Application::SetupDebugMessenger() {
         throw e;
     }
 }
+#endif
 
 void Application::CreateSurface() {
     try {

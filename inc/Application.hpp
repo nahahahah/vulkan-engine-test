@@ -89,8 +89,10 @@ class Application {
 
         void InitWindow();
         void InitVulkan();
-        void SetupDebugMessenger();
-        void CreateInstance();
+#ifndef NDEBUG
+	void SetupDebugMessenger();
+#endif
+	void CreateInstance();
         void CreateSurface();
         void SelectPhysicalDevice();
         void CreateDevice();
