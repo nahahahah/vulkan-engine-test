@@ -100,7 +100,7 @@ class Application {
 #ifndef NDEBUG
 	void SetupDebugMessenger();
 #endif
-	void CreateInstance();
+	    void CreateInstance();
         void CreateSurface();
         void SelectPhysicalDevice();
         void CreateDevice();
@@ -145,6 +145,17 @@ class Application {
             std::unique_ptr<DeviceMemory>& bufferMemory
         );
 
+        void CreateImage(
+            VkExtent3D const& dimensions,
+            VkImageUsageFlags usage,
+            VkSharingMode sharingMode,
+            VkMemoryPropertyFlags properties,
+            VkFormat format,
+            VkImageTiling tiling,
+            std::unique_ptr<Image>& image,
+            std::unique_ptr<DeviceMemory>& imageMemory
+        );
+
         void CopyBuffer(Buffer& src, Buffer& dst, VkDeviceSize size);
 
         void CleanupSwapchain();
@@ -172,6 +183,9 @@ class Application {
         std::unique_ptr<Pipeline> _graphicsPipeline = nullptr;
         std::vector<Framebuffer> _framebuffers {};
         std::unique_ptr<CommandPool> _commandPool = nullptr;
+
+        std::unique_ptr<Image> _textureImage = nullptr;
+        std::unique_ptr<DeviceMemory> _textureImageMemory = nullptr;
 
         std::unique_ptr<Buffer> _vertexBuffer = nullptr;
         std::unique_ptr<DeviceMemory> _vertexBufferMemory = nullptr;

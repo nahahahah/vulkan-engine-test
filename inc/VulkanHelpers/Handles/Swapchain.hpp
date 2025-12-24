@@ -9,9 +9,10 @@
 
 #include <vulkan/vulkan.h>
 
-#include "VulkanHelpers/Handles/Device.hpp"
 
 #include "SDLHelpers/Window.hpp"
+
+class Device;
 
 class Swapchain {
     public:

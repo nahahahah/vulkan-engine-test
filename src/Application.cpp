@@ -145,6 +145,7 @@ void Application::InitVulkan() {
     CreateGraphicsPipeline();
     CreateFramebuffers();
     CreateCommandPool();
+    CreateTextureImage();
     CreateVertexBuffer();
     CreateIndexBuffer();
     CreateUniformBuffers();
@@ -364,7 +365,7 @@ void Application::CreateSwapchain() {
 
 void Application::GetSwapchainImages() {
     try {
-        _swapchainImages = EnumerateSwapChainImages(*_device, *_swapchain);
+        _swapchainImages = _device->SwapchainImages(*_device, *_swapchain);
     }
 
     catch (std::exception const& e) {
@@ -558,6 +559,21 @@ void Application::CreateTextureImage() {
     _device->UnmapMemory(stagingBufferMemoryUnmapInfo);
 
     stbi_image_free(pixels);
+
+    CreateImage(
+        VkExtent3D { 
+            static_cast<uint32_t>(textureWidth),
+            static_cast<uint32_t>(textureHeight),
+            1
+        },
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_SHARING_MODE_EXCLUSIVE,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        VK_FORMAT_R8G8B8A8_SRGB,
+        VK_IMAGE_TILING_OPTIMAL,
+        _textureImage,
+        _textureImageMemory
+    );
 }
 
 void Application::CreateVertexBuffer() {
@@ -1054,7 +1070,7 @@ void Application::CreateBuffer(
     std::unique_ptr<DeviceMemory>& bufferMemory
 ) {
     try {
-        VkBufferCreateInfo bufferCreateInfo = GenerateBufferCreateInfo(size, usage, sharingMode);
+        auto bufferCreateInfo = GenerateBufferCreateInfo(size, usage, sharingMode);
         buffer = std::make_unique<Buffer>(bufferCreateInfo, *_device); // will be moved
 
         auto bufferMemoryRequirementsInfo = GenerateBufferMemoryRequirementsInfo(*buffer);
@@ -1069,8 +1085,50 @@ void Application::CreateBuffer(
         );
         bufferMemory = std::make_unique<DeviceMemory>(bufferMemoryAllocateInfo, *_device); // will be moved
 
-        std::vector<VkBindBufferMemoryInfo> bufferBindMemoryInfos = { GenerateBindBufferMemoryInfo(*bufferMemory, 0, *buffer) };
+        std::vector<VkBindBufferMemoryInfo> bufferBindMemoryInfos = { GenerateBindBufferMemoryInfo(*buffer, *bufferMemory, 0) };
         _device->BindBufferMemory(bufferBindMemoryInfos);
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
+void Application::CreateImage(
+    VkExtent3D const& dimensions,
+    VkImageUsageFlags usage,
+    VkSharingMode sharingMode,
+    VkMemoryPropertyFlags properties,
+    VkFormat format,
+    VkImageTiling tiling,
+    std::unique_ptr<Image>& image,
+    std::unique_ptr<DeviceMemory>& imageMemory
+) {
+    try {
+        auto imageCreateInfo = GenerateImageCreateInfo(
+            dimensions,
+            usage,
+            sharingMode,
+            format,
+            tiling
+        );
+        image = std::make_unique<Image>(imageCreateInfo, *_device);
+
+        auto imageMemoryRequirementsInfo = GenerateImageMemoryRequirementsInfo(*image);
+        auto imageMemoryRequirements = _device->ImageMemoryRequirements(imageMemoryRequirementsInfo);
+
+        auto imageMemoryAllocateInfo = GenerateMemoryAllocateInfo(
+            imageMemoryRequirements.memoryRequirements.size,
+            FindMemoryType(
+                imageMemoryRequirements.memoryRequirements.memoryTypeBits,
+                properties
+            )
+        );
+
+        imageMemory = std::make_unique<DeviceMemory>(imageMemoryAllocateInfo, *_device);
+
+        std::vector<VkBindImageMemoryInfo> imageBindMemoryInfos = { GenerateBindImageMemoryInfo(*image, *imageMemory, 0) };
+        _device->BindImageMemory(imageBindMemoryInfos);
     }
 
     catch (std::exception const& e) {

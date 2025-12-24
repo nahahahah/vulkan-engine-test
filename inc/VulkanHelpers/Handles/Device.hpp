@@ -11,6 +11,8 @@
 #include "VulkanHelpers/Handles/PhysicalDevice.hpp"
 #include "VulkanHelpers/Handles/Buffer.hpp"
 
+class Swapchain;
+
 class Device {
     public:
         Device() = delete;
@@ -36,8 +38,13 @@ class Device {
         void UnmapMemory(VkMemoryUnmapInfo const& memoryUnmapInfo);
 
         // buffer related methods
-        VkMemoryRequirements2 BufferMemoryRequirements(VkBufferMemoryRequirementsInfo2 info);
+        VkMemoryRequirements2 BufferMemoryRequirements(VkBufferMemoryRequirementsInfo2 const& info);
         void BindBufferMemory(std::span<VkBindBufferMemoryInfo> bindInfos);
+
+        // image related methods
+        std::vector<VkImage> SwapchainImages(Device const& device, Swapchain const& swapchain);
+        VkMemoryRequirements2 ImageMemoryRequirements(VkImageMemoryRequirementsInfo2 const& info);
+        void BindImageMemory(std::span<VkBindImageMemoryInfo> bindInfos);
 
     private:
         VkDevice _handle = VK_NULL_HANDLE;

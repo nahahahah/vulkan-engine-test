@@ -11,6 +11,7 @@
 #include "VulkanHelpers/CreateInfos/FenceCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/FramebufferCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/GraphicsPipelineCreateInfo.hpp"
+#include "VulkanHelpers/CreateInfos/ImageCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/ImageViewCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/InstanceCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/PipelineColorBlendStateCreateInfo.hpp"

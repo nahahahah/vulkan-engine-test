@@ -8,9 +8,27 @@
 
 #include <vulkan/vulkan.h>
 
-#include "VulkanHelpers/Handles/Device.hpp"
 #include "VulkanHelpers/Handles/Swapchain.hpp"
 
-std::vector<VkImage> EnumerateSwapChainImages(Device const& device, Swapchain const& swapChain);
+class Device;
+
+class Image {
+    public:
+        Image() = delete;
+        Image(VkImageCreateInfo const& createInfo, Device const& device);
+        Image(Image const& other) = delete;
+        Image(Image&& other);
+        ~Image();
+
+        Image& operator = (Image const& other) = delete;
+        Image& operator = (Image&& other);
+
+        VkImage Handle() { return _handle; }
+        VkImage Handle() const { return _handle; }
+
+    private:
+        VkImage _handle = VK_NULL_HANDLE;
+        Device const* _device = nullptr;
+};
 
 #endif // VK_WRAPPER_IMAGE_HPP
