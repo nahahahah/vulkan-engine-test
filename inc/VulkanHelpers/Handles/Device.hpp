@@ -12,6 +12,7 @@
 #include "VulkanHelpers/Handles/Buffer.hpp"
 
 class Swapchain;
+class Image;
 
 class Device {
     public:
@@ -29,6 +30,8 @@ class Device {
 
         void WaitIdle();
 
+        VkResult AcquireNextImage(VkAcquireNextImageInfoKHR const& acquireNextImageInfo, uint32_t* imageIndex);
+
         // fences related methods
         void WaitForFences(std::span<VkFence> const& fences, VkBool32 waitAll = VK_TRUE, uint64_t timeout = UINT64_MAX);
         void ResetFences(std::span<VkFence> const& fences);
@@ -42,7 +45,7 @@ class Device {
         void BindBufferMemory(std::span<VkBindBufferMemoryInfo> bindInfos);
 
         // image related methods
-        std::vector<VkImage> SwapchainImages(Device const& device, Swapchain const& swapchain);
+        std::vector<Image> SwapchainImages(Device const& device, Swapchain const& swapchain);
         VkMemoryRequirements2 ImageMemoryRequirements(VkImageMemoryRequirementsInfo2 const& info);
         void BindImageMemory(std::span<VkBindImageMemoryInfo> bindInfos);
 

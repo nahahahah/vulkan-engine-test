@@ -7,8 +7,8 @@ CommandBuffer::CommandBuffer(VkCommandBuffer commandBuffer)
 CommandBuffer::CommandBuffer(
     VkCommandBufferAllocateInfo const& allocateInfo,
     Device const& device,
-    CommandPool const* commandPool
-) : _device(&device), _commandPool(commandPool) {
+    CommandPool const& commandPool
+) : _device(&device), _commandPool(&commandPool) {
     auto safeAllocateInfo = allocateInfo;
     safeAllocateInfo.commandBufferCount = 1;
     VkResult result = vkAllocateCommandBuffers(_device->Handle(), &safeAllocateInfo, &_handle);
@@ -31,7 +31,11 @@ CommandBuffer::CommandBuffer(CommandBuffer&& other) {
 }
 
 CommandBuffer::~CommandBuffer() {
-    if (_commandPool != nullptr && _commandPool->Handle() != VK_NULL_HANDLE && _handle != nullptr) {
+    if (_device != nullptr
+     && _device->Handle() != VK_NULL_HANDLE
+     && _commandPool != nullptr 
+     && _commandPool->Handle() != VK_NULL_HANDLE
+     && _handle != nullptr) {
         vkFreeCommandBuffers(_device->Handle(), _commandPool->Handle(), 1, &_handle);
         _handle = nullptr;
     }
@@ -123,6 +127,9 @@ void CommandBuffer::CopyBuffer(VkCopyBufferInfo2 const& copyInfo) {
     vkCmdCopyBuffer2(_handle, &copyInfo);
 }
 
+void CommandBuffer::CopyBufferToImage(VkCopyBufferToImageInfo2 const& copyBufferToImageInfo) {
+    vkCmdCopyBufferToImage2(_handle, &copyBufferToImageInfo);
+}
 
 void CommandBuffer::SetViewport(uint32_t first, uint32_t count, std::span<VkViewport> viewports) {
     vkCmdSetViewport(_handle, first, count, viewports.data());
@@ -130,6 +137,10 @@ void CommandBuffer::SetViewport(uint32_t first, uint32_t count, std::span<VkView
 
 void CommandBuffer::SetScissor(uint32_t first, uint32_t count, std::span<VkRect2D> scissors) {
     vkCmdSetScissor(_handle, first, count, scissors.data());
+}
+
+void CommandBuffer::PipelineBarrier(VkDependencyInfo const& dependencyInfo) {
+    vkCmdPipelineBarrier2(_handle, &dependencyInfo);
 }
 
 void CommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) {

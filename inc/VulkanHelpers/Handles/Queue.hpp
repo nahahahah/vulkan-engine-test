@@ -4,10 +4,12 @@
 #include <iostream>
 #include <string>
 #include <stdexcept>
+#include <span>
 
 #include <vulkan/vulkan.h>
 
 #include "VulkanHelpers/Handles/Device.hpp"
+#include "VulkanHelpers/Handles/Fence.hpp"
 
 class Queue {
     public:
@@ -22,6 +24,11 @@ class Queue {
 
         VkQueue Handle() { return _handle; }
         VkQueue Handle() const { return _handle; }
+
+        void WaitIdle();
+
+        void Submit(std::span<VkSubmitInfo2> submitInfos, Fence const* fence = nullptr);
+        VkResult Present(VkPresentInfoKHR const& presentInfo);
 
     private:
         VkQueue _handle = VK_NULL_HANDLE;

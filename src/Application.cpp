@@ -377,8 +377,7 @@ void Application::CreateImageViews() {
     try {
         _swapchainImageViews.reserve(_swapchainImages.size());
         for (size_t i = 0; i < _swapchainImages.size(); ++i) {
-            auto swapchainImageViewCreateInfo = GenerateImageViewCreateInfo(_swapchainImageFormat, _swapchainImages[i]);
-            _swapchainImageViews.emplace_back(swapchainImageViewCreateInfo, *_device); // create swap chain image view
+            _swapchainImageViews.emplace_back(CreateImageView(_swapchainImages[i], _swapchainImageFormat)); // create swap chain image view
         }
     }
 
@@ -574,6 +573,37 @@ void Application::CreateTextureImage() {
         _textureImage,
         _textureImageMemory
     );
+
+    TransitionImageLayout(
+        _textureImage,
+        VK_FORMAT_R8G8B8A8_SRGB,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+    );
+
+    CopyBufferToImage(
+        *stagingBuffer,
+        *_textureImage,
+        static_cast<uint32_t>(textureWidth),
+        static_cast<uint32_t>(textureHeight)
+    );
+
+    TransitionImageLayout(
+        _textureImage,
+        VK_FORMAT_R8G8B8A8_SRGB,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
+}
+
+void Application::CreateTextureImageView() {
+    try {
+        _textureImageView = std::make_unique<ImageView>(CreateImageView(*_textureImage, VK_FORMAT_R8G8B8A8_SRGB));
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
 }
 
 void Application::CreateVertexBuffer() {
@@ -792,7 +822,7 @@ void Application::MainLoop() {
         }
 
         auto acquireNextImageInfo = GenerateAcquireNextImageInfo(*_swapchain, &acquireSemaphore);
-        VkResult acquireNextImageResult = vkAcquireNextImage2KHR(_device->Handle(), &acquireNextImageInfo, &imageIndex); // acquire next frame
+        VkResult acquireNextImageResult = _device->AcquireNextImage(acquireNextImageInfo, &imageIndex); // acquire next frame
         if (acquireNextImageResult == VK_ERROR_OUT_OF_DATE_KHR) {
             std::cerr << "Swap chain image is out of date" << std::endl;
 
@@ -820,19 +850,14 @@ void Application::MainLoop() {
         std::vector<VkSemaphoreSubmitInfo> waitSemaphoreSubmitInfo = { GenerateSemaphoreSubmitInfo(acquireSemaphore) }; // set synchronization handles behaviours for submission
         std::vector<VkSemaphore> waitSemaphores = { acquireSemaphore.Handle() };
 
-        VkSubmitInfo2 submitInfo = GenerateSumbitInfo(commandBufferSubmitInfo, signalSemaphoreSubmitInfo, waitSemaphoreSubmitInfo);
-        VkResult queueSubmitResult = vkQueueSubmit2(_graphicsQueue->Handle(), 1, &submitInfo, frameFence.Handle()); // submit command buffer to the queue
-        if (queueSubmitResult != VK_SUCCESS) {
-            std::string error = "Unable to submit to queue (status " + std::to_string(queueSubmitResult) + ")";
-            throw std::runtime_error(error);
-        }
+        std::vector<VkSubmitInfo2> submitInfos = { GenerateSumbitInfo(commandBufferSubmitInfo, signalSemaphoreSubmitInfo, waitSemaphoreSubmitInfo) };
+        _graphicsQueue->Submit(submitInfos, &frameFence); // submit command buffer to the queue
 
         std::vector<uint32_t> imageIndices = { imageIndex };
         std::vector<VkSwapchainKHR> swapchains = { _swapchain->Handle() };
 
         VkPresentInfoKHR presentInfo = GeneratePresentInfo(imageIndices, swapchains, signalSemaphores);
-        VkResult queuePresentResult = vkQueuePresentKHR(_presentQueue->Handle(), &presentInfo); // present
-        
+        VkResult queuePresentResult = _presentQueue->Present(presentInfo); // present
         if (queuePresentResult == VK_ERROR_OUT_OF_DATE_KHR || queuePresentResult == VK_SUBOPTIMAL_KHR || _framebufferResized) {
             _framebufferResized = false;
             RecreateSwapchain();
@@ -896,6 +921,39 @@ void Application::RecordCommandBuffer(CommandBuffer& commandBuffer, uint32_t ima
     commandBuffer.End();
 }
 
+CommandBuffer Application::BeginSingleTimeCommands() {
+    try {
+        auto allocateInfo = GenerateCommandBufferAllocateInfo(*_commandPool);
+        auto commandBuffer = CommandBuffer(allocateInfo, *_device, *_commandPool);
+
+        auto beginInfo = GenerateCommandBufferBeginInfo();
+        commandBuffer.Begin(beginInfo);
+
+        return std::move(commandBuffer);
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
+void Application::EndSingleTimeCommands(CommandBuffer& commandBuffer) {
+    try {
+        commandBuffer.End();
+
+        std::vector<VkCommandBufferSubmitInfo> commandBufferSubmitInfo = {
+            GenerateCommandBufferSubmitInfo(commandBuffer)
+        };
+        std::vector<VkSubmitInfo2> submitInfos = { GenerateSumbitInfo(commandBufferSubmitInfo, {}, {}) };
+        _graphicsQueue->Submit(submitInfos);
+        _graphicsQueue->WaitIdle();
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
 void Application::UpdateUniformBuffer(uint32_t currentImage) {
     static bool logged = false;
 
@@ -956,6 +1014,44 @@ void Application::UpdateUniformBuffer(uint32_t currentImage) {
     ubo.time = time;
 
     std::memcpy(_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+}
+
+void Application::TransitionImageLayout(
+    std::unique_ptr<Image>& image,
+    VkFormat format,
+    VkImageLayout oldLayout,
+    VkImageLayout newLayout
+) {
+    (void)(format);
+
+    CommandBuffer commandBuffer = BeginSingleTimeCommands();
+
+    std::vector<VkImageMemoryBarrier2> barriers = { GenerateImageMemoryBarrier(*image, oldLayout, newLayout) };
+    auto dependencyInfo = GenerateDependencyInfo({}, {}, barriers);
+    
+    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+        barriers[0].srcAccessMask = 0;
+        barriers[0].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    
+        barriers[0].srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+        barriers[0].dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+    }
+
+    else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+        barriers[0].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barriers[0].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        barriers[0].srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+        barriers[0].dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+    }
+
+    else {
+        throw std::invalid_argument("Unsuported layout transition");
+    }
+
+    commandBuffer.PipelineBarrier(dependencyInfo);
+
+    EndSingleTimeCommands(commandBuffer);
 }
 
 QueueFamilyIndices Application::FindQueueFamilies(PhysicalDevice const& physicalDevice) {
@@ -1136,39 +1232,54 @@ void Application::CreateImage(
     }
 }
 
-void Application::CopyBuffer(Buffer& src, Buffer& dst, VkDeviceSize size) {
+ImageView Application::CreateImageView(Image const& image, VkFormat format) {
     try {
-        VkCommandBufferAllocateInfo commandBufferAllocateInfo = GenerateCommandBufferAllocateInfo(*_commandPool);
-        auto commandBuffer = CommandBuffer(commandBufferAllocateInfo, *_device, _commandPool.get());
-        
-        VkCommandBufferBeginInfo commandBufferBeginInfo = GenerateCommandBufferBeginInfo();
-        commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        commandBuffer.Begin(commandBufferBeginInfo);
+        auto imageViewCreateInfo = GenerateImageViewCreateInfo(format, image);
+        auto imageView = ImageView(imageViewCreateInfo, *_device);
 
-        std::vector<VkBufferCopy2> bufferCopyRegions = { GenerateBufferCopy(size) };
-        auto copyBufferInfo = GenerateCopyBufferInfo(src, dst, bufferCopyRegions);
-        commandBuffer.CopyBuffer(copyBufferInfo);
-
-        commandBuffer.End();
-
-        std::vector<VkCommandBufferSubmitInfo> commandBufferSubmitInfo = { GenerateCommandBufferSubmitInfo(commandBuffer) };
-        std::vector<VkSubmitInfo2> submitInfo = { GenerateSumbitInfo(commandBufferSubmitInfo, {}, {}) };
-        VkResult queueSubmitResult = vkQueueSubmit2(_graphicsQueue->Handle(), 1, submitInfo.data(), VK_NULL_HANDLE);
-        if (queueSubmitResult != VK_SUCCESS) {
-            std::string error = "Could not submit copy buffer command: (result: code " + std::to_string(queueSubmitResult) + ")";
-            throw std::runtime_error(error);
-        }
-
-        VkResult queueWaitIdle = vkQueueWaitIdle(_graphicsQueue->Handle());
-        if (queueWaitIdle != VK_SUCCESS) {
-            std::string error = "Could not wait on graphics queue: (result: code " + std::to_string(queueSubmitResult) + ")";
-            throw std::runtime_error(error);
-        }
+        return std::move(imageView);
     }
 
     catch (std::exception const& e) {
         throw e;
     }
+}
+
+
+void Application::CopyBuffer(Buffer& src, Buffer& dst, VkDeviceSize size) {
+    try {
+        auto commandBuffer = BeginSingleTimeCommands();
+
+        std::vector<VkBufferCopy2> bufferCopyRegions = { GenerateBufferCopy(size) };
+        auto copyBufferInfo = GenerateCopyBufferInfo(src, dst, bufferCopyRegions);
+        commandBuffer.CopyBuffer(copyBufferInfo);
+
+        EndSingleTimeCommands(commandBuffer);
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
+void Application::CopyBufferToImage(
+    Buffer const& buffer,
+    Image const& image,
+    uint32_t width,
+    uint32_t height
+) {
+    CommandBuffer commandBuffer = BeginSingleTimeCommands();
+
+    std::vector<VkBufferImageCopy2> regions = { GenerateBufferImageCopy(width, height) };
+    auto copyBufferToImageInfo = GenerateCopyBufferToImageInfo(
+        buffer,
+        image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        regions
+    );
+    commandBuffer.CopyBufferToImage(copyBufferToImageInfo);
+
+    EndSingleTimeCommands(commandBuffer);
 }
 
 void Application::CleanupSwapchain() {

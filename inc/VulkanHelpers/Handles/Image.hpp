@@ -15,6 +15,7 @@ class Device;
 class Image {
     public:
         Image() = delete;
+        Image(VkImage image);
         Image(VkImageCreateInfo const& createInfo, Device const& device);
         Image(Image const& other) = delete;
         Image(Image&& other);

@@ -2,6 +2,8 @@
 
 #include "VulkanHelpers/Handles/Device.hpp"
 
+Image::Image(VkImage image) : _handle(image) {}
+
 Image::Image(VkImageCreateInfo const& createInfo, Device const& device) : _device(&device) {
     VkResult result = vkCreateImage(_device->Handle(), &createInfo, VK_NULL_HANDLE, &_handle);
     if (result != VK_SUCCESS) {
@@ -20,7 +22,9 @@ Image::Image(Image&& other) {
 } 
 
 Image::~Image() {
-    if (_handle != VK_NULL_HANDLE) {
+    if (_device != nullptr
+     && _device->Handle() != VK_NULL_HANDLE
+     && _handle != VK_NULL_HANDLE) {
         vkDestroyImage(_device->Handle(), _handle, VK_NULL_HANDLE);
         _handle = VK_NULL_HANDLE;
     }

@@ -11,6 +11,8 @@
 #include "VulkanHelpers/ParameterInfos/CommandBufferBeginInfo.hpp"
 #include "VulkanHelpers/ParameterInfos/CommandBufferSubmitInfo.hpp"
 #include "VulkanHelpers/ParameterInfos/CopyBufferInfo.hpp"
+#include "VulkanHelpers/ParameterInfos/CopyBufferToImageInfo.hpp"
+#include "VulkanHelpers/ParameterInfos/DependencyInfo.hpp"
 #include "VulkanHelpers/ParameterInfos/DescriptorBufferInfo.hpp"
 #include "VulkanHelpers/ParameterInfos/DescriptorSetAllocateInfo.hpp"
 #include "VulkanHelpers/ParameterInfos/DeviceQueueInfo.hpp"

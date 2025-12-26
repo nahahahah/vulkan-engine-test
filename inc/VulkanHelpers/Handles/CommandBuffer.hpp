@@ -22,7 +22,7 @@ class CommandBuffer {
         CommandBuffer(
             VkCommandBufferAllocateInfo const& allocateInfo,
             Device const& device,
-            CommandPool const* commandPool = nullptr
+            CommandPool const& commandPool
         );
         CommandBuffer(CommandBuffer const& other) = delete;
         CommandBuffer(CommandBuffer&& other);
@@ -53,8 +53,10 @@ class CommandBuffer {
         );
         void BindDescriptorSets(VkBindDescriptorSetsInfo const& bindInfo);
         void CopyBuffer(VkCopyBufferInfo2 const& copyInfo);
+        void CopyBufferToImage(VkCopyBufferToImageInfo2 const& copyBufferToImageInfo);
         void SetViewport(uint32_t first, uint32_t count, std::span<VkViewport> viewports);
         void SetScissor(uint32_t first, uint32_t count, std::span<VkRect2D> scissors);
+        void PipelineBarrier(VkDependencyInfo const& dependencyInfo);
         void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
         void DrawIndexed(
             uint32_t indexCount,

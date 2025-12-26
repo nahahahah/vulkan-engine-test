@@ -1,6 +1,6 @@
 #include "VulkanHelpers/CreateInfos/ImageViewCreateInfo.hpp"
 
-VkImageViewCreateInfo GenerateImageViewCreateInfo(VkFormat format, VkImage const& image) {
+VkImageViewCreateInfo GenerateImageViewCreateInfo(VkFormat format, Image const& image) {
     VkImageViewCreateInfo createInfo {};
 
     // structure type and flags
@@ -15,7 +15,7 @@ VkImageViewCreateInfo GenerateImageViewCreateInfo(VkFormat format, VkImage const
     
     // image view properties
     createInfo.format = format;
-    createInfo.image = image;
+    createInfo.image = image.Handle();
     createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 
     // subresource range properties

@@ -1,6 +1,7 @@
 #include "VulkanHelpers/Handles/Device.hpp"
 
 #include "VulkanHelpers/Handles/Swapchain.hpp"
+#include "VulkanHelpers/Handles/Image.hpp"
 
 Device::Device(VkDeviceCreateInfo const& createInfo, PhysicalDevice const& physicalDevice) {
     VkResult result = vkCreateDevice(physicalDevice.Handle(), &createInfo, VK_NULL_HANDLE, &_handle);
@@ -39,6 +40,11 @@ void Device::WaitIdle() {
     }
     std::clog << "Device is now idle" << std::endl;
 }
+
+VkResult Device::AcquireNextImage(VkAcquireNextImageInfoKHR const& acquireNextImageInfo, uint32_t* imageIndex) {
+    return vkAcquireNextImage2KHR(_handle, &acquireNextImageInfo, imageIndex);
+}
+
 
 void Device::WaitForFences(std::span<VkFence> const& fences, VkBool32 waitAll, uint64_t timeout) {
     VkResult result = vkWaitForFences(_handle, static_cast<uint32_t>(fences.size()), fences.data(), waitAll, timeout);
@@ -96,7 +102,7 @@ void Device::BindBufferMemory(std::span<VkBindBufferMemoryInfo> bindInfos) {
     vkBindBufferMemory2(_handle, static_cast<uint32_t>(bindInfos.size()), bindInfos.data());
 }
 
-std::vector<VkImage> Device::SwapchainImages(Device const& device, Swapchain const& swapchain) {
+std::vector<Image> Device::SwapchainImages(Device const& device, Swapchain const& swapchain) {
     uint32_t count = 0;
     VkResult result = vkGetSwapchainImagesKHR(device.Handle(), swapchain.Handle(), &count, VK_NULL_HANDLE);
     if (result != VK_SUCCESS) {
@@ -105,13 +111,19 @@ std::vector<VkImage> Device::SwapchainImages(Device const& device, Swapchain con
     }
     //std::clog << "Swap chain images retrieved successully (1st call, count: " << count << ")" << std::endl;
 
-    std::vector<VkImage> images(count);
-    result = vkGetSwapchainImagesKHR(device.Handle(), swapchain.Handle(), &count, images.data());
+    std::vector<VkImage> imagesHandle(count);
+    result = vkGetSwapchainImagesKHR(device.Handle(), swapchain.Handle(), &count, imagesHandle.data());
     if (result != VK_SUCCESS) {
         std::string error = "Unable to retrieve the swap chain images (2nd call, status: " + std::to_string(result) + ")";
         throw std::runtime_error(error);
     }
     //std::clog << "Swap chain images retrieved successully (2nd call, retrieved in array)" << std::endl;
+
+    std::vector<Image> images {};
+    images.reserve(imagesHandle.size());
+    for (auto const& imageHandle : imagesHandle) {
+        images.emplace_back(imageHandle);
+    }
 
     return images;
 }
