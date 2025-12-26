@@ -8,6 +8,15 @@
 #include <cstdint>
 #include <set>
 
+#define SDL_MAIN_HANDLED
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
+#include <SDL3/SDL_main.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_vulkan.h>
+
 #include <vulkan/vulkan.h>
 
 #include "SDLHelpers/Window.hpp"
@@ -56,16 +65,15 @@ constexpr bool enableValidationLayers = true;
 #endif
 
 inline std::vector<Vertex> shapeVertices = {
-    Vertex { Math::Vector2(-0.5f, -0.5f), Math::Vector3(1.0f, 0.0f, 0.0f) },
-    Vertex { Math::Vector2( 0.5f, -0.5f), Math::Vector3(0.0f, 1.0f, 0.0f) },
-    Vertex { Math::Vector2( 0.5f,  0.5f), Math::Vector3(0.0f, 0.0f, 1.0f) },
-    Vertex { Math::Vector2(-0.5f,  0.5f), Math::Vector3(1.0f, 1.0f, 1.0f) }
+    Vertex { Math::Vector2(-0.5f, -0.5f), Math::Vector3(1.0f, 0.0f, 0.0f), Math::Vector2(1.0f, 0.0f) },
+    Vertex { Math::Vector2( 0.5f, -0.5f), Math::Vector3(0.0f, 1.0f, 0.0f), Math::Vector2(0.0f, 0.0f) },
+    Vertex { Math::Vector2( 0.5f,  0.5f), Math::Vector3(0.0f, 0.0f, 1.0f), Math::Vector2(0.0f, 1.0f) },
+    Vertex { Math::Vector2(-0.5f,  0.5f), Math::Vector3(1.0f, 1.0f, 1.0f), Math::Vector2(1.0f, 1.0f) }
 };
 
 inline std::vector<uint16_t> shapeIndices = {
     0, 1, 2, 2, 3, 0
 };
-
 
 class Application {
     public: // constructors / destructor
@@ -90,9 +98,9 @@ class Application {
         void InitWindow();
         void InitVulkan();
 #ifndef NDEBUG
-	void SetupDebugMessenger();
+	    void SetupDebugMessenger();
 #endif
-	void CreateInstance();
+	    void CreateInstance();
         void CreateSurface();
         void SelectPhysicalDevice();
         void CreateDevice();
@@ -105,6 +113,9 @@ class Application {
         void CreateGraphicsPipeline();
         void CreateFramebuffers();
         void CreateCommandPool();
+        void CreateTextureImage();
+        void CreateTextureImageView();
+        void CreateTextureSampler();
         void CreateVertexBuffer();
         void CreateIndexBuffer();
         void CreateUniformBuffers();
@@ -116,7 +127,15 @@ class Application {
         void MainLoop();
         
         void RecordCommandBuffer(CommandBuffer& commandBuffer, uint32_t imageIndex);
+        CommandBuffer BeginSingleTimeCommands();
+        void EndSingleTimeCommands(CommandBuffer& commandBuffer);
         void UpdateUniformBuffer(uint32_t currentImage);
+        void TransitionImageLayout(
+            std::unique_ptr<Image>& image,
+            VkFormat format,
+            VkImageLayout oldLayout,
+            VkImageLayout newLayout
+        );
 
         QueueFamilyIndices FindQueueFamilies(PhysicalDevice const& physicalDevice);
         SwapchainSupportDetails QuerySwapchainSupport(PhysicalDevice const& physicalDevice);
@@ -136,7 +155,26 @@ class Application {
             std::unique_ptr<DeviceMemory>& bufferMemory
         );
 
+        void CreateImage(
+            VkExtent3D const& dimensions,
+            VkImageUsageFlags usage,
+            VkSharingMode sharingMode,
+            VkMemoryPropertyFlags properties,
+            VkFormat format,
+            VkImageTiling tiling,
+            std::unique_ptr<Image>& image,
+            std::unique_ptr<DeviceMemory>& imageMemory
+        );
+
+        ImageView CreateImageView(Image const& image, VkFormat format);
+
         void CopyBuffer(Buffer& src, Buffer& dst, VkDeviceSize size);
+        void CopyBufferToImage(
+            Buffer const& buffer,
+            Image const& image,
+            uint32_t width,
+            uint32_t height
+        );
 
         void CleanupSwapchain();
         void RecreateSwapchain();
@@ -155,7 +193,7 @@ class Application {
         std::unique_ptr<Swapchain> _swapchain = nullptr;
         VkFormat _swapchainImageFormat = VkFormat::VK_FORMAT_UNDEFINED;
         VkExtent2D _swapchainExtent {};
-        std::vector<VkImage> _swapchainImages {};
+        std::vector<Image> _swapchainImages {};
         std::vector<ImageView> _swapchainImageViews {};
         std::unique_ptr<RenderPass> _renderPass = nullptr;
         std::unique_ptr<DescriptorSetLayout> _descriptorSetLayout = nullptr;
@@ -163,6 +201,11 @@ class Application {
         std::unique_ptr<Pipeline> _graphicsPipeline = nullptr;
         std::vector<Framebuffer> _framebuffers {};
         std::unique_ptr<CommandPool> _commandPool = nullptr;
+
+        std::unique_ptr<Image> _textureImage = nullptr;
+        std::unique_ptr<DeviceMemory> _textureImageMemory = nullptr;
+        std::unique_ptr<ImageView> _textureImageView = nullptr;
+        std::unique_ptr<Sampler> _textureSampler = nullptr;
 
         std::unique_ptr<Buffer> _vertexBuffer = nullptr;
         std::unique_ptr<DeviceMemory> _vertexBufferMemory = nullptr;

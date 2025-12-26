@@ -1,5 +1,7 @@
 #include "VulkanHelpers/Handles/Swapchain.hpp"
 
+#include "VulkanHelpers/Handles/Device.hpp"
+
 Swapchain::Swapchain(VkSwapchainCreateInfoKHR const& createInfo, Device const& device) : _device(&device) {
     VkResult result = vkCreateSwapchainKHR(_device->Handle(), &createInfo, VK_NULL_HANDLE, &_handle);
     if (result != VK_SUCCESS) {

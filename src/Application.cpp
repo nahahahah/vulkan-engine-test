@@ -1,11 +1,20 @@
 #include "Application.hpp"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb/stb_image.h>
+
 Application::Application() {
     std::clog << "Vulkan header version: " << VK_HEADER_VERSION << std::endl;
 
-    InitSDL();
-    InitWindow();
-    InitVulkan();
+    try {
+        InitSDL();
+        InitWindow();
+        InitVulkan();
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
 
     _running = true;
 }
@@ -15,9 +24,8 @@ Application::~Application() {
 }
 
 void Application::Run() {
-    MainLoop(); /// TODO: Remove this extra call (potentially remove MainLoop as it's redundant)
-
     try {
+        MainLoop(); /// TODO: Remove this extra call (potentially remove MainLoop as it's redundant)
         _device->WaitIdle();
     }
     
@@ -137,6 +145,9 @@ void Application::InitVulkan() {
     CreateGraphicsPipeline();
     CreateFramebuffers();
     CreateCommandPool();
+    CreateTextureImage();
+    CreateTextureImageView();
+    CreateTextureSampler();
     CreateVertexBuffer();
     CreateIndexBuffer();
     CreateUniformBuffers();
@@ -356,7 +367,7 @@ void Application::CreateSwapchain() {
 
 void Application::GetSwapchainImages() {
     try {
-        _swapchainImages = EnumerateSwapChainImages(*_device, *_swapchain);
+        _swapchainImages = _device->SwapchainImages(*_device, *_swapchain);
     }
 
     catch (std::exception const& e) {
@@ -368,8 +379,7 @@ void Application::CreateImageViews() {
     try {
         _swapchainImageViews.reserve(_swapchainImages.size());
         for (size_t i = 0; i < _swapchainImages.size(); ++i) {
-            auto swapchainImageViewCreateInfo = GenerateImageViewCreateInfo(_swapchainImageFormat, _swapchainImages[i]);
-            _swapchainImageViews.emplace_back(swapchainImageViewCreateInfo, *_device); // create swap chain image view
+            _swapchainImageViews.emplace_back(CreateImageView(_swapchainImages[i], _swapchainImageFormat)); // create swap chain image view
         }
     }
 
@@ -396,7 +406,8 @@ void Application::CreateRenderPass() {
 
 void Application::CreateDescriptorSetLayout() {
     std::vector<VkDescriptorSetLayoutBinding> uniformBufferDescriptorSetLayoutBindings = { 
-        GenerateDescriptorSetLayoutBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT)
+        GenerateDescriptorSetLayoutBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT),
+        GenerateDescriptorSetLayoutBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT)
     };
     auto uniformBufferDescriptorSetCreateInfo = GenerateDescriptorSetLayoutCreateInfo(uniformBufferDescriptorSetLayoutBindings);
     
@@ -427,7 +438,8 @@ void Application::CreateGraphicsPipeline() {
     std::vector<VkVertexInputBindingDescription> vertexInputBinding0Description = { GenerateVertexInputBindingDescription(0) };
     std::vector<VkVertexInputAttributeDescription> vertexInputBinding0Attributes = {
         GenerateVertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, position)),
-        GenerateVertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color))
+        GenerateVertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)),
+        GenerateVertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv))
     };
 
     auto pipelineVertexInputStateCreateInfo = GeneratePipelineVertexInputStateCreateInfo(vertexInputBinding0Description, vertexInputBinding0Attributes); // specify pipeline vertex inputs
@@ -503,6 +515,107 @@ void Application::CreateCommandPool() {
     
     try {
         _commandPool = std::make_unique<CommandPool>(commandPoolCreateInfo, *_device); // create command pool
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
+void Application::CreateTextureImage() {
+    int textureWidth = 0;
+    int textureHeight = 0;
+    int textureChannels = 0;
+    stbi_uc* pixels = stbi_load(
+        "resources/textures/texture.jpg",
+        &textureWidth,
+        &textureHeight,
+        &textureChannels,
+        STBI_rgb_alpha
+    );
+
+    if (!pixels) {
+        std::string error = "Could not load the texture image file (reason: " + std::string(stbi_failure_reason()) + ")";
+        throw std::runtime_error(error);
+    }
+
+    VkDeviceSize imageSize = textureWidth * textureHeight * static_cast<int>(STBI_rgb_alpha);
+
+    std::unique_ptr<Buffer> stagingBuffer = nullptr;
+    std::unique_ptr<DeviceMemory> stagingBufferMemory = nullptr;
+    CreateBuffer(
+        imageSize,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_SHARING_MODE_EXCLUSIVE,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        stagingBuffer,
+        stagingBufferMemory
+    );
+
+    void* data = nullptr;
+    auto stagingBufferMemoryMapInfo = GenerateMemoryMapInfo(*stagingBufferMemory, imageSize, 0);
+    _device->MapMemory(stagingBufferMemoryMapInfo, &data);
+
+    std::memcpy(data, pixels, static_cast<size_t>(imageSize));
+    
+    auto stagingBufferMemoryUnmapInfo = GenerateMemoryUnmapInfo(*stagingBufferMemory);
+    _device->UnmapMemory(stagingBufferMemoryUnmapInfo);
+
+    stbi_image_free(pixels);
+
+    CreateImage(
+        VkExtent3D { 
+            static_cast<uint32_t>(textureWidth),
+            static_cast<uint32_t>(textureHeight),
+            1
+        },
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_SHARING_MODE_EXCLUSIVE,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        VK_FORMAT_R8G8B8A8_SRGB,
+        VK_IMAGE_TILING_OPTIMAL,
+        _textureImage,
+        _textureImageMemory
+    );
+
+    TransitionImageLayout(
+        _textureImage,
+        VK_FORMAT_R8G8B8A8_SRGB,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+    );
+
+    CopyBufferToImage(
+        *stagingBuffer,
+        *_textureImage,
+        static_cast<uint32_t>(textureWidth),
+        static_cast<uint32_t>(textureHeight)
+    );
+
+    TransitionImageLayout(
+        _textureImage,
+        VK_FORMAT_R8G8B8A8_SRGB,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
+}
+
+void Application::CreateTextureImageView() {
+    try {
+        _textureImageView = std::make_unique<ImageView>(CreateImageView(*_textureImage, VK_FORMAT_R8G8B8A8_SRGB));
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
+void Application::CreateTextureSampler() {
+    try {
+        auto samplerCreateInfo = GenerateSamplerCreateInfo();
+        //samplerCreateInfo.anisotropyEnable = VK_TRUE;
+        samplerCreateInfo.maxAnisotropy = _physicalDevice->Properties().properties.limits.maxSamplerAnisotropy;
+        _textureSampler = std::make_unique<Sampler>(samplerCreateInfo, *_device);
     }
 
     catch (std::exception const& e) {
@@ -621,6 +734,10 @@ void Application::CreateDescriptorPool() {
         GenerateDescriptorPoolSize(
             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
+        ),
+        GenerateDescriptorPoolSize(
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
         )
     };
 
@@ -649,17 +766,30 @@ void Application::CreateDescriptorSets() {
         _descriptorSets = std::make_unique<DescriptorSetCollection>(descriptorSetAllocateInfo, *_device);
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
             auto descriptorBufferInfo = GenerateDescriptorBufferInfo(*_uniformBuffers[i], sizeof(UniformBufferObject));
+            auto descriptorImageInfo = GenerateDescriptorImageInfo(*_textureImageView, *_textureSampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-            auto writeBufferDescriptorSet = GenerateWriteDescriptorSet(
-                1,
-                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                (*_descriptorSets)[i],
-                0,
-                0,
-                &descriptorBufferInfo
-            );
+            std::vector<VkWriteDescriptorSet> bufferDescriptorSetsWrites = {
+                GenerateWriteDescriptorSet(
+                    1,
+                    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    (*_descriptorSets)[i],
+                    0,
+                    0,
+                    &descriptorBufferInfo,
+                    nullptr
+                ),
+                GenerateWriteDescriptorSet(
+                    1,
+                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    (*_descriptorSets)[i],
+                    1,
+                    0,
+                    nullptr,
+                    &descriptorImageInfo
+                )
+            };
 
-            vkUpdateDescriptorSets(_device->Handle(), 1, &writeBufferDescriptorSet, 0, nullptr);
+            _device->UpdateDescriptorSets(bufferDescriptorSetsWrites, {});
         }
     }
     
@@ -726,7 +856,7 @@ void Application::MainLoop() {
         }
 
         auto acquireNextImageInfo = GenerateAcquireNextImageInfo(*_swapchain, &acquireSemaphore);
-        VkResult acquireNextImageResult = vkAcquireNextImage2KHR(_device->Handle(), &acquireNextImageInfo, &imageIndex); // acquire next frame
+        VkResult acquireNextImageResult = _device->AcquireNextImage(acquireNextImageInfo, &imageIndex); // acquire next frame
         if (acquireNextImageResult == VK_ERROR_OUT_OF_DATE_KHR) {
             std::cerr << "Swap chain image is out of date" << std::endl;
 
@@ -754,19 +884,14 @@ void Application::MainLoop() {
         std::vector<VkSemaphoreSubmitInfo> waitSemaphoreSubmitInfo = { GenerateSemaphoreSubmitInfo(acquireSemaphore) }; // set synchronization handles behaviours for submission
         std::vector<VkSemaphore> waitSemaphores = { acquireSemaphore.Handle() };
 
-        VkSubmitInfo2 submitInfo = GenerateSumbitInfo(commandBufferSubmitInfo, signalSemaphoreSubmitInfo, waitSemaphoreSubmitInfo);
-        VkResult queueSubmitResult = vkQueueSubmit2(_graphicsQueue->Handle(), 1, &submitInfo, frameFence.Handle()); // submit command buffer to the queue
-        if (queueSubmitResult != VK_SUCCESS) {
-            std::string error = "Unable to submit to queue (status " + std::to_string(queueSubmitResult) + ")";
-            throw std::runtime_error(error);
-        }
+        std::vector<VkSubmitInfo2> submitInfos = { GenerateSumbitInfo(commandBufferSubmitInfo, signalSemaphoreSubmitInfo, waitSemaphoreSubmitInfo) };
+        _graphicsQueue->Submit(submitInfos, &frameFence); // submit command buffer to the queue
 
         std::vector<uint32_t> imageIndices = { imageIndex };
         std::vector<VkSwapchainKHR> swapchains = { _swapchain->Handle() };
 
         VkPresentInfoKHR presentInfo = GeneratePresentInfo(imageIndices, swapchains, signalSemaphores);
-        VkResult queuePresentResult = vkQueuePresentKHR(_presentQueue->Handle(), &presentInfo); // present
-        
+        VkResult queuePresentResult = _presentQueue->Present(presentInfo); // present
         if (queuePresentResult == VK_ERROR_OUT_OF_DATE_KHR || queuePresentResult == VK_SUBOPTIMAL_KHR || _framebufferResized) {
             _framebufferResized = false;
             RecreateSwapchain();
@@ -828,6 +953,39 @@ void Application::RecordCommandBuffer(CommandBuffer& commandBuffer, uint32_t ima
     commandBuffer.EndRenderPass(subpassEndInfo); // end render pass
 
     commandBuffer.End();
+}
+
+CommandBuffer Application::BeginSingleTimeCommands() {
+    try {
+        auto allocateInfo = GenerateCommandBufferAllocateInfo(*_commandPool);
+        auto commandBuffer = CommandBuffer(allocateInfo, *_device, *_commandPool);
+
+        auto beginInfo = GenerateCommandBufferBeginInfo();
+        commandBuffer.Begin(beginInfo);
+
+        return std::move(commandBuffer);
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
+void Application::EndSingleTimeCommands(CommandBuffer& commandBuffer) {
+    try {
+        commandBuffer.End();
+
+        std::vector<VkCommandBufferSubmitInfo> commandBufferSubmitInfo = {
+            GenerateCommandBufferSubmitInfo(commandBuffer)
+        };
+        std::vector<VkSubmitInfo2> submitInfos = { GenerateSumbitInfo(commandBufferSubmitInfo, {}, {}) };
+        _graphicsQueue->Submit(submitInfos);
+        _graphicsQueue->WaitIdle();
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
 }
 
 void Application::UpdateUniformBuffer(uint32_t currentImage) {
@@ -892,6 +1050,44 @@ void Application::UpdateUniformBuffer(uint32_t currentImage) {
     std::memcpy(_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
+void Application::TransitionImageLayout(
+    std::unique_ptr<Image>& image,
+    VkFormat format,
+    VkImageLayout oldLayout,
+    VkImageLayout newLayout
+) {
+    (void)(format);
+
+    CommandBuffer commandBuffer = BeginSingleTimeCommands();
+
+    std::vector<VkImageMemoryBarrier2> barriers = { GenerateImageMemoryBarrier(*image, oldLayout, newLayout) };
+    auto dependencyInfo = GenerateDependencyInfo({}, {}, barriers);
+    
+    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+        barriers[0].srcAccessMask = 0;
+        barriers[0].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    
+        barriers[0].srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+        barriers[0].dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+    }
+
+    else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+        barriers[0].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barriers[0].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        barriers[0].srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+        barriers[0].dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+    }
+
+    else {
+        throw std::invalid_argument("Unsuported layout transition");
+    }
+
+    commandBuffer.PipelineBarrier(dependencyInfo);
+
+    EndSingleTimeCommands(commandBuffer);
+}
+
 QueueFamilyIndices Application::FindQueueFamilies(PhysicalDevice const& physicalDevice) {
     QueueFamilyIndices indices {};
 
@@ -938,6 +1134,8 @@ SwapchainSupportDetails Application::QuerySwapchainSupport(PhysicalDevice const&
 bool Application::IsPhysicalDeviceSuitable(PhysicalDevice const& physicalDevice) {
     QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(physicalDevice);
 
+    bool queueFamilyIndicesAreComplete = queueFamilyIndices.IsComplete();
+
     // enumerate device extensions
     auto deviceExtensionsProperties = EnumerateDeviceExtensionProperties(physicalDevice); // enumerate device extensions
     bool deviceExtensionsAreSupported = AreDeviceExtensionsSupported(deviceExtensions, deviceExtensionsProperties);
@@ -950,7 +1148,12 @@ bool Application::IsPhysicalDeviceSuitable(PhysicalDevice const& physicalDevice)
         swapchainIsAdequate = !swapchainSupportDetails.formats.empty() && ! swapchainSupportDetails.presentModes.empty();
     }
 
-    return queueFamilyIndices.IsComplete() && deviceExtensionsAreSupported && swapchainIsAdequate;
+    auto supportedFeatures = physicalDevice.Features();
+    
+    return queueFamilyIndicesAreComplete
+        && deviceExtensionsAreSupported
+        && swapchainIsAdequate
+        && supportedFeatures.features.samplerAnisotropy;
 }
 
 uint32_t Application::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
@@ -1004,7 +1207,7 @@ void Application::CreateBuffer(
     std::unique_ptr<DeviceMemory>& bufferMemory
 ) {
     try {
-        VkBufferCreateInfo bufferCreateInfo = GenerateBufferCreateInfo(size, usage, sharingMode);
+        auto bufferCreateInfo = GenerateBufferCreateInfo(size, usage, sharingMode);
         buffer = std::make_unique<Buffer>(bufferCreateInfo, *_device); // will be moved
 
         auto bufferMemoryRequirementsInfo = GenerateBufferMemoryRequirementsInfo(*buffer);
@@ -1019,7 +1222,7 @@ void Application::CreateBuffer(
         );
         bufferMemory = std::make_unique<DeviceMemory>(bufferMemoryAllocateInfo, *_device); // will be moved
 
-        std::vector<VkBindBufferMemoryInfo> bufferBindMemoryInfos = { GenerateBindBufferMemoryInfo(*bufferMemory, 0, *buffer) };
+        std::vector<VkBindBufferMemoryInfo> bufferBindMemoryInfos = { GenerateBindBufferMemoryInfo(*buffer, *bufferMemory, 0) };
         _device->BindBufferMemory(bufferBindMemoryInfos);
     }
 
@@ -1028,39 +1231,96 @@ void Application::CreateBuffer(
     }
 }
 
-void Application::CopyBuffer(Buffer& src, Buffer& dst, VkDeviceSize size) {
+void Application::CreateImage(
+    VkExtent3D const& dimensions,
+    VkImageUsageFlags usage,
+    VkSharingMode sharingMode,
+    VkMemoryPropertyFlags properties,
+    VkFormat format,
+    VkImageTiling tiling,
+    std::unique_ptr<Image>& image,
+    std::unique_ptr<DeviceMemory>& imageMemory
+) {
     try {
-        VkCommandBufferAllocateInfo commandBufferAllocateInfo = GenerateCommandBufferAllocateInfo(*_commandPool);
-        auto commandBuffer = CommandBuffer(commandBufferAllocateInfo, *_device, _commandPool.get());
-        
-        VkCommandBufferBeginInfo commandBufferBeginInfo = GenerateCommandBufferBeginInfo();
-        commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        commandBuffer.Begin(commandBufferBeginInfo);
+        auto imageCreateInfo = GenerateImageCreateInfo(
+            dimensions,
+            usage,
+            sharingMode,
+            format,
+            tiling
+        );
+        image = std::make_unique<Image>(imageCreateInfo, *_device);
 
-        std::vector<VkBufferCopy2> bufferCopyRegions = { GenerateBufferCopy(size) };
-        auto copyBufferInfo = GenerateCopyBufferInfo(src, dst, bufferCopyRegions);
-        commandBuffer.CopyBuffer(copyBufferInfo);
+        auto imageMemoryRequirementsInfo = GenerateImageMemoryRequirementsInfo(*image);
+        auto imageMemoryRequirements = _device->ImageMemoryRequirements(imageMemoryRequirementsInfo);
 
-        commandBuffer.End();
+        auto imageMemoryAllocateInfo = GenerateMemoryAllocateInfo(
+            imageMemoryRequirements.memoryRequirements.size,
+            FindMemoryType(
+                imageMemoryRequirements.memoryRequirements.memoryTypeBits,
+                properties
+            )
+        );
 
-        std::vector<VkCommandBufferSubmitInfo> commandBufferSubmitInfo = { GenerateCommandBufferSubmitInfo(commandBuffer) };
-        std::vector<VkSubmitInfo2> submitInfo = { GenerateSumbitInfo(commandBufferSubmitInfo, {}, {}) };
-        VkResult queueSubmitResult = vkQueueSubmit2(_graphicsQueue->Handle(), 1, submitInfo.data(), VK_NULL_HANDLE);
-        if (queueSubmitResult != VK_SUCCESS) {
-            std::string error = "Could not submit copy buffer command: (result: code " + std::to_string(queueSubmitResult) + ")";
-            throw std::runtime_error(error);
-        }
+        imageMemory = std::make_unique<DeviceMemory>(imageMemoryAllocateInfo, *_device);
 
-        VkResult queueWaitIdle = vkQueueWaitIdle(_graphicsQueue->Handle());
-        if (queueWaitIdle != VK_SUCCESS) {
-            std::string error = "Could not wait on graphics queue: (result: code " + std::to_string(queueSubmitResult) + ")";
-            throw std::runtime_error(error);
-        }
+        std::vector<VkBindImageMemoryInfo> imageBindMemoryInfos = { GenerateBindImageMemoryInfo(*image, *imageMemory, 0) };
+        _device->BindImageMemory(imageBindMemoryInfos);
     }
 
     catch (std::exception const& e) {
         throw e;
     }
+}
+
+ImageView Application::CreateImageView(Image const& image, VkFormat format) {
+    try {
+        auto imageViewCreateInfo = GenerateImageViewCreateInfo(format, image);
+        auto imageView = ImageView(imageViewCreateInfo, *_device);
+
+        return std::move(imageView);
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
+
+void Application::CopyBuffer(Buffer& src, Buffer& dst, VkDeviceSize size) {
+    try {
+        auto commandBuffer = BeginSingleTimeCommands();
+
+        std::vector<VkBufferCopy2> bufferCopyRegions = { GenerateBufferCopy(size) };
+        auto copyBufferInfo = GenerateCopyBufferInfo(src, dst, bufferCopyRegions);
+        commandBuffer.CopyBuffer(copyBufferInfo);
+
+        EndSingleTimeCommands(commandBuffer);
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
+void Application::CopyBufferToImage(
+    Buffer const& buffer,
+    Image const& image,
+    uint32_t width,
+    uint32_t height
+) {
+    CommandBuffer commandBuffer = BeginSingleTimeCommands();
+
+    std::vector<VkBufferImageCopy2> regions = { GenerateBufferImageCopy(width, height) };
+    auto copyBufferToImageInfo = GenerateCopyBufferToImageInfo(
+        buffer,
+        image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        regions
+    );
+    commandBuffer.CopyBufferToImage(copyBufferToImageInfo);
+
+    EndSingleTimeCommands(commandBuffer);
 }
 
 void Application::CleanupSwapchain() {

@@ -3,9 +3,9 @@
 
 #include <vulkan/vulkan.h>
 
-#include "VulkanHelpers/Handles/DeviceMemory.hpp"
 #include "VulkanHelpers/Handles/Buffer.hpp"
+#include "VulkanHelpers/Handles/DeviceMemory.hpp"
 
-VkBindBufferMemoryInfo GenerateBindBufferMemoryInfo(DeviceMemory const& memory, VkDeviceSize memoryOffset, Buffer const& buffer);
+VkBindBufferMemoryInfo GenerateBindBufferMemoryInfo(Buffer const& buffer, DeviceMemory const& memory, VkDeviceSize memoryOffset);
 
 #endif // VK_WRAPPER_BIND_BUFFER_MEMORY_INFO_HPP

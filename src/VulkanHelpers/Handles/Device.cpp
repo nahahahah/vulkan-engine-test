@@ -1,5 +1,8 @@
 #include "VulkanHelpers/Handles/Device.hpp"
 
+#include "VulkanHelpers/Handles/Swapchain.hpp"
+#include "VulkanHelpers/Handles/Image.hpp"
+
 Device::Device(VkDeviceCreateInfo const& createInfo, PhysicalDevice const& physicalDevice) {
     VkResult result = vkCreateDevice(physicalDevice.Handle(), &createInfo, VK_NULL_HANDLE, &_handle);
     if (result != VK_SUCCESS) {
@@ -38,6 +41,11 @@ void Device::WaitIdle() {
     std::clog << "Device is now idle" << std::endl;
 }
 
+VkResult Device::AcquireNextImage(VkAcquireNextImageInfoKHR const& acquireNextImageInfo, uint32_t* imageIndex) {
+    return vkAcquireNextImage2KHR(_handle, &acquireNextImageInfo, imageIndex);
+}
+
+
 void Device::WaitForFences(std::span<VkFence> const& fences, VkBool32 waitAll, uint64_t timeout) {
     VkResult result = vkWaitForFences(_handle, static_cast<uint32_t>(fences.size()), fences.data(), waitAll, timeout);
     if (result != VK_SUCCESS) {
@@ -55,7 +63,6 @@ void Device::ResetFences(std::span<VkFence> const& fences) {
     }
     //std::clog << "Reset fences successfully" << std::endl;
 }
-
 
 void Device::MapMemory(VkMemoryMapInfo const& memoryMapInfo, void** data) {
     VkResult result = vkMapMemory2(_handle, &memoryMapInfo, data);
@@ -77,8 +84,7 @@ void Device::UnmapMemory(VkMemoryUnmapInfo const& memoryUnmapInfo) {
     std::clog << "Memory unmapped successfully: <VkDeviceMemory " << _handle << ">" << std::endl;
 }
 
-
-VkMemoryRequirements2 Device::BufferMemoryRequirements(VkBufferMemoryRequirementsInfo2 info) {
+VkMemoryRequirements2 Device::BufferMemoryRequirements(VkBufferMemoryRequirementsInfo2 const& info) {
     VkMemoryRequirements2 requirements {};
 
     // structure type
@@ -92,7 +98,63 @@ VkMemoryRequirements2 Device::BufferMemoryRequirements(VkBufferMemoryRequirement
     return requirements;
 }
 
-
 void Device::BindBufferMemory(std::span<VkBindBufferMemoryInfo> bindInfos) {
     vkBindBufferMemory2(_handle, static_cast<uint32_t>(bindInfos.size()), bindInfos.data());
+}
+
+std::vector<Image> Device::SwapchainImages(Device const& device, Swapchain const& swapchain) {
+    uint32_t count = 0;
+    VkResult result = vkGetSwapchainImagesKHR(device.Handle(), swapchain.Handle(), &count, VK_NULL_HANDLE);
+    if (result != VK_SUCCESS) {
+        std::string error = "Unable to retrieve the swap chain images (1st call, status: " + std::to_string(result) + ")";
+        throw std::runtime_error(error);
+    }
+    //std::clog << "Swap chain images retrieved successully (1st call, count: " << count << ")" << std::endl;
+
+    std::vector<VkImage> imagesHandle(count);
+    result = vkGetSwapchainImagesKHR(device.Handle(), swapchain.Handle(), &count, imagesHandle.data());
+    if (result != VK_SUCCESS) {
+        std::string error = "Unable to retrieve the swap chain images (2nd call, status: " + std::to_string(result) + ")";
+        throw std::runtime_error(error);
+    }
+    //std::clog << "Swap chain images retrieved successully (2nd call, retrieved in array)" << std::endl;
+
+    std::vector<Image> images {};
+    images.reserve(imagesHandle.size());
+    for (auto const& imageHandle : imagesHandle) {
+        images.emplace_back(imageHandle);
+    }
+
+    return images;
+}
+
+VkMemoryRequirements2 Device::ImageMemoryRequirements(VkImageMemoryRequirementsInfo2 const& info) {
+    VkMemoryRequirements2 requirements {};
+
+    // structure type
+    requirements.sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2;
+
+    vkGetImageMemoryRequirements2(_handle, &info, &requirements);
+
+    // extend requirements
+    requirements.pNext = VK_NULL_HANDLE;
+
+    return requirements;
+}
+
+void Device::BindImageMemory(std::span<VkBindImageMemoryInfo> bindInfos) {
+    vkBindImageMemory2(_handle, static_cast<uint32_t>(bindInfos.size()), bindInfos.data());
+}
+
+void Device::UpdateDescriptorSets(
+    std::span<VkWriteDescriptorSet> descriptorWrites,
+    std::span<VkCopyDescriptorSet> descriptorCopies
+) {
+    vkUpdateDescriptorSets(
+        _handle,
+        static_cast<uint32_t>(descriptorWrites.size()),
+        ((descriptorWrites.size() > 0) ? (descriptorWrites.data()) : (VK_NULL_HANDLE)),
+        static_cast<uint32_t>(descriptorCopies.size()),
+        ((descriptorCopies.size() > 0) ? (descriptorCopies.data()) : (VK_NULL_HANDLE))
+    );
 }

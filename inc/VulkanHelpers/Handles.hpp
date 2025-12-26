@@ -20,6 +20,7 @@
 #include "VulkanHelpers/Handles/PipelineLayout.hpp"
 #include "VulkanHelpers/Handles/Queue.hpp"
 #include "VulkanHelpers/Handles/RenderPass.hpp"
+#include "VulkanHelpers/Handles/Sampler.hpp"
 #include "VulkanHelpers/Handles/Semaphore.hpp"
 #include "VulkanHelpers/Handles/ShaderModule.hpp"
 #include "VulkanHelpers/Handles/Surface.hpp"
