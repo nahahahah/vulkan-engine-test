@@ -145,3 +145,16 @@ VkMemoryRequirements2 Device::ImageMemoryRequirements(VkImageMemoryRequirementsI
 void Device::BindImageMemory(std::span<VkBindImageMemoryInfo> bindInfos) {
     vkBindImageMemory2(_handle, static_cast<uint32_t>(bindInfos.size()), bindInfos.data());
 }
+
+void Device::UpdateDescriptorSets(
+    std::span<VkWriteDescriptorSet> descriptorWrites,
+    std::span<VkCopyDescriptorSet> descriptorCopies
+) {
+    vkUpdateDescriptorSets(
+        _handle,
+        static_cast<uint32_t>(descriptorWrites.size()),
+        ((descriptorWrites.size() > 0) ? (descriptorWrites.data()) : (VK_NULL_HANDLE)),
+        static_cast<uint32_t>(descriptorCopies.size()),
+        ((descriptorCopies.size() > 0) ? (descriptorCopies.data()) : (VK_NULL_HANDLE))
+    );
+}

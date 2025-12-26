@@ -10,9 +10,9 @@ VkWriteDescriptorSet GenerateWriteDescriptorSet(
     VkDescriptorType descriptorType, 
     VkDescriptorSet dstSet,
     uint32_t dstBinding,
-    uint32_t dstArrayElement = 0,
-    VkDescriptorBufferInfo* bufferInfo = nullptr,
-    VkDescriptorImageInfo* imageInfo = nullptr
+    uint32_t dstArrayElement,
+    VkDescriptorBufferInfo* bufferInfo,
+    VkDescriptorImageInfo* imageInfo
 );
 
 #endif // VK_WRAPPER_WRITE_DESCRIPTOR_SET_HPP

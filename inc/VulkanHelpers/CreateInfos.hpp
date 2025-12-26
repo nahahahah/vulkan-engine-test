@@ -25,6 +25,7 @@
 #include "VulkanHelpers/CreateInfos/PipelineVertexInputStateCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/PipelineViewportStateCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/RenderPassCreateInfo.hpp"
+#include "VulkanHelpers/CreateInfos/SamplerCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/SemaphoreCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/ShaderModuleCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/SwapchainCreateInfo.hpp"

@@ -49,6 +49,12 @@ class Device {
         VkMemoryRequirements2 ImageMemoryRequirements(VkImageMemoryRequirementsInfo2 const& info);
         void BindImageMemory(std::span<VkBindImageMemoryInfo> bindInfos);
 
+        // descriptor set related methods
+        void UpdateDescriptorSets(
+            std::span<VkWriteDescriptorSet> descriptorWrites,
+            std::span<VkCopyDescriptorSet> descriptorCopies
+        );
+
     private:
         VkDevice _handle = VK_NULL_HANDLE;
 };

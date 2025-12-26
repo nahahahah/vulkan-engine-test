@@ -65,10 +65,10 @@ constexpr bool enableValidationLayers = true;
 #endif
 
 inline std::vector<Vertex> shapeVertices = {
-    Vertex { Math::Vector2(-0.5f, -0.5f), Math::Vector3(1.0f, 0.0f, 0.0f) },
-    Vertex { Math::Vector2( 0.5f, -0.5f), Math::Vector3(0.0f, 1.0f, 0.0f) },
-    Vertex { Math::Vector2( 0.5f,  0.5f), Math::Vector3(0.0f, 0.0f, 1.0f) },
-    Vertex { Math::Vector2(-0.5f,  0.5f), Math::Vector3(1.0f, 1.0f, 1.0f) }
+    Vertex { Math::Vector2(-0.5f, -0.5f), Math::Vector3(1.0f, 0.0f, 0.0f), Math::Vector2(1.0f, 0.0f) },
+    Vertex { Math::Vector2( 0.5f, -0.5f), Math::Vector3(0.0f, 1.0f, 0.0f), Math::Vector2(0.0f, 0.0f) },
+    Vertex { Math::Vector2( 0.5f,  0.5f), Math::Vector3(0.0f, 0.0f, 1.0f), Math::Vector2(0.0f, 1.0f) },
+    Vertex { Math::Vector2(-0.5f,  0.5f), Math::Vector3(1.0f, 1.0f, 1.0f), Math::Vector2(1.0f, 1.0f) }
 };
 
 inline std::vector<uint16_t> shapeIndices = {
@@ -115,6 +115,7 @@ class Application {
         void CreateCommandPool();
         void CreateTextureImage();
         void CreateTextureImageView();
+        void CreateTextureSampler();
         void CreateVertexBuffer();
         void CreateIndexBuffer();
         void CreateUniformBuffers();
@@ -204,6 +205,7 @@ class Application {
         std::unique_ptr<Image> _textureImage = nullptr;
         std::unique_ptr<DeviceMemory> _textureImageMemory = nullptr;
         std::unique_ptr<ImageView> _textureImageView = nullptr;
+        std::unique_ptr<Sampler> _textureSampler = nullptr;
 
         std::unique_ptr<Buffer> _vertexBuffer = nullptr;
         std::unique_ptr<DeviceMemory> _vertexBufferMemory = nullptr;

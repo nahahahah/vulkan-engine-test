@@ -146,6 +146,8 @@ void Application::InitVulkan() {
     CreateFramebuffers();
     CreateCommandPool();
     CreateTextureImage();
+    CreateTextureImageView();
+    CreateTextureSampler();
     CreateVertexBuffer();
     CreateIndexBuffer();
     CreateUniformBuffers();
@@ -404,7 +406,8 @@ void Application::CreateRenderPass() {
 
 void Application::CreateDescriptorSetLayout() {
     std::vector<VkDescriptorSetLayoutBinding> uniformBufferDescriptorSetLayoutBindings = { 
-        GenerateDescriptorSetLayoutBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT)
+        GenerateDescriptorSetLayoutBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT),
+        GenerateDescriptorSetLayoutBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT)
     };
     auto uniformBufferDescriptorSetCreateInfo = GenerateDescriptorSetLayoutCreateInfo(uniformBufferDescriptorSetLayoutBindings);
     
@@ -435,7 +438,8 @@ void Application::CreateGraphicsPipeline() {
     std::vector<VkVertexInputBindingDescription> vertexInputBinding0Description = { GenerateVertexInputBindingDescription(0) };
     std::vector<VkVertexInputAttributeDescription> vertexInputBinding0Attributes = {
         GenerateVertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, position)),
-        GenerateVertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color))
+        GenerateVertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)),
+        GenerateVertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv))
     };
 
     auto pipelineVertexInputStateCreateInfo = GeneratePipelineVertexInputStateCreateInfo(vertexInputBinding0Description, vertexInputBinding0Attributes); // specify pipeline vertex inputs
@@ -606,6 +610,19 @@ void Application::CreateTextureImageView() {
     }
 }
 
+void Application::CreateTextureSampler() {
+    try {
+        auto samplerCreateInfo = GenerateSamplerCreateInfo();
+        //samplerCreateInfo.anisotropyEnable = VK_TRUE;
+        samplerCreateInfo.maxAnisotropy = _physicalDevice->Properties().properties.limits.maxSamplerAnisotropy;
+        _textureSampler = std::make_unique<Sampler>(samplerCreateInfo, *_device);
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
 void Application::CreateVertexBuffer() {
     try {
         VkDeviceSize vertexBufferSize = sizeof(shapeVertices[0]) * shapeVertices.size();
@@ -717,6 +734,10 @@ void Application::CreateDescriptorPool() {
         GenerateDescriptorPoolSize(
             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
+        ),
+        GenerateDescriptorPoolSize(
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
         )
     };
 
@@ -745,17 +766,30 @@ void Application::CreateDescriptorSets() {
         _descriptorSets = std::make_unique<DescriptorSetCollection>(descriptorSetAllocateInfo, *_device);
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
             auto descriptorBufferInfo = GenerateDescriptorBufferInfo(*_uniformBuffers[i], sizeof(UniformBufferObject));
+            auto descriptorImageInfo = GenerateDescriptorImageInfo(*_textureImageView, *_textureSampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-            auto writeBufferDescriptorSet = GenerateWriteDescriptorSet(
-                1,
-                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                (*_descriptorSets)[i],
-                0,
-                0,
-                &descriptorBufferInfo
-            );
+            std::vector<VkWriteDescriptorSet> bufferDescriptorSetsWrites = {
+                GenerateWriteDescriptorSet(
+                    1,
+                    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    (*_descriptorSets)[i],
+                    0,
+                    0,
+                    &descriptorBufferInfo,
+                    nullptr
+                ),
+                GenerateWriteDescriptorSet(
+                    1,
+                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    (*_descriptorSets)[i],
+                    1,
+                    0,
+                    nullptr,
+                    &descriptorImageInfo
+                )
+            };
 
-            vkUpdateDescriptorSets(_device->Handle(), 1, &writeBufferDescriptorSet, 0, nullptr);
+            _device->UpdateDescriptorSets(bufferDescriptorSetsWrites, {});
         }
     }
     
@@ -1100,6 +1134,8 @@ SwapchainSupportDetails Application::QuerySwapchainSupport(PhysicalDevice const&
 bool Application::IsPhysicalDeviceSuitable(PhysicalDevice const& physicalDevice) {
     QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(physicalDevice);
 
+    bool queueFamilyIndicesAreComplete = queueFamilyIndices.IsComplete();
+
     // enumerate device extensions
     auto deviceExtensionsProperties = EnumerateDeviceExtensionProperties(physicalDevice); // enumerate device extensions
     bool deviceExtensionsAreSupported = AreDeviceExtensionsSupported(deviceExtensions, deviceExtensionsProperties);
@@ -1112,7 +1148,12 @@ bool Application::IsPhysicalDeviceSuitable(PhysicalDevice const& physicalDevice)
         swapchainIsAdequate = !swapchainSupportDetails.formats.empty() && ! swapchainSupportDetails.presentModes.empty();
     }
 
-    return queueFamilyIndices.IsComplete() && deviceExtensionsAreSupported && swapchainIsAdequate;
+    auto supportedFeatures = physicalDevice.Features();
+    
+    return queueFamilyIndicesAreComplete
+        && deviceExtensionsAreSupported
+        && swapchainIsAdequate
+        && supportedFeatures.features.samplerAnisotropy;
 }
 
 uint32_t Application::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {

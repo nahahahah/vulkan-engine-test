@@ -6,6 +6,7 @@
 #include "VulkanHelpers/ParameterStructs/BufferCopy.hpp"
 #include "VulkanHelpers/ParameterStructs/BufferImageCopy.hpp"
 #include "VulkanHelpers/ParameterStructs/ClearValue.hpp"
+#include "VulkanHelpers/ParameterStructs/CopyDescriptorSet.hpp"
 #include "VulkanHelpers/ParameterStructs/DescriptorPoolSize.hpp"
 #include "VulkanHelpers/ParameterStructs/DescriptorSetLayoutBinding.hpp"
 #include "VulkanHelpers/ParameterStructs/ExtensionProperties.hpp"
