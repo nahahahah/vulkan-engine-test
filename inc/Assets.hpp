@@ -19,15 +19,15 @@ struct Vertex {
 };
 
 struct UniformBufferObject {
-/*
-    alignas(16) Math::Matrix4x4 model {};
-    alignas(16) Math::Matrix4x4 view {};
-    alignas(16) Math::Matrix4x4 projection {};
-*/
     alignas(16) glm::mat4 model {};
-    alignas(16) Math::Matrix4x4 view {};
-    alignas(16) glm::mat4 proj {};
-    alignas(16) float time {};
+    alignas(16) glm::mat4 view {};
+    alignas(16) glm::mat4 projection {};
+                Math::Vector2 resolution {};
+                float time = 0.0f;
+                float padding_[13];
 };
+
+static_assert("UBOs must be 16-byte aligned" &&
+              sizeof(UniformBufferObject) % 16 == 0);
 
 #endif // ASSETS_HPP

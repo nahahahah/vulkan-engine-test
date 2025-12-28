@@ -3,6 +3,19 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
+std::vector<Vertex> shapeVertices = {
+    Vertex { Math::Vector2(-0.5f, -0.5f), Math::Vector3(1.0f, 0.0f, 0.0f), Math::Vector2(1.0f, 0.0f) },
+    Vertex { Math::Vector2( 0.5f, -0.5f), Math::Vector3(0.0f, 1.0f, 0.0f), Math::Vector2(0.0f, 0.0f) },
+    Vertex { Math::Vector2( 0.5f,  0.5f), Math::Vector3(0.0f, 0.0f, 1.0f), Math::Vector2(0.0f, 1.0f) },
+    Vertex { Math::Vector2(-0.5f,  0.5f), Math::Vector3(1.0f, 1.0f, 1.0f), Math::Vector2(1.0f, 1.0f) }
+};
+
+
+std::vector<uint16_t> shapeIndices = {
+    0, 1, 2,
+    2, 3, 0
+};
+
 Application::Application() {
     std::clog << "Vulkan header version: " << VK_HEADER_VERSION << std::endl;
 
@@ -406,7 +419,7 @@ void Application::CreateRenderPass() {
 
 void Application::CreateDescriptorSetLayout() {
     std::vector<VkDescriptorSetLayoutBinding> uniformBufferDescriptorSetLayoutBindings = { 
-        GenerateDescriptorSetLayoutBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT),
+        GenerateDescriptorSetLayoutBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT),
         GenerateDescriptorSetLayoutBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT)
     };
     auto uniformBufferDescriptorSetCreateInfo = GenerateDescriptorSetLayoutCreateInfo(uniformBufferDescriptorSetLayoutBindings);
@@ -450,7 +463,7 @@ void Application::CreateGraphicsPipeline() {
     auto pipelineViewportStateCreateInfo = GeneratePipelineViewportStateCreateInfo(viewport, scissor);
 
     auto pipelineRasterizationStateCreateInfo = GeneratePipelineRasterizationStateCreateInfo(); // specify pipeline rasterization state
-    pipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_NONE /* VK_CULL_MODE_BACK_BIT */;
+    pipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
     pipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
     auto pipelineMultisampleStateCreateInfo = GeneratePipelineMultisampleStateCreateInfo(); // specify pipeline multisampling state
@@ -937,12 +950,13 @@ void Application::RecordCommandBuffer(CommandBuffer& commandBuffer, uint32_t ima
         (sizeof(shapeIndices[0]) * shapeIndices.size()),
         VK_INDEX_TYPE_UINT16
     );
-    std::vector<VkDescriptorSet> DescriptorSetCollectionToBind = { (*_descriptorSets)[_frameIndex] };
+    
+    std::vector<VkDescriptorSet> descriptorSetCollectionToBind = { (*_descriptorSets)[_frameIndex] };
     auto bindDescriptorSetCollectionInfo = GenerateBindDescriptorSetsInfo(
         *_pipelineLayout,
-        VK_SHADER_STAGE_VERTEX_BIT,
+        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
         0,
-        DescriptorSetCollectionToBind,
+        descriptorSetCollectionToBind,
         {}
     );
     commandBuffer.BindDescriptorSets(bindDescriptorSetCollectionInfo);
@@ -989,61 +1003,40 @@ void Application::EndSingleTimeCommands(CommandBuffer& commandBuffer) {
 }
 
 void Application::UpdateUniformBuffer(uint32_t currentImage) {
-    static bool logged = false;
-
     static auto startTime = std::chrono::high_resolution_clock::now();
 
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     float ratio = _swapchainExtent.width / static_cast<float>(_swapchainExtent.height); 
+    (void) ratio;
 
     UniformBufferObject ubo {};
-    //ubo.model = Math::Matrix4x4::RotateZ(time / 2);
-    //ubo.model *= Math::Matrix4x4::RotateX(time / 2);
-    //ubo.model = Math::Matrix4x4::Transpose(ubo.model) * Math::Matrix4x4(-1.0f, 1.0f, -1.0f, 1.0f);
+
+    /*
+    // if only a flat surface taking all the the window is needed
+    ubo.model = glm::mat4(1.0);
+    ubo.view = Math::Matrix4x4(1.0);
+    ubo.projection = glm::mat4(1.0);
+    */
 
     ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.model *= glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    //ubo.model *= glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    
+    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.projection = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 10000.0f);
+    ubo.projection[1][1] *= -1;
 
-    ubo.view = Math::Matrix4x4::Transpose(Math::Matrix4x4::LookAt(
-        Math::Vector3(2.0f, 2.0f, 2.0f),
-        Math::Vector3(0.0f, 0.0f, 0.0f),
-        Math::Vector3(0.0f, 0.0f, 1.0f)
-    )) * Math::Matrix4x4(-1.0f, 1.0f, -1.0f, 1.0f);
-    //ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    //ubo.projection = Math::Matrix4x4::Perspective(std::numbers::pi_v<float> / 4, ratio, 0.1f, 10.0f);
-    auto proj = Math::Matrix4x4::Transpose(Math::Matrix4x4::Perspective(std::numbers::pi_v<float> / 4, ratio, 0.1f, 10.0f)) * Math::Matrix4x4(1.0f, 1.0f, -1.0f, 1.0f);
-    ubo.proj = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 10.0f);
-
-    if (!logged) {
-        logged = true;
-
-        std::cout << std::endl;
-
-        std::cout << "Own perspective matrix: " << std::endl;
-        for (int i = 0; i < 4; ++i) {
-            for (int j = 0; j < 4; ++j) {
-                std::cout << std::showpos << std::fixed << std::setprecision(2) << proj(i, j) << " ";                
-            }
-            std::cout << std::endl;
-        }
-
-        std::cout << std::endl;
-
-        std::cout << "GLM's perspective matrix: " << std::endl;
-        for (int i = 0; i < 4; ++i) {
-            for (int j = 0; j < 4; ++j) {
-                std::cout << std::showpos << std::fixed << std::setprecision(2) << ubo.proj[i][j] << " ";                
-            }
-            std::cout << std::endl;
-        }
-
-        std::cout << std::endl;
+    int width = 0;
+    int height = 0;
+    if (!SDL_GetWindowSizeInPixels(_window->Handle(), &width, &height)) {
+        std::string error = "Unable to get the window size in pixels: " + std::string(SDL_GetError());
+        throw std::runtime_error(error);
     }
 
-    //ubo.projection(1, 1) *= -1;
-    ubo.proj[1][1] *= -1;
+    ubo.resolution.x = static_cast<float>(width);
+    ubo.resolution.y = static_cast<float>(height);
+
 
     ubo.time = time;
 
