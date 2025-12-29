@@ -106,6 +106,7 @@ class Application {
         void CreateTextureImage();
         void CreateTextureImageView();
         void CreateTextureSampler();
+        void LoadModel();
         void CreateVertexBuffer();
         void CreateIndexBuffer();
         void CreateUniformBuffers();
@@ -201,6 +202,8 @@ class Application {
         std::unique_ptr<ImageView> _textureImageView = nullptr;
         std::unique_ptr<Sampler> _textureSampler = nullptr;
 
+        std::vector<Vertex> vertices {};
+        std::vector<uint32_t> indices {};
         std::unique_ptr<Buffer> _vertexBuffer = nullptr;
         std::unique_ptr<DeviceMemory> _vertexBufferMemory = nullptr;
         std::unique_ptr<Buffer> _indexBuffer = nullptr;

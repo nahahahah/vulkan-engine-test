@@ -3,6 +3,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
+
 std::vector<Vertex> shapeVertices = {
     Vertex { Math::Vector3(-0.5f, -0.5f, 0.0f), Math::Vector3(1.0f, 0.0f, 0.0f), Math::Vector2(1.0f, 0.0f) },
     Vertex { Math::Vector3( 0.5f, -0.5f, 0.0f), Math::Vector3(0.0f, 1.0f, 0.0f), Math::Vector2(0.0f, 0.0f) },
@@ -168,6 +171,7 @@ void Application::InitVulkan() {
     CreateTextureImage();
     CreateTextureImageView();
     CreateTextureSampler();
+    LoadModel();
     CreateVertexBuffer();
     CreateIndexBuffer();
     CreateUniformBuffers();
@@ -494,7 +498,7 @@ void Application::CreateGraphicsPipeline() {
     auto pipelineViewportStateCreateInfo = GeneratePipelineViewportStateCreateInfo(viewport, scissor);
 
     auto pipelineRasterizationStateCreateInfo = GeneratePipelineRasterizationStateCreateInfo(); // specify pipeline rasterization state
-    pipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+    pipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_NONE;
     pipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
     auto pipelineMultisampleStateCreateInfo = GeneratePipelineMultisampleStateCreateInfo(); // specify pipeline multisampling state
@@ -605,7 +609,7 @@ void Application::CreateTextureImage() {
     int textureHeight = 0;
     int textureChannels = 0;
     stbi_uc* pixels = stbi_load(
-        "resources/textures/texture.jpg",
+        "resources/textures/crate.png",
         &textureWidth,
         &textureHeight,
         &textureChannels,
@@ -703,9 +707,53 @@ void Application::CreateTextureSampler() {
     }
 }
 
+void Application::LoadModel() {
+    tinyobj::attrib_t attrib {};
+    std::vector<tinyobj::shape_t> shapes {};
+    std::vector<tinyobj::material_t> materials {};
+    std::string warnings = "";
+    std::string errors = "";
+
+    bool result = tinyobj::LoadObj(
+        &attrib,
+        &shapes,
+        &materials,
+        &warnings,
+        &errors,
+        "resources/models/crate.obj"
+    );
+    if (!result) {
+        std::string error = "Could not load a model:\nWarnings:\n" + warnings + "\nErrors:\n" + errors; 
+        throw std::runtime_error(error);
+    }
+
+    for (auto const& shape : shapes) {
+        for (auto const& index : shape.mesh.indices) {
+            Vertex vertex {};
+
+            vertex.position = {
+                attrib.vertices[3 * index.vertex_index + 0],
+                attrib.vertices[3 * index.vertex_index + 1],
+                attrib.vertices[3 * index.vertex_index + 2]
+            };
+
+            vertex.uv = {
+                attrib.texcoords[2 * index.texcoord_index + 0],
+                attrib.texcoords[2 * index.texcoord_index + 1]
+            };
+
+            vertex.color = { 1.0f, 1.0f, 1.0f };
+
+            vertices.push_back(vertex);
+            indices.push_back(static_cast<uint32_t>(indices.size()));
+        }
+    }
+    
+}
+
 void Application::CreateVertexBuffer() {
     try {
-        VkDeviceSize vertexBufferSize = sizeof(shapeVertices[0]) * shapeVertices.size();
+        VkDeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
 
         std::unique_ptr<Buffer> stagingBuffer = nullptr;
         std::unique_ptr<DeviceMemory> stagingBufferMemory = nullptr;
@@ -722,7 +770,7 @@ void Application::CreateVertexBuffer() {
         auto stagingBufferMemoryMapInfo = GenerateMemoryMapInfo(*stagingBufferMemory, vertexBufferSize, 0);
         _device->MapMemory(stagingBufferMemoryMapInfo, &data);
         
-        std::memcpy(data, shapeVertices.data(), static_cast<size_t>(vertexBufferSize));
+        std::memcpy(data, vertices.data(), static_cast<size_t>(vertexBufferSize));
 
         auto stagingBufferMemoryUnmapInfo = GenerateMemoryUnmapInfo(*stagingBufferMemory);
         _device->UnmapMemory(stagingBufferMemoryUnmapInfo);
@@ -746,7 +794,7 @@ void Application::CreateVertexBuffer() {
 
 void Application::CreateIndexBuffer() {
     try {
-        VkDeviceSize indexBufferSize = sizeof(shapeIndices[0]) * shapeIndices.size();
+        VkDeviceSize indexBufferSize = sizeof(indices[0]) * indices.size();
 
         std::unique_ptr<Buffer> stagingBuffer = nullptr;
         std::unique_ptr<DeviceMemory> stagingBufferMemory = nullptr;
@@ -763,7 +811,7 @@ void Application::CreateIndexBuffer() {
         auto stagingBufferMemoryMapInfo = GenerateMemoryMapInfo(*stagingBufferMemory, indexBufferSize, 0);
         _device->MapMemory(stagingBufferMemoryMapInfo, &data);
         
-        std::memcpy(data, shapeIndices.data(), static_cast<size_t>(indexBufferSize));
+        std::memcpy(data, indices.data(), static_cast<size_t>(indexBufferSize));
 
         auto stagingBufferMemoryUnmapInfo = GenerateMemoryUnmapInfo(*stagingBufferMemory);
         _device->UnmapMemory(stagingBufferMemoryUnmapInfo);
@@ -1012,14 +1060,14 @@ void Application::RecordCommandBuffer(CommandBuffer& commandBuffer, uint32_t ima
 
     std::vector<Buffer*> vertexBuffers = { _vertexBuffer.get() };
     std::vector<VkDeviceSize> offsets = { 0 };
-    std::vector<VkDeviceSize> sizes = { sizeof(shapeVertices[0]) * shapeVertices.size() };
+    std::vector<VkDeviceSize> sizes = { sizeof(vertices[0]) * vertices.size() };
     commandBuffer.BindVertexBuffers(0, vertexBuffers, offsets, sizes, {});
     
     commandBuffer.BindIndexBuffers(
         *_indexBuffer,
         0,
-        (sizeof(shapeIndices[0]) * shapeIndices.size()),
-        VK_INDEX_TYPE_UINT16
+        (sizeof(indices[0]) * indices.size()),
+        VK_INDEX_TYPE_UINT32
     );
     
     std::vector<VkDescriptorSet> descriptorSetCollectionToBind = { (*_descriptorSets)[_frameIndex] };
@@ -1032,7 +1080,7 @@ void Application::RecordCommandBuffer(CommandBuffer& commandBuffer, uint32_t ima
     );
     commandBuffer.BindDescriptorSets(bindDescriptorSetCollectionInfo);
 
-    commandBuffer.DrawIndexed(static_cast<uint32_t>(shapeIndices.size()), 1, 0, 0, 0);
+    commandBuffer.DrawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
     auto subpassEndInfo = GenerateSubpassEndInfo();
     commandBuffer.EndRenderPass(subpassEndInfo); // end render pass
@@ -1092,9 +1140,9 @@ void Application::UpdateUniformBuffer(uint32_t currentImage) {
     */
 
     ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    //ubo.model *= glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    ubo.model *= glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     
-    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.view = glm::lookAt(glm::vec3(15.0f, 12.0f, 17.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.projection = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 10000.0f);
     ubo.projection[1][1] *= -1;
 
@@ -1163,7 +1211,7 @@ void Application::TransitionImageLayout(
 }
 
 QueueFamilyIndices Application::FindQueueFamilies(PhysicalDevice const& physicalDevice) {
-    QueueFamilyIndices indices {};
+    QueueFamilyIndices queueFamilyIndices {};
 
     auto properties = physicalDevice.QueueFamilyProperties(); // get physical device's queue family properties
 
@@ -1171,27 +1219,27 @@ QueueFamilyIndices Application::FindQueueFamilies(PhysicalDevice const& physical
     //std::clog << " - Queue families (count: " << physicalDeviceQueueFamilyProperties.size() << ", "  << physicalDeviceProperties.properties.deviceName << ")" << std::endl;
     for (auto const& queueFamilyProperties : properties) {
         if (queueFamilyProperties.queueFamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-            indices.graphicsFamily = queueFamilyIndex; 
+            queueFamilyIndices.graphicsFamily = queueFamilyIndex; 
         }
 
         if (queueFamilyProperties.queueFamilyProperties.queueFlags & VK_QUEUE_TRANSFER_BIT) {
-            indices.transferFamily = queueFamilyIndex;
+            queueFamilyIndices.transferFamily = queueFamilyIndex;
         }
 
         // check that the retrieved surface is supported by a specific queue family for the current physical device
         bool supportedSurface = physicalDevice.IsSurfaceSupportedByQueueFamily(*_surface, queueFamilyIndex);
         if (supportedSurface) {
-            indices.presentFamily = queueFamilyIndex;
+            queueFamilyIndices.presentFamily = queueFamilyIndex;
         }
 
-        if (indices.IsComplete()) {
+        if (queueFamilyIndices.IsComplete()) {
             break;
         }
 
         ++queueFamilyIndex;
     }
 
-    return indices;
+    return queueFamilyIndices;
 }
 
 SwapchainSupportDetails Application::QuerySwapchainSupport(PhysicalDevice const& physicalDevice) {

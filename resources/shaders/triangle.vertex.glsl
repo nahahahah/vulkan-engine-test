@@ -16,12 +16,15 @@ layout(location = 0) out vec3 outColor;
 layout(location = 1) out vec2 outUv;
 
 void main() {
-    //float ratio = ubo.resolution.x / ubo.resolution.y;
+    float ratio = ubo.resolution.x / ubo.resolution.y;
     float factor = abs(sin(ubo.time));
-    gl_Position = ubo.projection * ubo.view * ubo.model * vec4(inPosition, 1.0);
-    //gl_Position.y += ratio * sin(ubo.time) * 2.0;
-    //gl_Position.x += cos(ubo.time) * 2.0;
+    // Apply positional offsets in view space to avoid invalid clip-space z/w relations
+    vec4 worldPos = ubo.model * vec4(inPosition, 1.0);
+    vec4 viewPos = ubo.view * worldPos;
+    viewPos.y += 2 * ratio * sin(2 * ubo.time) * 2.0;
+    viewPos.x += 2 * cos(ubo.time) * 2.0;
+    viewPos.z += 10 * cos(1.5 * ubo.time);
+    gl_Position = ubo.projection * viewPos;
     outColor = inColor * factor;
-    //fragColor = inColor;
     outUv = inUv;
 }
