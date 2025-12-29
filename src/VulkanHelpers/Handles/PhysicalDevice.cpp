@@ -137,6 +137,14 @@ std::vector<VkPresentModeKHR> PhysicalDevice::PresentModes(Surface const& surfac
 	return presentModes;
 }
 
+VkFormatProperties2 PhysicalDevice::FormatProperties(VkFormat format) {
+    auto formatProperties = GenerateFormatProperties();
+    vkGetPhysicalDeviceFormatProperties2(_handle, format, &formatProperties);
+
+    return formatProperties;
+}
+
+
 bool PhysicalDevice::IsSurfaceSupportedByQueueFamily(Surface const& surface, uint32_t queueFamilyIndex) const {
     VkBool32 supportedSurface = VK_FALSE;
     VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(_handle, queueFamilyIndex, surface.Handle(), &supportedSurface);

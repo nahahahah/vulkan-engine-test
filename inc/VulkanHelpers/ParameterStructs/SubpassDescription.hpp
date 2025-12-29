@@ -5,6 +5,9 @@
 
 #include <vulkan/vulkan.h>
 
-VkSubpassDescription2 GenerateSubpassDescription(std::span<VkAttachmentReference2> colorAttachments);
+VkSubpassDescription2 GenerateSubpassDescription(
+    std::span<VkAttachmentReference2> colorAttachments,
+    VkAttachmentReference2 const* depthAttachment = VK_NULL_HANDLE
+);
 
 #endif // VK_WRAPPER_SUBPASS_DESCRIPTION_HPP

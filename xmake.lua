@@ -72,9 +72,11 @@ target("vulkan_test")
 
     set_configdir("$(builddir)/$(plat)/$(arch)/$(mode)")
     add_configfiles("resources/shaders/*", { onlycopy = true, prefixdir = "resources/shaders" })
+    add_configfiles("resources/textures/*", { onlycopy = true, prefixdir = "resources/textures" })
 
     set_installdir("$(builddir)/$(plat)/$(arch)/$(mode)/")
     add_installfiles("resources/shaders/*", { prefixdir = "bin/resources/shaders" })
+    add_installfiles("resources/textures/*", { prefixdir = "bin/resources/textures" })
 
     add_includedirs("inc")
 target_end()

@@ -64,17 +64,6 @@ constexpr bool enableValidationLayers = false;
 constexpr bool enableValidationLayers = true;
 #endif
 
-inline std::vector<Vertex> shapeVertices = {
-    Vertex { Math::Vector2(-0.5f, -0.5f), Math::Vector3(1.0f, 0.0f, 0.0f), Math::Vector2(1.0f, 0.0f) },
-    Vertex { Math::Vector2( 0.5f, -0.5f), Math::Vector3(0.0f, 1.0f, 0.0f), Math::Vector2(0.0f, 0.0f) },
-    Vertex { Math::Vector2( 0.5f,  0.5f), Math::Vector3(0.0f, 0.0f, 1.0f), Math::Vector2(0.0f, 1.0f) },
-    Vertex { Math::Vector2(-0.5f,  0.5f), Math::Vector3(1.0f, 1.0f, 1.0f), Math::Vector2(1.0f, 1.0f) }
-};
-
-inline std::vector<uint16_t> shapeIndices = {
-    0, 1, 2, 2, 3, 0
-};
-
 class Application {
     public: // constructors / destructor
         Application();
@@ -113,6 +102,7 @@ class Application {
         void CreateGraphicsPipeline();
         void CreateFramebuffers();
         void CreateCommandPool();
+        void CreateDepthResources();
         void CreateTextureImage();
         void CreateTextureImageView();
         void CreateTextureSampler();
@@ -133,6 +123,7 @@ class Application {
         void TransitionImageLayout(
             std::unique_ptr<Image>& image,
             VkFormat format,
+            VkImageAspectFlags aspectMask,
             VkImageLayout oldLayout,
             VkImageLayout newLayout
         );
@@ -141,7 +132,10 @@ class Application {
         SwapchainSupportDetails QuerySwapchainSupport(PhysicalDevice const& physicalDevice);
         bool IsPhysicalDeviceSuitable(PhysicalDevice const& physicalDevice);
         uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-        
+        VkFormat FindSupportedFormat(std::vector<VkFormat> const& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
+        VkFormat FindDepthFormat() const;
+        bool HasStencilComponent(VkFormat format) const;
+
         VkSurfaceFormat2KHR ChooseSwapSurfaceFormat(std::span<VkSurfaceFormat2KHR> availableFormats);
         VkPresentModeKHR ChooseSwapPresentMode(std::span<VkPresentModeKHR> availablePresentModes);
         VkExtent2D ChooseSwapExtent(VkSurfaceCapabilities2KHR const& surfaceCapabilities);
@@ -166,7 +160,7 @@ class Application {
             std::unique_ptr<DeviceMemory>& imageMemory
         );
 
-        ImageView CreateImageView(Image const& image, VkFormat format);
+        ImageView CreateImageView(Image const& image, VkFormat format, VkImageAspectFlags aspectFlags);
 
         void CopyBuffer(Buffer& src, Buffer& dst, VkDeviceSize size);
         void CopyBufferToImage(
@@ -218,6 +212,10 @@ class Application {
 
         std::unique_ptr<DescriptorPool> _descriptorPool = nullptr;
         std::unique_ptr<DescriptorSetCollection> _descriptorSets = nullptr;
+
+        std::unique_ptr<Image> _depthImage = nullptr;
+        std::unique_ptr<DeviceMemory> _depthImageMemory = nullptr;
+        std::unique_ptr<ImageView> _depthImageView = nullptr;
 
         std::unique_ptr<CommandBufferCollection> _commandBuffers = nullptr;
 
