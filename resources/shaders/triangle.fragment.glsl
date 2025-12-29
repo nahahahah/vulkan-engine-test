@@ -75,5 +75,5 @@ void main() {
     */
 
     //outColor = vec4(inUv, 1.0, 1.0); // display uv as colors
-    outColor = texture(textureSampler, inUv); // display texture
+    outColor = vec4(inColor, 1.0) * texture(textureSampler, inUv); // display texture
 }
