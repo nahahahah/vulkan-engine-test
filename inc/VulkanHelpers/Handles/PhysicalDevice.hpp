@@ -10,6 +10,7 @@
 
 #include "VulkanHelpers/Handles/Instance.hpp"
 #include "VulkanHelpers/ParameterStructs/SurfaceFormat.hpp"
+#include "VulkanHelpers/ParameterStructs/FormatProperties.hpp"
 
 class Surface;
 
@@ -33,6 +34,7 @@ class PhysicalDevice {
         VkSurfaceCapabilities2KHR SurfaceCapabilities(VkPhysicalDeviceSurfaceInfo2KHR const& surfaceInfo) const;
         std::vector<VkSurfaceFormat2KHR> SurfaceFormats(VkPhysicalDeviceSurfaceInfo2KHR const& surfaceInfo) const;
         std::vector<VkPresentModeKHR> PresentModes(Surface const& surface) const;
+        VkFormatProperties2 FormatProperties(VkFormat format);
 
         bool IsSurfaceSupportedByQueueFamily(Surface const& surface, uint32_t queueFamilyIndex) const;
 

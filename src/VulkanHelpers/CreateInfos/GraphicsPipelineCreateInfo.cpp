@@ -7,6 +7,7 @@ VkGraphicsPipelineCreateInfo GenerateGraphicsPipelineCreateInfo(
     VkPipelineViewportStateCreateInfo const& viewportStateCreateInfo,
     VkPipelineRasterizationStateCreateInfo const& rasterizationStateCreateInfo,
     VkPipelineMultisampleStateCreateInfo const& multisampleStateCreateInfo,
+    VkPipelineDepthStencilStateCreateInfo const& depthStencilStateCreateInfo,
     VkPipelineColorBlendStateCreateInfo const& colorBlendStateCreateInfo,
     PipelineLayout const& pipelineLayout,
     std::span<VkPipelineShaderStageCreateInfo> shaderStageCreateInfos,
@@ -26,7 +27,7 @@ VkGraphicsPipelineCreateInfo GenerateGraphicsPipelineCreateInfo(
     createInfo.pRasterizationState = &rasterizationStateCreateInfo;
     createInfo.pTessellationState = VK_NULL_HANDLE;
     createInfo.pMultisampleState = &multisampleStateCreateInfo;
-    createInfo.pDepthStencilState = VK_NULL_HANDLE;
+    createInfo.pDepthStencilState = &depthStencilStateCreateInfo;
     createInfo.pColorBlendState = &colorBlendStateCreateInfo;
 
     // base pipeline

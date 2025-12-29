@@ -5,6 +5,7 @@
 #include <cstdint>
 
 #define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -13,7 +14,7 @@
 #include "Math/Matrix4x4.hpp"
 
 struct Vertex {
-    Math::Vector2 position {};
+    Math::Vector3 position {};
     Math::Vector3 color {};
     Math::Vector2 uv {};
 };

@@ -10,6 +10,7 @@
 #include "VulkanHelpers/ParameterStructs/DescriptorPoolSize.hpp"
 #include "VulkanHelpers/ParameterStructs/DescriptorSetLayoutBinding.hpp"
 #include "VulkanHelpers/ParameterStructs/ExtensionProperties.hpp"
+#include "VulkanHelpers/ParameterStructs/FormatProperties.hpp"
 #include "VulkanHelpers/ParameterStructs/ImageMemoryBarrier.hpp"
 #include "VulkanHelpers/ParameterStructs/LayerProperties.hpp"
 #include "VulkanHelpers/ParameterStructs/PhysicalDeviceFeatures.hpp"
