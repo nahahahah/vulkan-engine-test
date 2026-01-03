@@ -17,7 +17,7 @@ layout(location = 0) out vec4 outColor;
 
 vec2 skew(vec2 fragPos) {
     vec2 skewedPos = vec2(0.0);
-    skewedPos.x = 1.0 * fragPos.x;
+    skewedPos.x = 1.1547 * fragPos.x;
     skewedPos.y = fragPos.y + 0.5 * fragPos.x;
     return skewedPos;
 }
@@ -42,12 +42,12 @@ vec3 simplexGrid(vec2 fragPos) {
 void main() {
     bool gammaComparison = false;
 
-    /*
     vec2 fragPos = gl_FragCoord.xy / ubo.resolution.xy;
     vec3 color = vec3(0.0);
     
+    /*
     // Scale the space to see the grid
-    fragPos *= 10.0 * sin(0.75 * ubo.time);
+    fragPos *= 300.0; // * sin(0.75 * ubo.time);
 
     // Show the 2D grid
     color.rg = fract(fragPos);
@@ -70,8 +70,6 @@ void main() {
     if (gammaComparison && ((int(ubo.time) / 3) % 2) == 0) {
         color = originalColor;
     }
-
-    outColor = vec4(color, 1.0);
     */
 
     //outColor = vec4(inUv, 1.0, 1.0); // display uv as colors

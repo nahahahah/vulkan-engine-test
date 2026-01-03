@@ -7,6 +7,8 @@
 #include <numbers>
 #include <cstdint>
 #include <set>
+#include <unordered_map>
+#include <numbers>
 
 #define SDL_MAIN_HANDLED
 #ifndef NOMINMAX
@@ -202,8 +204,8 @@ class Application {
         std::unique_ptr<ImageView> _textureImageView = nullptr;
         std::unique_ptr<Sampler> _textureSampler = nullptr;
 
-        std::vector<Vertex> vertices {};
-        std::vector<uint32_t> indices {};
+        std::vector<Vertex> _vertices {};
+        std::vector<uint32_t> _indices {};
         std::unique_ptr<Buffer> _vertexBuffer = nullptr;
         std::unique_ptr<DeviceMemory> _vertexBufferMemory = nullptr;
         std::unique_ptr<Buffer> _indexBuffer = nullptr;
