@@ -21,10 +21,10 @@ void main() {
     // Apply positional offsets in view space to avoid invalid clip-space z/w relations
     vec4 worldPos = ubo.model * vec4(inPosition, 1.0);
     vec4 viewPos = ubo.view * worldPos;
-    viewPos.y += 2 * ratio * sin(2 * ubo.time) * 2.0;
-    viewPos.x += 2 * cos(ubo.time) * 2.0;
-    viewPos.z += 10 * cos(1.5 * ubo.time);
+    //viewPos.y += 10.0 * sin(1.0 * ubo.time + 5.0) * ratio;
+    //viewPos.x += 10.0 * cos(2.0 * ubo.time + 2.0);
+    //viewPos.z += 10.0 * cos(3.0 * ubo.time - 1.0);
     gl_Position = ubo.projection * viewPos;
-    outColor = inColor * factor;
+    outColor = inColor;
     outUv = inUv;
 }

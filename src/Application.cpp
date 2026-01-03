@@ -6,24 +6,19 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
+/*
 std::vector<Vertex> shapeVertices = {
     Vertex { Math::Vector3(-0.5f, -0.5f, 0.0f), Math::Vector3(1.0f, 0.0f, 0.0f), Math::Vector2(1.0f, 0.0f) },
     Vertex { Math::Vector3( 0.5f, -0.5f, 0.0f), Math::Vector3(0.0f, 1.0f, 0.0f), Math::Vector2(0.0f, 0.0f) },
     Vertex { Math::Vector3( 0.5f,  0.5f, 0.0f), Math::Vector3(0.0f, 0.0f, 1.0f), Math::Vector2(0.0f, 1.0f) },
-    Vertex { Math::Vector3(-0.5f,  0.5f, 0.0f), Math::Vector3(1.0f, 1.0f, 1.0f), Math::Vector2(1.0f, 1.0f) },
-
-    Vertex { Math::Vector3(-0.5f, -0.5f, -0.5f), Math::Vector3(1.0f, 0.0f, 0.0f), Math::Vector2(0.0f, 0.0f) },
-    Vertex { Math::Vector3( 0.5f, -0.5f, -0.5f), Math::Vector3(0.0f, 1.0f, 0.0f), Math::Vector2(1.0f, 0.0f) },
-    Vertex { Math::Vector3( 0.5f,  0.5f, -0.5f), Math::Vector3(0.0f, 0.0f, 1.0f), Math::Vector2(1.0f, 1.0f) },
-    Vertex { Math::Vector3(-0.5f,  0.5f, -0.5f), Math::Vector3(1.0f, 1.0f, 1.0f), Math::Vector2(0.0f, 1.0f) }
+    Vertex { Math::Vector3(-0.5f,  0.5f, 0.0f), Math::Vector3(1.0f, 1.0f, 1.0f), Math::Vector2(1.0f, 1.0f) }
 };
 
 std::vector<uint16_t> shapeIndices = {
     0, 1, 2,
-    2, 3, 0,
-    4, 5, 6,
-    6, 7, 4
+    2, 3, 0
 };
+*/
 
 Application::Application() {
     std::clog << "Vulkan header version: " << VK_HEADER_VERSION << std::endl;
@@ -280,9 +275,10 @@ void Application::SelectPhysicalDevice() {
     }
 
     // check if device is suitable
-    for (auto& physicalDevice : physicalDevices) {
-        if (IsPhysicalDeviceSuitable(physicalDevice)) {
-            _physicalDevice = std::make_unique<PhysicalDevice>(std::move(physicalDevice));
+    for (int i = 0; i < physicalDevices.size(); ++i) {
+        if (IsPhysicalDeviceSuitable(physicalDevices[i])) {
+            std::cout << "Physical device " << i << " is supported" << std::endl;
+            _physicalDevice = std::make_unique<PhysicalDevice>(std::move(physicalDevices[i]));
             break;
         }
     }
@@ -609,7 +605,7 @@ void Application::CreateTextureImage() {
     int textureHeight = 0;
     int textureChannels = 0;
     stbi_uc* pixels = stbi_load(
-        "resources/textures/crate.png",
+        "resources/textures/viking_room.png",
         &textureWidth,
         &textureHeight,
         &textureChannels,
@@ -720,13 +716,16 @@ void Application::LoadModel() {
         &materials,
         &warnings,
         &errors,
-        "resources/models/crate.obj"
+        "resources/models/viking_room.obj"
     );
     if (!result) {
-        std::string error = "Could not load a model:\nWarnings:\n" + warnings + "\nErrors:\n" + errors; 
+        std::string error = "Could not load a model:\nWarnings:\n" + warnings + "\nErrors:\n" + errors;
         throw std::runtime_error(error);
     }
 
+    std::unordered_map<Vertex, uint32_t> uniqueVertices {};
+
+    uint32_t verticesCount = 0;
     for (auto const& shape : shapes) {
         for (auto const& index : shape.mesh.indices) {
             Vertex vertex {};
@@ -739,21 +738,28 @@ void Application::LoadModel() {
 
             vertex.uv = {
                 attrib.texcoords[2 * index.texcoord_index + 0],
-                attrib.texcoords[2 * index.texcoord_index + 1]
+                1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
             };
 
             vertex.color = { 1.0f, 1.0f, 1.0f };
 
-            vertices.push_back(vertex);
-            indices.push_back(static_cast<uint32_t>(indices.size()));
+            if (uniqueVertices.count(vertex) == 0) {
+                uniqueVertices[vertex] = static_cast<uint32_t>(_vertices.size());
+                _vertices.push_back(vertex);
+            }
+
+            ++verticesCount;
+            _indices.push_back(uniqueVertices[vertex]);
         }
     }
-    
+
+    std::cout << "All vertices (count): " << verticesCount << std::endl;
+    std::cout << "Unique vertices (count): " << uniqueVertices.size() << std::endl;
 }
 
 void Application::CreateVertexBuffer() {
     try {
-        VkDeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
+        VkDeviceSize vertexBufferSize = sizeof(_vertices[0]) * _vertices.size();
 
         std::unique_ptr<Buffer> stagingBuffer = nullptr;
         std::unique_ptr<DeviceMemory> stagingBufferMemory = nullptr;
@@ -770,7 +776,7 @@ void Application::CreateVertexBuffer() {
         auto stagingBufferMemoryMapInfo = GenerateMemoryMapInfo(*stagingBufferMemory, vertexBufferSize, 0);
         _device->MapMemory(stagingBufferMemoryMapInfo, &data);
         
-        std::memcpy(data, vertices.data(), static_cast<size_t>(vertexBufferSize));
+        std::memcpy(data, _vertices.data(), static_cast<size_t>(vertexBufferSize));
 
         auto stagingBufferMemoryUnmapInfo = GenerateMemoryUnmapInfo(*stagingBufferMemory);
         _device->UnmapMemory(stagingBufferMemoryUnmapInfo);
@@ -794,7 +800,7 @@ void Application::CreateVertexBuffer() {
 
 void Application::CreateIndexBuffer() {
     try {
-        VkDeviceSize indexBufferSize = sizeof(indices[0]) * indices.size();
+        VkDeviceSize indexBufferSize = sizeof(_indices[0]) * _indices.size();
 
         std::unique_ptr<Buffer> stagingBuffer = nullptr;
         std::unique_ptr<DeviceMemory> stagingBufferMemory = nullptr;
@@ -811,7 +817,7 @@ void Application::CreateIndexBuffer() {
         auto stagingBufferMemoryMapInfo = GenerateMemoryMapInfo(*stagingBufferMemory, indexBufferSize, 0);
         _device->MapMemory(stagingBufferMemoryMapInfo, &data);
         
-        std::memcpy(data, indices.data(), static_cast<size_t>(indexBufferSize));
+        std::memcpy(data, _indices.data(), static_cast<size_t>(indexBufferSize));
 
         auto stagingBufferMemoryUnmapInfo = GenerateMemoryUnmapInfo(*stagingBufferMemory);
         _device->UnmapMemory(stagingBufferMemoryUnmapInfo);
@@ -834,26 +840,32 @@ void Application::CreateIndexBuffer() {
 }
 
 void Application::CreateUniformBuffers() {
-    size_t uniformBufferSize = sizeof(UniformBufferObject);
+    try {
+        size_t uniformBufferSize = sizeof(UniformBufferObject);
 
-    _uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-    _uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-    _uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+        _uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        _uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+        _uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
 
-    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        CreateBuffer(
-            uniformBufferSize,
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VK_SHARING_MODE_EXCLUSIVE,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            _uniformBuffers[i],
-            _uniformBuffersMemory[i]
-        );
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+            CreateBuffer(
+                uniformBufferSize,
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_SHARING_MODE_EXCLUSIVE,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                _uniformBuffers[i],
+                _uniformBuffersMemory[i]
+            );
 
-        _uniformBuffersMapped[i] = nullptr;
+            _uniformBuffersMapped[i] = nullptr;
 
-        auto uniformBufferMemoryMapInfo = GenerateMemoryMapInfo(*_uniformBuffersMemory[i], uniformBufferSize, 0);
-        _device->MapMemory(uniformBufferMemoryMapInfo, &_uniformBuffersMapped[i]);
+            auto uniformBufferMemoryMapInfo = GenerateMemoryMapInfo(*_uniformBuffersMemory[i], uniformBufferSize, 0);
+            _device->MapMemory(uniformBufferMemoryMapInfo, &_uniformBuffersMapped[i]);
+        }
+    }
+
+    catch (std::exception const& e) {
+        throw e;
     }
 }
 
@@ -1060,13 +1072,13 @@ void Application::RecordCommandBuffer(CommandBuffer& commandBuffer, uint32_t ima
 
     std::vector<Buffer*> vertexBuffers = { _vertexBuffer.get() };
     std::vector<VkDeviceSize> offsets = { 0 };
-    std::vector<VkDeviceSize> sizes = { sizeof(vertices[0]) * vertices.size() };
+    std::vector<VkDeviceSize> sizes = { sizeof(_vertices[0]) * _vertices.size() };
     commandBuffer.BindVertexBuffers(0, vertexBuffers, offsets, sizes, {});
     
     commandBuffer.BindIndexBuffers(
         *_indexBuffer,
         0,
-        (sizeof(indices[0]) * indices.size()),
+        (sizeof(_indices[0]) * _indices.size()),
         VK_INDEX_TYPE_UINT32
     );
     
@@ -1080,7 +1092,7 @@ void Application::RecordCommandBuffer(CommandBuffer& commandBuffer, uint32_t ima
     );
     commandBuffer.BindDescriptorSets(bindDescriptorSetCollectionInfo);
 
-    commandBuffer.DrawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+    commandBuffer.DrawIndexed(static_cast<uint32_t>(_indices.size()), 1, 0, 0, 0);
 
     auto subpassEndInfo = GenerateSubpassEndInfo();
     commandBuffer.EndRenderPass(subpassEndInfo); // end render pass
@@ -1139,10 +1151,10 @@ void Application::UpdateUniformBuffer(uint32_t currentImage) {
     ubo.projection = glm::mat4(1.0);
     */
 
-    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.model *= glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    
-    ubo.view = glm::lookAt(glm::vec3(15.0f, 12.0f, 17.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.model = glm::rotate(glm::mat4(1.0f), 0.0f /* glm::radians(90.0f) */, glm::vec3(0.0f, 0.0f, 1.0f));
+    //ubo.model *= glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+    ubo.view = glm::lookAt(glm::vec3(2.5f + sin(time), 2.5f + cos(time), 2.5f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.projection = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 10000.0f);
     ubo.projection[1][1] *= -1;
 
@@ -1155,7 +1167,6 @@ void Application::UpdateUniformBuffer(uint32_t currentImage) {
 
     ubo.resolution.x = static_cast<float>(width);
     ubo.resolution.y = static_cast<float>(height);
-
 
     ubo.time = time;
 
@@ -1261,7 +1272,6 @@ bool Application::IsPhysicalDeviceSuitable(PhysicalDevice const& physicalDevice)
     // enumerate device extensions
     auto deviceExtensionsProperties = EnumerateDeviceExtensionProperties(physicalDevice); // enumerate device extensions
     bool deviceExtensionsAreSupported = AreDeviceExtensionsSupported(deviceExtensions, deviceExtensionsProperties);
-    //std::clog << (deviceExtensionsSupported ? "All device extensions are supported" : "Some or all device extensions aren't supported") << std::endl;
 
     // check is swapchain has mandatory properties
     bool swapchainIsAdequate = false;

@@ -5,6 +5,6 @@
 
 #include "Assets.hpp"
 
-VkVertexInputBindingDescription GenerateVertexInputBindingDescription(int binding);
+VkVertexInputBindingDescription GenerateVertexInputBindingDescription(uint32_t binding);
 
 #endif // VK_WRAPPER_VERTEX_INPUT_BINDING_DESCRIPTION_HPP

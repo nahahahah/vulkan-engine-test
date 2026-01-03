@@ -1,6 +1,6 @@
 #include "VulkanHelpers/ParameterStructs/VertexInputBindingDescription.hpp"
 
-VkVertexInputBindingDescription GenerateVertexInputBindingDescription(int binding) {
+VkVertexInputBindingDescription GenerateVertexInputBindingDescription(uint32_t binding) {
     VkVertexInputBindingDescription description {};
 
     description.binding = binding;
