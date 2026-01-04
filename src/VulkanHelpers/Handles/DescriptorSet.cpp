@@ -3,15 +3,16 @@
 DescriptorSetCollection::DescriptorSetCollection(
     VkDescriptorSetAllocateInfo const& allocateInfo,
     Device const& device,
+    std::string const& label,
     DescriptorPool const* descriptorPool
-) : _device(&device), _descriptorPool(descriptorPool) {
+) : _label(label), _device(&device), _descriptorPool(descriptorPool) {
         _handles.resize(allocateInfo.descriptorSetCount);
     VkResult result = vkAllocateDescriptorSets(_device->Handle(), &allocateInfo, _handles.data());
     if (result != VK_SUCCESS) {
-        std::string error = "Could not create descriptor sets (result: code " + std::to_string(result) + ")";
+        std::string error = "Could not create \"" + _label + "\" descriptor sets (result: code " + std::to_string(result) + ")";
         throw std::runtime_error(error);
     }
-    std::clog << "Descriptor sets created successfully:" << std::endl;
+    std::clog << "\"" << _label << "\" descriptor sets created successfully:" << std::endl;
 
     for (auto& handle : _handles) {
         std::clog << " - <VkDescriptorSet " << handle << ">" << std::endl;
@@ -19,6 +20,9 @@ DescriptorSetCollection::DescriptorSetCollection(
 }
 
 DescriptorSetCollection::DescriptorSetCollection(DescriptorSetCollection&& other) {
+    _label = other._label;
+    other._label = "";
+
     _handles = other._handles;
     other._handles = {};
 
@@ -42,6 +46,9 @@ DescriptorSetCollection::~DescriptorSetCollection() {
 }
 
 DescriptorSetCollection& DescriptorSetCollection::operator = (DescriptorSetCollection&& other) {
+    _label = other._label;
+    other._label = "";
+    
     _handles = other._handles;
     other._handles = {};
 

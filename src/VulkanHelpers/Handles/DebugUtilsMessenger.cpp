@@ -1,6 +1,7 @@
 #include "VulkanHelpers/Handles/DebugUtilsMessenger.hpp"
 
-DebugUtilsMessenger::DebugUtilsMessenger(VkDebugUtilsMessengerCreateInfoEXT const& createInfo, Instance const& instance) : _instance(&instance) {
+DebugUtilsMessenger::DebugUtilsMessenger(VkDebugUtilsMessengerCreateInfoEXT const& createInfo, Instance const& instance, std::string const& label)
+    : _label(label), _instance(&instance) {
     auto CreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)(vkGetInstanceProcAddr(_instance->Handle(), "vkCreateDebugUtilsMessengerEXT"));
     if (CreateDebugUtilsMessengerEXT == VK_NULL_HANDLE) {
         std::string error = "Unable to get instance process address for vkCreateDebugUtilsMessengerEXT";
@@ -9,13 +10,16 @@ DebugUtilsMessenger::DebugUtilsMessenger(VkDebugUtilsMessengerCreateInfoEXT cons
 
     VkResult result = CreateDebugUtilsMessengerEXT(_instance->Handle(), &createInfo, VK_NULL_HANDLE, &_handle);
     if (result != VK_SUCCESS) {
-        std::string error = "Unable to create a debug utils messenger (status: " + std::to_string(result) + ")";
+        std::string error = "Unable to create \"" + _label + "\" debug utils messenger (status: " + std::to_string(result) + ")";
         throw std::runtime_error(error);
     }
-    std::clog << "Debug utils messenger created successfully: <VkDebugUtilsMessengerEXT " << _handle << ">" << std::endl;
+    std::clog << "\"" << _label << "\" debug utils messenger created successfully: <VkDebugUtilsMessengerEXT " << _handle << ">" << std::endl;
 }
 
 DebugUtilsMessenger::DebugUtilsMessenger(DebugUtilsMessenger&& other) {
+    _label = other._label;
+    other._label = "";
+
     _handle = other._handle;
     other._handle = VK_NULL_HANDLE;
 
@@ -33,13 +37,16 @@ DebugUtilsMessenger::~DebugUtilsMessenger() {
 
         else {
             DestroyDebugUtilsMessengerEXT(_instance->Handle(), _handle, VK_NULL_HANDLE);
-            std::clog << "Debug messenger destroyed successfully" << std::endl;
+            std::clog << "\"" << _label << "\" debug messenger destroyed successfully" << std::endl;
             _handle = VK_NULL_HANDLE;
         }
     }
 }
 
 DebugUtilsMessenger& DebugUtilsMessenger::operator = (DebugUtilsMessenger&& other) {
+    _label = other._label;
+    other._label = "";
+
     _handle = other._handle;
     other._handle = VK_NULL_HANDLE;
 

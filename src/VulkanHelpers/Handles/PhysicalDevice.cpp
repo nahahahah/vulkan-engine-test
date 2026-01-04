@@ -172,7 +172,7 @@ VkPhysicalDeviceMemoryProperties2 PhysicalDevice::MemoryProperties() const {
     return properties;
 }
 
-PhysicalDeviceCollection::PhysicalDeviceCollection(Instance const& instance) {
+PhysicalDeviceCollection::PhysicalDeviceCollection(Instance const& instance, std::string const& label) : _label(label) {
     uint32_t count = 0;
     VkResult result = vkEnumeratePhysicalDevices(instance.Handle(), &count, VK_NULL_HANDLE);
     if (result != VkResult::VK_SUCCESS) {

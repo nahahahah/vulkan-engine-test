@@ -6,6 +6,7 @@
 #include "VulkanHelpers/ParameterInfos/BindBufferMemoryInfo.hpp"
 #include "VulkanHelpers/ParameterInfos/BindDescriptorSetsInfo.hpp"
 #include "VulkanHelpers/ParameterInfos/BindImageMemoryInfo.hpp"
+#include "VulkanHelpers/ParameterInfos/BlitImageInfo.hpp"
 #include "VulkanHelpers/ParameterInfos/BufferMemoryRequirementsInfo.hpp"
 #include "VulkanHelpers/ParameterInfos/CommandBufferAllocateInfo.hpp"
 #include "VulkanHelpers/ParameterInfos/CommandBufferBeginInfo.hpp"

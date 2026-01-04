@@ -17,13 +17,17 @@ class Image;
 class Device {
     public:
         Device() = delete;
-        Device(VkDeviceCreateInfo const& createInfo, PhysicalDevice const& physicalDevice);
+        Device(VkDeviceCreateInfo const& createInfo, PhysicalDevice const& physicalDevice, std::string const& label);
         Device(Device const& other) = delete;
         Device(Device&& other);
         ~Device();
 
         Device& operator = (Device const& other) = delete;
         Device& operator = (Device&& other);
+
+        std::string Label() { return _label; }
+        std::string Label() const { return _label; }
+        std::string Label(std::string const& label) { _label = label; }
 
         VkDevice Handle() { return _handle; }
         VkDevice Handle() const { return _handle; }
@@ -56,6 +60,7 @@ class Device {
         );
 
     private:
+        std::string _label = "";
         VkDevice _handle = VK_NULL_HANDLE;
 };
 

@@ -2,16 +2,20 @@
 
 #include "VulkanHelpers/Handles/Device.hpp"
 
-Swapchain::Swapchain(VkSwapchainCreateInfoKHR const& createInfo, Device const& device) : _device(&device) {
+Swapchain::Swapchain(VkSwapchainCreateInfoKHR const& createInfo, Device const& device, std::string const& label)
+    : _label(label), _device(&device) {
     VkResult result = vkCreateSwapchainKHR(_device->Handle(), &createInfo, VK_NULL_HANDLE, &_handle);
     if (result != VK_SUCCESS) {
-        std::string error = "Unable to create a swapchain (status: " + std::to_string(result) + ")";
+        std::string error = "Unable to create \"" + _label + "\" swapchain (status: " + std::to_string(result) + ")";
         throw std::runtime_error(error);
     }
-    std::clog << "Swap chain created successully: <VkSwapchainKHR " << _handle << ">" << std::endl;
+    std::clog << "\"" << _label << "\" swap chain created successully: <VkSwapchainKHR " << _handle << ">" << std::endl;
 }
 
 Swapchain::Swapchain(Swapchain&& other) {
+    _label = other._label;
+    other._label = "";
+
     _handle = other._handle;
     other._handle = VK_NULL_HANDLE;
 
@@ -22,7 +26,7 @@ Swapchain::Swapchain(Swapchain&& other) {
 Swapchain::~Swapchain() {
     if (_handle != VK_NULL_HANDLE) {
         vkDestroySwapchainKHR(_device->Handle(), _handle, VK_NULL_HANDLE);
-        std::clog << "Swap chain destroyed successfully" << std::endl;
+        std::clog << "\"" << _label << "\" swap chain destroyed successfully" << std::endl;
         _handle = VK_NULL_HANDLE;
     }
 }
@@ -64,6 +68,9 @@ VkExtent2D Swapchain::Extent2DFromSDLWindow(Window const& window, VkSurfaceCapab
 }
 
 Swapchain& Swapchain::operator = (Swapchain&& other) {
+    _label = other._label;
+    other._label = "";
+
     _handle = other._handle;
     other._handle = VK_NULL_HANDLE;
 

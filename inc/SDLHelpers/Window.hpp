@@ -8,19 +8,18 @@
 
 class Window {
     public:
-        Window();
-        Window(int width, int height);
+        Window() = default;
+        Window(int width, int height, std::string const& label);
         ~Window();
 
-        SDL_Window* Handle() {
-            return _handle;
-        }
+        std::string Label() { return _label; }
+        std::string Label(std::string const& label) { _label = label; }
 
-        SDL_Window* Handle() const {
-            return _handle;
-        }
+        SDL_Window* Handle() { return _handle; }
+        SDL_Window* Handle() const { return _handle; }
 
     private:
+        std::string _label = "";
         SDL_Window* _handle = nullptr;
 };
 

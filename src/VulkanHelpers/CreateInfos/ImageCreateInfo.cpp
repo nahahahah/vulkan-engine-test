@@ -2,6 +2,7 @@
 
 VkImageCreateInfo GenerateImageCreateInfo(
     VkExtent3D const& dimensions,
+    uint32_t mipLevels,
     VkImageUsageFlags usage,
     VkSharingMode sharingMode,
     VkFormat format,
@@ -9,6 +10,10 @@ VkImageCreateInfo GenerateImageCreateInfo(
 ) {
     VkImageCreateInfo createInfo {};
 
+    if (mipLevels < 1) {
+        mipLevels = 1;
+    }
+    
     // structure type and flags
     createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     createInfo.flags = 0;
@@ -30,7 +35,7 @@ VkImageCreateInfo GenerateImageCreateInfo(
     createInfo.arrayLayers = 1;
     
     // mips and multisamples properties
-    createInfo.mipLevels = 1;
+    createInfo.mipLevels = mipLevels;
     createInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
     // extend create info

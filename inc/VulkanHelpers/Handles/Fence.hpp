@@ -15,7 +15,7 @@
 class Fence {
     public:
         Fence() = delete;
-        Fence(VkFenceCreateInfo const& createInfo, Device const& device);
+        Fence(VkFenceCreateInfo const& createInfo, Device const& device, std::string const& label);
         Fence(Fence const& other) = delete;
         Fence(Fence&& other);
         ~Fence();
@@ -23,10 +23,15 @@ class Fence {
         Fence& operator = (Fence const& other) = delete;
         Fence& operator = (Fence&& other);
 
+        std::string Label() { return _label; }
+        std::string Label() const { return _label; }
+        std::string Label(std::string const& label) { _label = label; }
+
         VkFence Handle() { return _handle; }
         VkFence Handle() const { return _handle; }
 
     private:
+        std::string _label = "";
         VkFence _handle = VK_NULL_HANDLE;
         Device const* _device = nullptr;
 };

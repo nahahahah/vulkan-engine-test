@@ -12,7 +12,7 @@
 class Sampler {
     public:
         Sampler() = delete;
-        Sampler(VkSamplerCreateInfo const& createInfo, Device const& device);
+        Sampler(VkSamplerCreateInfo const& createInfo, Device const& device, std::string const& label);
         Sampler(Sampler const& other) = delete;
         Sampler(Sampler&& other);
         ~Sampler();
@@ -20,10 +20,15 @@ class Sampler {
         Sampler& operator = (Sampler const& other) = delete;
         Sampler& operator = (Sampler&& other);
 
+        std::string Label() { return _label; }
+        std::string Label() const { return _label; }
+        std::string Label(std::string const& label) { _label = label; }
+
         VkSampler Handle() { return _handle; }
         VkSampler Handle() const { return _handle; }
 
     private:
+        std::string _label = "";
         VkSampler _handle = VK_NULL_HANDLE;
         Device const* _device = nullptr;
 };

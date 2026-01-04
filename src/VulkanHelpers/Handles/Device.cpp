@@ -3,16 +3,20 @@
 #include "VulkanHelpers/Handles/Swapchain.hpp"
 #include "VulkanHelpers/Handles/Image.hpp"
 
-Device::Device(VkDeviceCreateInfo const& createInfo, PhysicalDevice const& physicalDevice) {
+Device::Device(VkDeviceCreateInfo const& createInfo, PhysicalDevice const& physicalDevice, std::string const& label)
+    : _label(label) {
     VkResult result = vkCreateDevice(physicalDevice.Handle(), &createInfo, VK_NULL_HANDLE, &_handle);
     if (result != VK_SUCCESS) {
-        std::string error = "Unable to create a device (status: " + std::to_string(result) + ")";
+        std::string error = "Unable to create \"" + _label + "\" device (status: " + std::to_string(result) + ")";
         throw std::runtime_error(error);
     }
-    std::clog << "Device created successully: <VkDevice " << _handle << ">" << std::endl;
+    std::clog << "\"" << _label << "\" device created successully: <VkDevice " << _handle << ">" << std::endl;
 }
 
 Device::Device(Device&& other) {
+    _label = other._label;
+    other._label = "";
+
     _handle = other._handle;
     other._handle = VK_NULL_HANDLE;
 }
@@ -20,12 +24,15 @@ Device::Device(Device&& other) {
 Device::~Device() {
     if (_handle != VK_NULL_HANDLE) {
         vkDestroyDevice(_handle, VK_NULL_HANDLE);
-        std::clog << "Device destroyed successfully" << std::endl;
+        std::clog << "\"" << _label << "\" device destroyed successfully" << std::endl;
         _handle = VK_NULL_HANDLE;
     }
 }
 
 Device& Device::operator = (Device&& other) {
+    _label = other._label;
+    other._label = "";
+
     _handle = other._handle;
     other._handle = VK_NULL_HANDLE;
 
@@ -35,10 +42,10 @@ Device& Device::operator = (Device&& other) {
 void Device::WaitIdle() {
     VkResult result = vkDeviceWaitIdle(_handle);
     if (result != VK_SUCCESS) {
-        std::string error = "Unable to wait for idleing of the device (status: " + std::to_string(result) + ")";
+        std::string error = "Unable to wait for idleing of \"" + _label + "\" device (status: " + std::to_string(result) + ")";
         throw std::runtime_error(error);
     }
-    std::clog << "Device is now idle" << std::endl;
+    std::clog << "\"" << _label << "\" device is now idle" << std::endl;
 }
 
 VkResult Device::AcquireNextImage(VkAcquireNextImageInfoKHR const& acquireNextImageInfo, uint32_t* imageIndex) {
@@ -121,8 +128,8 @@ std::vector<Image> Device::SwapchainImages(Device const& device, Swapchain const
 
     std::vector<Image> images {};
     images.reserve(imagesHandle.size());
-    for (auto const& imageHandle : imagesHandle) {
-        images.emplace_back(imageHandle);
+    for (int i = 0; i < static_cast<int>(imagesHandle.size()); ++i) {
+        images.emplace_back(imagesHandle[i], swapchain.Label() + "_image_" + std::to_string(i));
     }
 
     return images;
