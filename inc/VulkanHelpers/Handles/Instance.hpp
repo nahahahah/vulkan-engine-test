@@ -9,8 +9,14 @@
 
 class Instance {
     public:
+        Instance() = delete;
         Instance(VkInstanceCreateInfo const& createInfo);
+        Instance(Instance const& other) = delete;
+        Instance(Instance&& other);
         ~Instance();
+
+        Instance& operator = (Instance const& other) = delete;
+        Instance& operator = (Instance&& other);
 
         VkInstance Handle() { return _handle; }
         VkInstance Handle() const { return _handle; }

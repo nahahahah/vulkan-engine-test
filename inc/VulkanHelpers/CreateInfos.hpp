@@ -1,13 +1,17 @@
 #ifndef VK_WRAPPER_CREATE_INFOS_HPP
 #define VK_WRAPPER_CREATE_INFOS_HPP
 
+#include "VulkanHelpers/CreateInfos/BufferCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/CommandPoolCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/DebugUtilsMessengerCreateInfo.hpp"
+#include "VulkanHelpers/CreateInfos/DescriptorPoolCreateInfo.hpp"
+#include "VulkanHelpers/CreateInfos/DescriptorSetLayoutCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/DeviceCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/DeviceQueueCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/FenceCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/FramebufferCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/GraphicsPipelineCreateInfo.hpp"
+#include "VulkanHelpers/CreateInfos/ImageCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/ImageViewCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/InstanceCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/PipelineColorBlendStateCreateInfo.hpp"
@@ -21,6 +25,7 @@
 #include "VulkanHelpers/CreateInfos/PipelineVertexInputStateCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/PipelineViewportStateCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/RenderPassCreateInfo.hpp"
+#include "VulkanHelpers/CreateInfos/SamplerCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/SemaphoreCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/ShaderModuleCreateInfo.hpp"
 #include "VulkanHelpers/CreateInfos/SwapchainCreateInfo.hpp"

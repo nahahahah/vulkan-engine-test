@@ -11,20 +11,26 @@
 
 class Framebuffer {
     public:
-        Framebuffer(VkFramebufferCreateInfo const& createInfo, Device const& device);
+        Framebuffer() = delete;
+        Framebuffer(VkFramebufferCreateInfo const& createInfo, Device const& device, std::string const& label);
         Framebuffer(Framebuffer const& other) = delete;
         Framebuffer(Framebuffer&& other);
         ~Framebuffer();
 
+        Framebuffer& operator = (Framebuffer const& other) = delete;
+        Framebuffer& operator = (Framebuffer&& other);
+        
+        std::string Label() { return _label; }
+        std::string Label() const { return _label; }
+        std::string Label(std::string const& label) { _label = label; }
+
         VkFramebuffer Handle() { return _handle; }
         VkFramebuffer Handle() const { return _handle; }
 
-        void CreateHandle(VkFramebufferCreateInfo const& createInfo);
-        void DestroyHandle();
-
     private:
+        std::string _label = "";
         VkFramebuffer _handle = VK_NULL_HANDLE;
-        Device const& _device;
+        Device const* _device = nullptr;
 };
 
 #endif // VK_WRAPPER_FRAMEBUFFER_HPP

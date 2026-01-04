@@ -11,15 +11,26 @@
 
 class Pipeline {
     public:
-        Pipeline(VkGraphicsPipelineCreateInfo const& createInfo, Device const& device);
+        Pipeline() = delete;
+        Pipeline(VkGraphicsPipelineCreateInfo const& createInfo, Device const& device, std::string const& label);
+        Pipeline(Pipeline const& other) = delete;
+        Pipeline(Pipeline&& other);
         ~Pipeline();
+
+        Pipeline& operator = (Pipeline const& other) = delete;
+        Pipeline& operator = (Pipeline&& other);
+
+        std::string Label() { return _label; }
+        std::string Label() const { return _label; }
+        std::string Label(std::string const& label) { _label = label; }
 
         VkPipeline Handle() { return _handle; }
         VkPipeline Handle() const { return _handle; }
 
     private:
+        std::string _label = "";
         VkPipeline _handle = VK_NULL_HANDLE;
-        Device const& _device;
+        Device const* _device = nullptr;
 };
 
 #endif // VK_WRAPPER_PIPELINE_HPP

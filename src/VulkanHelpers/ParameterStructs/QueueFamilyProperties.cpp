@@ -9,20 +9,6 @@ VkQueueFamilyProperties2 GenerateQueueFamilyProperties() {
     return queueFamilyProperties;
 }
 
-std::vector<VkQueueFamilyProperties2> EnumerateQueueFamilyProperties(PhysicalDevice const& physicalDevice) {
-    uint32_t count = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice.Handle(), &count, VK_NULL_HANDLE);
-    if (count == 0) {
-        std::string error = "Could not find any queue family properties";
-        throw std::runtime_error(error);
-    }
-
-    std::vector<VkQueueFamilyProperties2> properties(count, GenerateQueueFamilyProperties());
-    vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice.Handle(), &count, properties.data());
-
-    return properties;
-}
-
 std::ostream& operator << (std::ostream& out, VkQueueFamilyProperties2 const& queueFamilyProperties) {
     out << " - Min image transfer granularity width:" << std::endl;
     out << " - Width      "

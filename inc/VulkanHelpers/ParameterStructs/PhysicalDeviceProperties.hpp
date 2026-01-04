@@ -11,7 +11,6 @@
 #include "VulkanHelpers/ParameterStructs/PhysicalDeviceLimits.hpp"
 #include "VulkanHelpers/ParameterStructs/PhysicalDeviceSparseProperties.hpp"
 
-VkPhysicalDeviceProperties2 GeneratePhysicalDeviceProperties(PhysicalDevice const& physicalDevice);
 std::ostream& operator << (std::ostream& out, VkPhysicalDeviceProperties2 const& physicalDeviceProperties);
 
 #endif // VK_WRAPPER_PHYSICAL_DEVICE_PROPERTIES_HPP

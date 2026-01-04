@@ -1,6 +1,10 @@
 #include "VulkanHelpers/ParameterStructs/SubpassDescription.hpp"
 
-VkSubpassDescription2 GenerateSubpassDescription(std::span<VkAttachmentReference2> colorAttachments) {
+VkSubpassDescription2 GenerateSubpassDescription(
+    std::span<VkAttachmentReference2> colorAttachments,
+    std::span<VkAttachmentReference2> resolveAttachments,
+    VkAttachmentReference2 const* depthAttachment
+) {
     VkSubpassDescription2 description {};
 
     // structure type and flags
@@ -9,14 +13,15 @@ VkSubpassDescription2 GenerateSubpassDescription(std::span<VkAttachmentReference
 
     // colors attachments
     description.colorAttachmentCount = static_cast<uint32_t>(colorAttachments.size());
-    description.pColorAttachments = colorAttachments.data();
+    description.pColorAttachments = (colorAttachments.size() > 0) ? colorAttachments.data() : VK_NULL_HANDLE;
+    description.pResolveAttachments = (colorAttachments.size() > 0) ? resolveAttachments.data() : VK_NULL_HANDLE;
 
     // input attachments
     description.inputAttachmentCount = 0;
     description.pInputAttachments = VK_NULL_HANDLE;
 
     // depth stencil attachment
-    description.pDepthStencilAttachment = VK_NULL_HANDLE;
+    description.pDepthStencilAttachment = (depthAttachment != nullptr) ? depthAttachment : VK_NULL_HANDLE;
 
     // pipeline bindpoint
     description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -26,7 +31,6 @@ VkSubpassDescription2 GenerateSubpassDescription(std::span<VkAttachmentReference
     description.pPreserveAttachments = VK_NULL_HANDLE;
 
     // subpass properties
-    description.pResolveAttachments = VK_NULL_HANDLE;
     description.viewMask = 0;
 
     // extend description

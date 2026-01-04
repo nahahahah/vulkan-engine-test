@@ -15,6 +15,7 @@ VkGraphicsPipelineCreateInfo GenerateGraphicsPipelineCreateInfo(
     VkPipelineViewportStateCreateInfo const& viewportStateCreateInfo,
     VkPipelineRasterizationStateCreateInfo const& rasterizationStateCreateInfo,
     VkPipelineMultisampleStateCreateInfo const& multisampleStateCreateInfo,
+    VkPipelineDepthStencilStateCreateInfo const& depthStencilStateCreateInfo,
     VkPipelineColorBlendStateCreateInfo const& colorBlendStateCreateInfo,
     PipelineLayout const& pipelineLayout,
     std::span<VkPipelineShaderStageCreateInfo> shaderStageCreateInfos,

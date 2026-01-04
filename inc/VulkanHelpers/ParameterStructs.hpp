@@ -3,8 +3,16 @@
 
 #include "VulkanHelpers/ParameterStructs/AttachmentDescription.hpp"
 #include "VulkanHelpers/ParameterStructs/AttachmentReference.hpp"
+#include "VulkanHelpers/ParameterStructs/BufferCopy.hpp"
+#include "VulkanHelpers/ParameterStructs/BufferImageCopy.hpp"
 #include "VulkanHelpers/ParameterStructs/ClearValue.hpp"
+#include "VulkanHelpers/ParameterStructs/CopyDescriptorSet.hpp"
+#include "VulkanHelpers/ParameterStructs/DescriptorPoolSize.hpp"
+#include "VulkanHelpers/ParameterStructs/DescriptorSetLayoutBinding.hpp"
 #include "VulkanHelpers/ParameterStructs/ExtensionProperties.hpp"
+#include "VulkanHelpers/ParameterStructs/FormatProperties.hpp"
+#include "VulkanHelpers/ParameterStructs/ImageBlit.hpp"
+#include "VulkanHelpers/ParameterStructs/ImageMemoryBarrier.hpp"
 #include "VulkanHelpers/ParameterStructs/LayerProperties.hpp"
 #include "VulkanHelpers/ParameterStructs/PhysicalDeviceFeatures.hpp"
 #include "VulkanHelpers/ParameterStructs/PhysicalDeviceLimits.hpp"
@@ -19,6 +27,9 @@
 #include "VulkanHelpers/ParameterStructs/SurfaceCapabilities.hpp"
 #include "VulkanHelpers/ParameterStructs/SurfaceFormat.hpp"
 #include "VulkanHelpers/ParameterStructs/Version.hpp"
+#include "VulkanHelpers/ParameterStructs/VertexInputAttributeDescription.hpp"
+#include "VulkanHelpers/ParameterStructs/VertexInputBindingDescription.hpp"
 #include "VulkanHelpers/ParameterStructs/Viewport.hpp"
+#include "VulkanHelpers/ParameterStructs/WriteDescriptorSet.hpp"
 
 #endif // VK_WRAPPER_PARAMETER_STRUCTS_HPP
