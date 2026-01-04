@@ -105,6 +105,7 @@ class Application {
         void CreateGraphicsPipeline();
         void CreateFramebuffers();
         void CreateCommandPool();
+        void CreateColorResources();
         void CreateDepthResources();
         void CreateTextureImage();
         void CreateTextureImageView();
@@ -140,6 +141,7 @@ class Application {
         VkFormat FindSupportedFormat(std::vector<VkFormat> const& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
         VkFormat FindDepthFormat() const;
         bool HasStencilComponent(VkFormat format) const;
+        VkSampleCountFlagBits GetMaxUsableSampleCount();
 
         VkSurfaceFormat2KHR ChooseSwapSurfaceFormat(std::span<VkSurfaceFormat2KHR> availableFormats);
         VkPresentModeKHR ChooseSwapPresentMode(std::span<VkPresentModeKHR> availablePresentModes);
@@ -159,6 +161,7 @@ class Application {
             std::string const& label,
             VkExtent3D const& dimensions,
             uint32_t mipLevels,
+            VkSampleCountFlagBits samplesNumber,
             VkImageUsageFlags usage,
             VkSharingMode sharingMode,
             VkMemoryPropertyFlags properties,
@@ -235,12 +238,17 @@ class Application {
         std::unique_ptr<DeviceMemory> _depthImageMemory = nullptr;
         std::unique_ptr<ImageView> _depthImageView = nullptr;
 
+        VkSampleCountFlagBits _msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+        std::unique_ptr<Image> _colorImage = nullptr;
+        std::unique_ptr<DeviceMemory> _colorImageMemory = nullptr;
+        std::unique_ptr<ImageView> _colorImageView = nullptr;
+        
         std::unique_ptr<CommandBufferCollection> _commandBuffers = nullptr;
 
         std::vector<Semaphore> _imageAvailableSemaphores {};
         std::vector<Semaphore> _renderFinishedSemaphores {};
         std::vector<Fence> _inFlightFences {};
-        
+    
         uint32_t _frameIndex = 0;
         bool _framebufferResized = false;
         SDL_Event _event {};

@@ -2,6 +2,7 @@
 
 VkSubpassDescription2 GenerateSubpassDescription(
     std::span<VkAttachmentReference2> colorAttachments,
+    std::span<VkAttachmentReference2> resolveAttachments,
     VkAttachmentReference2 const* depthAttachment
 ) {
     VkSubpassDescription2 description {};
@@ -12,7 +13,8 @@ VkSubpassDescription2 GenerateSubpassDescription(
 
     // colors attachments
     description.colorAttachmentCount = static_cast<uint32_t>(colorAttachments.size());
-    description.pColorAttachments = colorAttachments.data();
+    description.pColorAttachments = (colorAttachments.size() > 0) ? colorAttachments.data() : VK_NULL_HANDLE;
+    description.pResolveAttachments = (colorAttachments.size() > 0) ? resolveAttachments.data() : VK_NULL_HANDLE;
 
     // input attachments
     description.inputAttachmentCount = 0;
@@ -29,7 +31,6 @@ VkSubpassDescription2 GenerateSubpassDescription(
     description.pPreserveAttachments = VK_NULL_HANDLE;
 
     // subpass properties
-    description.pResolveAttachments = VK_NULL_HANDLE;
     description.viewMask = 0;
 
     // extend description

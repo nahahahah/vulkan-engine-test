@@ -162,6 +162,7 @@ void Application::InitVulkan() {
     CreateDescriptorSetLayout();
     CreateGraphicsPipeline();
     CreateCommandPool();
+    CreateColorResources();
     CreateDepthResources();
     CreateFramebuffers();
     CreateTextureImage();
@@ -280,6 +281,7 @@ void Application::SelectPhysicalDevice() {
         if (IsPhysicalDeviceSuitable(physicalDevices[i])) {
             std::cout << "Physical device " << i << " is supported" << std::endl;
             _physicalDevice = std::make_unique<PhysicalDevice>(std::move(physicalDevices[i]));
+            _msaaSamples = GetMaxUsableSampleCount();
             break;
         }
     }
@@ -306,6 +308,7 @@ void Application::CreateDevice() {
     }
 
     auto physicalDeviceFeatures = _physicalDevice->Features();
+    physicalDeviceFeatures.features.sampleRateShading = VK_TRUE;
     auto physicalDeviceSynchronizationFeature2 = GeneratePhysicalDeviceSynchronization2Features(); // enable synchronization2 feature
 
     auto deviceCreateInfo = GenerateDeviceCreateInfo(
@@ -411,31 +414,42 @@ void Application::CreateImageViews() {
 
 void Application::CreateRenderPass() {
     std::vector<VkAttachmentDescription2> attachmentsDescription {}; // specify attachments description
-    attachmentsDescription.reserve(2);
+    attachmentsDescription.reserve(3);
     
     auto colorAttachmentDescription = GenerateAttachmentDescription(_swapchainImageFormat);
+    colorAttachmentDescription.samples = _msaaSamples;
+    colorAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     auto depthAttachmentDescription = GenerateAttachmentDescription(FindDepthFormat());
+    depthAttachmentDescription.samples = _msaaSamples;
     depthAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     depthAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    auto colorAttachmentResolveDescription = GenerateAttachmentDescription(_swapchainImageFormat);
+    colorAttachmentResolveDescription.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
     attachmentsDescription.emplace_back(colorAttachmentDescription);
     attachmentsDescription.emplace_back(depthAttachmentDescription);
+    attachmentsDescription.emplace_back(colorAttachmentResolveDescription);
 
     std::vector<VkAttachmentReference2> colorAttachmentsReference {}; // create color attachments reference
     colorAttachmentsReference.reserve(1);
-
     auto colorAttachmentReference = GenerateAttachmentReference(0);
     colorAttachmentsReference.emplace_back(colorAttachmentReference);
 
     auto depthAttachmentReference = GenerateAttachmentReference(1); // create depth attachment reference
     depthAttachmentReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    std::vector<VkSubpassDescription2> subpassDescription = { GenerateSubpassDescription(colorAttachmentsReference, &depthAttachmentReference) }; // specify subpass descriptions
+    std::vector<VkAttachmentReference2> resolveAttachmentsReference {};
+    resolveAttachmentsReference.reserve(1);
+    auto colorAttachmentResolveReference = GenerateAttachmentReference(2);
+    colorAttachmentResolveReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    resolveAttachmentsReference.emplace_back(colorAttachmentResolveReference);
+
+    std::vector<VkSubpassDescription2> subpassDescription = { GenerateSubpassDescription(colorAttachmentsReference, resolveAttachmentsReference, &depthAttachmentReference) }; // specify subpass descriptions
     
     std::vector<VkSubpassDependency2> subpassesDependency = { GenerateSubpassDependency() }; // specify subpass dependencies
     subpassesDependency[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
     subpassesDependency[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    subpassesDependency[0].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    subpassesDependency[0].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     subpassesDependency[0].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
     auto renderPassCreateInfo = GenerateRenderPassCreateInfo(attachmentsDescription, subpassesDependency, subpassDescription);
@@ -499,6 +513,9 @@ void Application::CreateGraphicsPipeline() {
     pipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
     auto pipelineMultisampleStateCreateInfo = GeneratePipelineMultisampleStateCreateInfo(); // specify pipeline multisampling state
+    pipelineMultisampleStateCreateInfo.rasterizationSamples = _msaaSamples;
+    pipelineMultisampleStateCreateInfo.sampleShadingEnable = VK_TRUE;
+    pipelineMultisampleStateCreateInfo.minSampleShading = 0.8f;
     auto pipelineDepthStencilStateCreateInfo = GeneratePipelineDepthStencilStateCreateInfo(); // specify pipeline depth stencil state
 
     std::vector<VkPipelineColorBlendAttachmentState> pipelineColorBlendAttachmentState =  { GeneratePipelineColorBlendAttachmentState() }; // specify pipeline color blend attachment state
@@ -543,8 +560,9 @@ void Application::CreateFramebuffers() {
         _framebuffers.reserve(_swapchainImageViews.size());
         for (int i = 0; i < static_cast<int>(_swapchainImageViews.size()); ++i) {
             std::vector<VkImageView> attachments = {
-                _swapchainImageViews[i].Handle(),
-                _depthImageView->Handle()
+                _colorImageView->Handle(),
+                _depthImageView->Handle(),
+                _swapchainImageViews[i].Handle()
             };
             auto frameBufferCreateInfo = GenerateFramebufferCreateInfo(_swapchainExtent, attachments, *_renderPass);
             
@@ -571,6 +589,31 @@ void Application::CreateCommandPool() {
     }
 }
 
+void Application::CreateColorResources() {
+    try {
+        VkFormat colorFormat = _swapchainImageFormat;
+
+        CreateImage(
+            "color_resource",
+            { _swapchainExtent.width, _swapchainExtent.height, 1 },
+            1,
+            _msaaSamples,
+            VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            VK_SHARING_MODE_EXCLUSIVE,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            colorFormat,
+            VK_IMAGE_TILING_OPTIMAL,
+            _colorImage,
+            _colorImageMemory
+        );
+        _colorImageView = std::make_unique<ImageView>(CreateImageView(*_colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1));
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
 void Application::CreateDepthResources() {
     try {
         VkFormat depthFormat = FindDepthFormat();
@@ -579,6 +622,7 @@ void Application::CreateDepthResources() {
             "depth_texture",
             { _swapchainExtent.width, _swapchainExtent.height, 1 },
             1,
+            _msaaSamples,
             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
             VK_SHARING_MODE_EXCLUSIVE,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -658,6 +702,7 @@ void Application::CreateTextureImage() {
             1
         },
         _textureMipLevels,
+        VK_SAMPLE_COUNT_1_BIT,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_SHARING_MODE_EXCLUSIVE,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -1172,8 +1217,10 @@ void Application::UpdateUniformBuffer(uint32_t currentImage) {
     ubo.model = glm::rotate(glm::mat4(1.0f), 0.0f /* glm::radians(90.0f) */, glm::vec3(0.0f, 0.0f, 1.0f));
     //ubo.model *= glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
-    ubo.view = glm::lookAt(glm::vec3(2.5f * sin(time), 2.5f * cos(time), 2.5f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.projection = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 10000.0f);
+    //ubo.view = glm::lookAt(glm::vec3(2.5f * sin(time), 2.5f * cos(time), 2.5f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.view = glm::lookAt(glm::vec3(1.8f, 1.8f, 1.8f), glm::vec3(0.025f, 0.0f, 0.25f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.projection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 10000.0f);
+    //ubo.projection = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 10000.0f);
     ubo.projection[1][1] *= -1;
 
     int width = 0;
@@ -1355,6 +1402,21 @@ bool Application::HasStencilComponent(VkFormat format) const {
     return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
+VkSampleCountFlagBits Application::GetMaxUsableSampleCount() {
+    auto physicalDeviceProperties = _physicalDevice->Properties().properties;
+    VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+
+    if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
+    if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
+    if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
+    if (counts &  VK_SAMPLE_COUNT_8_BIT) { return  VK_SAMPLE_COUNT_8_BIT; }
+    if (counts &  VK_SAMPLE_COUNT_4_BIT) { return  VK_SAMPLE_COUNT_4_BIT; }
+    if (counts &  VK_SAMPLE_COUNT_2_BIT) { return  VK_SAMPLE_COUNT_4_BIT; }
+
+    return VK_SAMPLE_COUNT_1_BIT;
+}
+
+
 VkSurfaceFormat2KHR Application::ChooseSwapSurfaceFormat(std::span<VkSurfaceFormat2KHR> availableFormats) {
     for (auto const& availableFormat : availableFormats) {
         if (availableFormat.surfaceFormat.format == VK_FORMAT_B8G8R8A8_SRGB
@@ -1424,6 +1486,7 @@ void Application::CreateImage(
     std::string const& label,
     VkExtent3D const& dimensions,
     uint32_t mipLevels,
+    VkSampleCountFlagBits samplesNumber,
     VkImageUsageFlags usage,
     VkSharingMode sharingMode,
     VkMemoryPropertyFlags properties,
@@ -1435,12 +1498,13 @@ void Application::CreateImage(
     try {
         auto imageCreateInfo = GenerateImageCreateInfo(
             dimensions,
-            mipLevels,
             usage,
             sharingMode,
             format,
             tiling
         );
+        imageCreateInfo.mipLevels = mipLevels;
+        imageCreateInfo.samples = samplesNumber;
         image = std::make_unique<Image>(imageCreateInfo, *_device, label + "_image");
 
         auto imageMemoryRequirementsInfo = GenerateImageMemoryRequirementsInfo(*image);
@@ -1603,12 +1667,19 @@ void Application::GenerateMipmaps(
 }
 
 void Application::CleanupSwapchain() {
+    _colorImageView.reset();
+    _colorImage.reset();
+    _colorImageMemory.reset();
+
     _depthImageView.reset();
     _depthImage.reset();
     _depthImageMemory.reset();
+
     _framebuffers.clear();
+
     _swapchainImageViews.clear();
     _swapchainImages.clear();
+
     _swapchain.reset();
 }
 
@@ -1638,6 +1709,7 @@ void Application::RecreateSwapchain() {
     CreateSwapchain();
     GetSwapchainImages();
     CreateImageViews();
+    CreateColorResources();
     CreateDepthResources();
     CreateFramebuffers();
 }
