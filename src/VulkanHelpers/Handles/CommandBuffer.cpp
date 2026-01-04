@@ -1,25 +1,29 @@
 #include "VulkanHelpers/Handles/CommandBuffer.hpp"
 
-CommandBuffer::CommandBuffer(VkCommandBuffer commandBuffer)
-    : _handle(commandBuffer) {
+CommandBuffer::CommandBuffer(VkCommandBuffer commandBuffer, std::string const& label)
+    : _label(label), _handle(commandBuffer) {
 }
 
 CommandBuffer::CommandBuffer(
     VkCommandBufferAllocateInfo const& allocateInfo,
     Device const& device,
-    CommandPool const& commandPool
-) : _device(&device), _commandPool(&commandPool) {
+    CommandPool const& commandPool,
+    std::string const& label
+) : _label(label), _device(&device), _commandPool(&commandPool) {
     auto safeAllocateInfo = allocateInfo;
     safeAllocateInfo.commandBufferCount = 1;
     VkResult result = vkAllocateCommandBuffers(_device->Handle(), &safeAllocateInfo, &_handle);
     if (result != VK_SUCCESS) {
-        std::string error = "Unable to allocate a single command buffer (status: " + std::to_string(result) + ")";
+        std::string error = "Unable to allocate \"" + _label + "\" single command buffer (status: " + std::to_string(result) + ")";
         throw std::runtime_error(error);
     }
-    std::clog << "Single command buffer allocated successfully: <VkCommandBuffer " << _handle << ">" << std::endl;
+    std::clog << "\"" << _label << "\" single command buffer allocated successfully: <VkCommandBuffer " << _handle << ">" << std::endl;
 }
 
 CommandBuffer::CommandBuffer(CommandBuffer&& other) {
+    _label = other._label;
+    other._label = "";
+
     _handle = other._handle;
     other._handle = VK_NULL_HANDLE;
 
@@ -42,6 +46,9 @@ CommandBuffer::~CommandBuffer() {
 }
 
 CommandBuffer& CommandBuffer::operator = (CommandBuffer&& other) {
+    _label = other._label;
+    other._label = "";
+
     _handle = other._handle;
     other._handle = VK_NULL_HANDLE;
 
@@ -57,7 +64,7 @@ CommandBuffer& CommandBuffer::operator = (CommandBuffer&& other) {
 void CommandBuffer::Reset(VkCommandBufferResetFlags flags) {
     VkResult result = vkResetCommandBuffer(_handle, flags);
     if (result != VK_SUCCESS) {
-        std::string error = "Could not reset command buffer (status: " + std::to_string(result) + ")";
+        std::string error = "Could not reset \"" + _label + "\" command buffer (status: " + std::to_string(result) + ")";
         throw std::runtime_error(error);
     }
     //std::clog << "Reset command buffer successfully" << std::endl;
@@ -66,7 +73,7 @@ void CommandBuffer::Reset(VkCommandBufferResetFlags flags) {
 void CommandBuffer::Begin(VkCommandBufferBeginInfo const& beginInfo) {
     VkResult result = vkBeginCommandBuffer(_handle, &beginInfo);
     if (result != VK_SUCCESS) {
-        std::string error = "Unable to begin command buffer recording (status: " + std::to_string(result) + ")";
+        std::string error = "Unable to begin \"" + _label + "\" command buffer recording (status: " + std::to_string(result) + ")";
         throw std::runtime_error(error);
     }
     //std::clog << "Command buffer recording began successfully: <VkCommandBuffer " << commandBuffer << ">" << std::endl;
@@ -143,6 +150,10 @@ void CommandBuffer::PipelineBarrier(VkDependencyInfo const& dependencyInfo) {
     vkCmdPipelineBarrier2(_handle, &dependencyInfo);
 }
 
+void CommandBuffer::BlitImage(VkBlitImageInfo2 const& blitImageInfo) {
+    vkCmdBlitImage2(_handle, &blitImageInfo);
+}
+
 void CommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) {
     vkCmdDraw(_handle, vertexCount, instanceCount, firstVertex, firstInstance);
 }
@@ -164,23 +175,23 @@ void CommandBuffer::EndRenderPass(VkSubpassEndInfo const& endInfo) {
 void CommandBuffer::End() {
     VkResult result = vkEndCommandBuffer(_handle);
     if (result != VK_SUCCESS) {
-        std::string error = "Unable to end the command buffer (status: " + std::to_string(result) + ")";
+        std::string error = "Unable to end \"" + _label + "\" command buffer (status: " + std::to_string(result) + ")";
         throw std::runtime_error(error);
     }
     //std::clog << "Command buffer ended successfully" << std::endl;
 }
 
-CommandBufferCollection::CommandBufferCollection(VkCommandBufferAllocateInfo const& allocateInfo, Device const& device) {
+CommandBufferCollection::CommandBufferCollection(VkCommandBufferAllocateInfo const& allocateInfo, Device const& device, std::string const& label) : _label(label) {
     _handles.resize(allocateInfo.commandBufferCount);
     VkResult result = vkAllocateCommandBuffers(device.Handle(), &allocateInfo, _handles.data());
     if (result != VK_SUCCESS) {
-        std::string error = "Unable to allocate command buffers (status: " + std::to_string(result) + ")";
+        std::string error = "Unable to allocate \"" + _label + "\" command buffers (status: " + std::to_string(result) + ")";
         throw std::runtime_error(error);
     }
-    std::clog << "Command buffers allocated successfully" << std::endl;
+    std::clog << "\"" << _label << "\" command buffers allocated successfully" << std::endl;
 
     for (int i = 0; i < static_cast<int>(allocateInfo.commandBufferCount); ++i) {
-        _wrappers.emplace_back(_handles[i]);
+        _wrappers.emplace_back(_handles[i], std::string("command_buffer_" + std::to_string(i)));
     }
 }
 

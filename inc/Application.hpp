@@ -9,6 +9,7 @@
 #include <set>
 #include <unordered_map>
 #include <numbers>
+#include <cmath>
 
 #define SDL_MAIN_HANDLED
 #ifndef NOMINMAX
@@ -49,7 +50,7 @@ struct SwapchainSupportDetails {
 constexpr uint32_t WINDOW_WIDTH = 800;
 constexpr uint32_t WINDOW_HEIGHT = 600;
 
-constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+constexpr int MAX_FRAMES_IN_FLIGHT = 3;
 
 inline std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -120,7 +121,7 @@ class Application {
         void MainLoop();
         
         void RecordCommandBuffer(CommandBuffer& commandBuffer, uint32_t imageIndex);
-        CommandBuffer BeginSingleTimeCommands();
+        CommandBuffer BeginSingleTimeCommands(std::string const& label);
         void EndSingleTimeCommands(CommandBuffer& commandBuffer);
         void UpdateUniformBuffer(uint32_t currentImage);
         void TransitionImageLayout(
@@ -128,7 +129,8 @@ class Application {
             VkFormat format,
             VkImageAspectFlags aspectMask,
             VkImageLayout oldLayout,
-            VkImageLayout newLayout
+            VkImageLayout newLayout,
+            uint32_t mipLevels
         );
 
         QueueFamilyIndices FindQueueFamilies(PhysicalDevice const& physicalDevice);
@@ -144,6 +146,7 @@ class Application {
         VkExtent2D ChooseSwapExtent(VkSurfaceCapabilities2KHR const& surfaceCapabilities);
 
         void CreateBuffer(
+            std::string const& label,
             VkDeviceSize size,
             VkBufferUsageFlags usage,
             VkSharingMode sharingMode,
@@ -153,7 +156,9 @@ class Application {
         );
 
         void CreateImage(
+            std::string const& label,
             VkExtent3D const& dimensions,
+            uint32_t mipLevels,
             VkImageUsageFlags usage,
             VkSharingMode sharingMode,
             VkMemoryPropertyFlags properties,
@@ -163,7 +168,7 @@ class Application {
             std::unique_ptr<DeviceMemory>& imageMemory
         );
 
-        ImageView CreateImageView(Image const& image, VkFormat format, VkImageAspectFlags aspectFlags);
+        ImageView CreateImageView(Image const& image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
 
         void CopyBuffer(Buffer& src, Buffer& dst, VkDeviceSize size);
         void CopyBufferToImage(
@@ -171,6 +176,13 @@ class Application {
             Image const& image,
             uint32_t width,
             uint32_t height
+        );
+        void GenerateMipmaps(
+            Image const& image,
+            VkFormat format,
+            int32_t textureWidth,
+            int32_t textureHeight,
+            uint32_t mipLevels
         );
 
         void CleanupSwapchain();
@@ -199,6 +211,7 @@ class Application {
         std::vector<Framebuffer> _framebuffers {};
         std::unique_ptr<CommandPool> _commandPool = nullptr;
 
+        uint32_t _textureMipLevels = 0;
         std::unique_ptr<Image> _textureImage = nullptr;
         std::unique_ptr<DeviceMemory> _textureImageMemory = nullptr;
         std::unique_ptr<ImageView> _textureImageView = nullptr;

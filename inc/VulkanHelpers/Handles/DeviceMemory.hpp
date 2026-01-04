@@ -12,7 +12,7 @@
 class DeviceMemory {
     public:
         DeviceMemory() = delete;
-        DeviceMemory(VkMemoryAllocateInfo const& allocateInfo, Device const& device);
+        DeviceMemory(VkMemoryAllocateInfo const& allocateInfo, Device const& device, std::string const& label);
         DeviceMemory(DeviceMemory const& other) = delete;
         DeviceMemory(DeviceMemory&& other);
         ~DeviceMemory();
@@ -20,10 +20,15 @@ class DeviceMemory {
         DeviceMemory& operator = (DeviceMemory const& other) = delete;
         DeviceMemory& operator = (DeviceMemory&& other);
 
+        std::string Label() { return _label; }
+        std::string Label() const { return _label; }
+        std::string Label(std::string const& label) { _label = label; }
+
         VkDeviceMemory Handle() { return _handle; }
         VkDeviceMemory Handle() const { return _handle; }
 
     private:
+        std::string _label = "";
         VkDeviceMemory _handle = VK_NULL_HANDLE;
         Device const* _device = nullptr;
 };

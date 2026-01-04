@@ -12,7 +12,7 @@
 class ShaderModule {
     public:
         ShaderModule() = delete;
-        ShaderModule(VkShaderModuleCreateInfo const& createInfo, Device const& device);
+        ShaderModule(VkShaderModuleCreateInfo const& createInfo, Device const& device, std::string const& label);
         ShaderModule(ShaderModule const& other) = delete;
         ShaderModule(ShaderModule&& other);
         ~ShaderModule();
@@ -20,10 +20,15 @@ class ShaderModule {
         ShaderModule& operator = (ShaderModule const& other) = delete;
         ShaderModule& operator = (ShaderModule&& other);
 
+        std::string Label() { return _label; }
+        std::string Label() const { return _label; }
+        std::string Label(std::string const& label) { _label = label; }
+
         VkShaderModule Handle() { return _handle; }
         VkShaderModule Handle() const { return _handle; }
 
     private:
+        std::string _label = "";
         VkShaderModule _handle = VK_NULL_HANDLE;
         Device const* _device = nullptr;
 };

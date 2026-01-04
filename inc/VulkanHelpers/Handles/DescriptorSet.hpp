@@ -21,7 +21,7 @@ class DescriptorSetCollection {
         using ConstReverseIterator = std::vector<VkDescriptorSet>::const_reverse_iterator;
 
         DescriptorSetCollection() = default;
-        DescriptorSetCollection(VkDescriptorSetAllocateInfo const& allocateInfo, Device const& device, DescriptorPool const* descriptorPool = nullptr);
+        DescriptorSetCollection(VkDescriptorSetAllocateInfo const& allocateInfo, Device const& device, std::string const& label, DescriptorPool const* descriptorPool = nullptr);
         DescriptorSetCollection(DescriptorSetCollection const& other) = delete;
         DescriptorSetCollection(DescriptorSetCollection&& other);
         ~DescriptorSetCollection();
@@ -33,6 +33,10 @@ class DescriptorSetCollection {
         VkDescriptorSet const& operator [] (size_t index) const;
 
         size_t size() { return _handles.size(); }
+
+        std::string Label() { return _label; }
+        std::string Label() const { return _label; }
+        std::string Label(std::string const& label) { _label = label; }
 
         VkDescriptorSet* data() { return _handles.data(); }
         VkDescriptorSet const* data() const { return _handles.data(); }
@@ -56,6 +60,7 @@ class DescriptorSetCollection {
         ConstReverseIterator crend() const { return _handles.crend(); }
 
     private:
+        std::string _label = "";
         std::vector<VkDescriptorSet> _handles {};
         Device const* _device = nullptr;
         DescriptorPool const* _descriptorPool = nullptr;

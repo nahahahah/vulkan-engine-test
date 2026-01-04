@@ -51,7 +51,7 @@ class PhysicalDeviceCollection {
         using ConstReverseIterator = std::vector<PhysicalDevice>::const_reverse_iterator;
 
         PhysicalDeviceCollection() = default;
-        PhysicalDeviceCollection(Instance const& instance);
+        PhysicalDeviceCollection(Instance const& instance, std::string const& label);
         PhysicalDeviceCollection(PhysicalDeviceCollection const& other) = delete;
         PhysicalDeviceCollection(PhysicalDeviceCollection&& other) = default;
         /**
@@ -67,6 +67,10 @@ class PhysicalDeviceCollection {
 
         size_t size() { return _wrappers.size(); }
         
+        std::string Label() { return _label; }
+        std::string Label() const { return _label; }
+        std::string Label(std::string const& label) { _label = label; }
+
         VkPhysicalDevice const* Handles() { return _handles.data(); }
 
         Iterator begin() { return _wrappers.begin(); }
@@ -88,6 +92,7 @@ class PhysicalDeviceCollection {
         ConstReverseIterator crend() const { return _wrappers.crend(); }
 
     private:
+        std::string _label = "";
         std::vector<VkPhysicalDevice> _handles {};
         std::vector<PhysicalDevice> _wrappers {};
 };

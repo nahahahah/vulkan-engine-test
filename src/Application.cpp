@@ -59,27 +59,27 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Application::DebugCallback(
     VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
     void* pUserData
 ) {
-    (void)(pUserData);
+    (void) pUserData;
 
-    std::clog << "\n[ ";
+    std::cerr << "\n[ ";
     switch (messageSeverity) {
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: {
-            std::clog << "VERBOSE";
+            std::cerr << "VERBOSE";
             break;
         }
 
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: {
-            std::clog << "INFO";
+            std::cerr << "INFO";
             break;
         }
 
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: {
-            std::clog << "WARNING";
+            std::cerr << "WARNING";
             break;
         }
 
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: {
-            std::clog << "ERROR";
+            std::cerr << "ERROR";
             break;
         }
 
@@ -88,26 +88,26 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Application::DebugCallback(
         }
     }
 
-    std::clog << "::";
+    std::cerr << "::";
     
     switch (messageType) {
         case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT: {
-            std::clog << "GENERAL"; 
+            std::cerr << "GENERAL"; 
             break;
         }
 
         case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT: {
-            std::clog << "VALIDATION";
+            std::cerr << "VALIDATION";
             break;
         }
 
         case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT: {
-            std::clog << "PERFORMANCE";
+            std::cerr << "PERFORMANCE";
             break;
         }
 
         case VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT: {
-            std::clog << "DEVICE ADRESS BINDING";
+            std::cerr << "DEVICE ADRESS BINDING";
             break; 
         }
 
@@ -116,9 +116,10 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Application::DebugCallback(
         }
     }
 
-    std::cout << " ] ";
+    std::cerr << " ] ";
 
-    std::cerr << "Validation layer: " << pCallbackData->pMessage << std::endl << std::endl;
+    std::cerr << pCallbackData->pMessage << std::endl << std::endl;
+
     return VK_FALSE;
 }
 #endif
@@ -137,7 +138,7 @@ void Application::QuitSDL() {
 
 void Application::InitWindow() {
     try {
-        _window = std::make_unique<Window>(1200, 1000);
+        _window = std::make_unique<Window>(1200, 1000, "main_window");
     }
 
     catch (std::exception const& e) {
@@ -247,7 +248,7 @@ void Application::SetupDebugMessenger() {
 
     try {
         auto debugUtilsMessengerCreateInfo = GenerateDebugUtilsMessengerCreateInfo(DebugCallback);
-        _debugUtilsMessenger = std::make_unique<DebugUtilsMessenger>(debugUtilsMessengerCreateInfo, *_instance); // create the global debug messenger
+        _debugUtilsMessenger = std::make_unique<DebugUtilsMessenger>(debugUtilsMessengerCreateInfo, *_instance, "main_debug_utils_messenger"); // create the global debug messenger
     }
 
     catch (std::exception const& e) {
@@ -258,7 +259,7 @@ void Application::SetupDebugMessenger() {
 
 void Application::CreateSurface() {
     try {
-        _surface = std::make_unique<Surface>(*_instance, *_window); // create the surface from SDL
+        _surface = std::make_unique<Surface>(*_instance, *_window, "main_surface"); // create the surface from SDL
     }
 
     catch (std::exception const& e) {
@@ -267,7 +268,7 @@ void Application::CreateSurface() {
 }
 
 void Application::SelectPhysicalDevice() {
-    auto physicalDevices = PhysicalDeviceCollection(*_instance); // enumerate physical devices
+    auto physicalDevices = PhysicalDeviceCollection(*_instance, "physical_devices"); // enumerate physical devices
 
     if (physicalDevices.size() == 0) {
         std::string error = "Could not find GPUs with Vulkan support";
@@ -322,7 +323,7 @@ void Application::CreateDevice() {
     }
 
     try {
-        _device = std::make_unique<Device>(deviceCreateInfo, *_physicalDevice);
+        _device = std::make_unique<Device>(deviceCreateInfo, *_physicalDevice, "main_device");
     }
 
     catch (std::exception const& e) {
@@ -335,10 +336,10 @@ void Application::CreateQueues() {
 
     try {
         auto graphicsQueueInfo = GenerateDeviceQueueInfo(0, queueFamilyIndices.graphicsFamily.value());
-        _graphicsQueue = std::make_unique<Queue>(graphicsQueueInfo, *_device);
+        _graphicsQueue = std::make_unique<Queue>(graphicsQueueInfo, *_device, "graphics_queue");
 
         auto presentQueueInfo = GenerateDeviceQueueInfo(0, queueFamilyIndices.presentFamily.value());
-        _presentQueue = std::make_unique<Queue>(presentQueueInfo, *_device);
+        _presentQueue = std::make_unique<Queue>(presentQueueInfo, *_device, "present_queue");
     }
 
     catch (std::exception const& e) {
@@ -374,7 +375,7 @@ void Application::CreateSwapchain() {
     );
 
     try {
-        _swapchain = std::make_unique<Swapchain>(swapchainCreateInfo, *_device);
+        _swapchain = std::make_unique<Swapchain>(swapchainCreateInfo, *_device, "main_swapchain");
     }
 
     catch (std::exception const& e) {
@@ -399,7 +400,7 @@ void Application::CreateImageViews() {
     try {
         _swapchainImageViews.reserve(_swapchainImages.size());
         for (size_t i = 0; i < _swapchainImages.size(); ++i) {
-            _swapchainImageViews.emplace_back(CreateImageView(_swapchainImages[i], _swapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT)); // create swap chain image view
+            _swapchainImageViews.emplace_back(CreateImageView(_swapchainImages[i], _swapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1)); // create swap chain image view
         }
     }
 
@@ -440,7 +441,7 @@ void Application::CreateRenderPass() {
     auto renderPassCreateInfo = GenerateRenderPassCreateInfo(attachmentsDescription, subpassesDependency, subpassDescription);
     
     try {
-        _renderPass = std::make_unique<RenderPass>(renderPassCreateInfo, *_device);
+        _renderPass = std::make_unique<RenderPass>(renderPassCreateInfo, *_device, "render_pass");
     }
 
     catch (std::exception const& e) {
@@ -456,7 +457,7 @@ void Application::CreateDescriptorSetLayout() {
     auto uniformBufferDescriptorSetCreateInfo = GenerateDescriptorSetLayoutCreateInfo(uniformBufferDescriptorSetLayoutBindings);
     
     try {
-        _descriptorSetLayout = std::make_unique<DescriptorSetLayout>(uniformBufferDescriptorSetCreateInfo, *_device);
+        _descriptorSetLayout = std::make_unique<DescriptorSetLayout>(uniformBufferDescriptorSetCreateInfo, *_device, "main_descriptor_set_layout");
     }
 
     catch (std::exception const& e) {
@@ -467,11 +468,11 @@ void Application::CreateDescriptorSetLayout() {
 void Application::CreateGraphicsPipeline() {
     std::vector<char> vertexShaderFileBuffer;
     auto vertexShaderModuleCreateInfo = GenerateShaderModuleCreateInfo("resources/shaders/triangle.vertex.spv", vertexShaderFileBuffer);
-    auto vertexShaderModule = ShaderModule(vertexShaderModuleCreateInfo, *_device); // create vertex shader module
+    auto vertexShaderModule = ShaderModule(vertexShaderModuleCreateInfo, *_device, "vertex_shader_module"); // create vertex shader module
 
     std::vector<char> fragmentShaderFileBuffer;
     auto fragmentShaderModuleCreateInfo = GenerateShaderModuleCreateInfo("resources/shaders/triangle.fragment.spv", fragmentShaderFileBuffer);
-    auto fragmentShaderModule = ShaderModule(fragmentShaderModuleCreateInfo, *_device); // create fragment shader module
+    auto fragmentShaderModule = ShaderModule(fragmentShaderModuleCreateInfo, *_device, "fragment_shader_module"); // create fragment shader module
     
     std::string shaderMainFunctionName = "main";
     auto vertexShaderPipelineStageCreateInfo = GeneratePipelineShaderStageCreateInfo(vertexShaderModule, shaderMainFunctionName, VK_SHADER_STAGE_VERTEX_BIT); // create vertex shader pipeline stage
@@ -513,7 +514,7 @@ void Application::CreateGraphicsPipeline() {
     try {
         auto pipelineLayoutCreateInfo = GeneratePipelineLayoutCreateInfo(descriptorSetLayoutsHandles, {}); // create pipeline layout
         
-        _pipelineLayout = std::make_unique<PipelineLayout>(pipelineLayoutCreateInfo, *_device);
+        _pipelineLayout = std::make_unique<PipelineLayout>(pipelineLayoutCreateInfo, *_device, "main_graphics_pipeline_layout");
     
         VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = GenerateGraphicsPipelineCreateInfo(
             pipelineDynamicStateCreateInfo,
@@ -529,7 +530,7 @@ void Application::CreateGraphicsPipeline() {
             *_renderPass
         );
         
-        _graphicsPipeline = std::make_unique<Pipeline>(graphicsPipelineCreateInfo, *_device); // create graphics pipeline
+        _graphicsPipeline = std::make_unique<Pipeline>(graphicsPipelineCreateInfo, *_device, "main_graphics_pipeline"); // create graphics pipeline
     }
 
     catch (std::exception const& e) {
@@ -547,7 +548,7 @@ void Application::CreateFramebuffers() {
             };
             auto frameBufferCreateInfo = GenerateFramebufferCreateInfo(_swapchainExtent, attachments, *_renderPass);
             
-            _framebuffers.emplace_back(frameBufferCreateInfo, *_device); // create frame buffer
+            _framebuffers.emplace_back(frameBufferCreateInfo, *_device, std::string("main_framebuffer_" + std::to_string(i))); // create frame buffer
         }
     }
 
@@ -562,7 +563,7 @@ void Application::CreateCommandPool() {
     auto commandPoolCreateInfo = GenerateCommandPoolCreateInfo(queueFamilyIndices.graphicsFamily.value());
     
     try {
-        _commandPool = std::make_unique<CommandPool>(commandPoolCreateInfo, *_device); // create command pool
+        _commandPool = std::make_unique<CommandPool>(commandPoolCreateInfo, *_device, "main_command_pool"); // create command pool
     }
 
     catch (std::exception const& e) {
@@ -575,7 +576,9 @@ void Application::CreateDepthResources() {
         VkFormat depthFormat = FindDepthFormat();
 
         CreateImage(
+            "depth_texture",
             { _swapchainExtent.width, _swapchainExtent.height, 1 },
+            1,
             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
             VK_SHARING_MODE_EXCLUSIVE,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -584,14 +587,15 @@ void Application::CreateDepthResources() {
             _depthImage,
             _depthImageMemory
         );
-        _depthImageView = std::make_unique<ImageView>(CreateImageView(*_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT));
+        _depthImageView = std::make_unique<ImageView>(CreateImageView(*_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1));
 
         TransitionImageLayout(
             _depthImage,
             depthFormat,
             VK_IMAGE_ASPECT_DEPTH_BIT,
             VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            1
         );
     }
 
@@ -617,11 +621,16 @@ void Application::CreateTextureImage() {
         throw std::runtime_error(error);
     }
 
+    _textureMipLevels = static_cast<uint32_t>(
+        std::floor(std::log2(std::max(textureWidth, textureHeight)))
+    );
+
     VkDeviceSize imageSize = textureWidth * textureHeight * static_cast<int>(STBI_rgb_alpha);
 
     std::unique_ptr<Buffer> stagingBuffer = nullptr;
     std::unique_ptr<DeviceMemory> stagingBufferMemory = nullptr;
     CreateBuffer(
+        "texture_data_buffer",
         imageSize,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_SHARING_MODE_EXCLUSIVE,
@@ -642,12 +651,14 @@ void Application::CreateTextureImage() {
     stbi_image_free(pixels);
 
     CreateImage(
-        VkExtent3D { 
+        "main_texture",
+        VkExtent3D {
             static_cast<uint32_t>(textureWidth),
             static_cast<uint32_t>(textureHeight),
             1
         },
-        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        _textureMipLevels,
+        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_SHARING_MODE_EXCLUSIVE,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         VK_FORMAT_R8G8B8A8_SRGB,
@@ -661,7 +672,8 @@ void Application::CreateTextureImage() {
         VK_FORMAT_R8G8B8A8_SRGB,
         VK_IMAGE_ASPECT_COLOR_BIT,
         VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        _textureMipLevels
     );
 
     CopyBufferToImage(
@@ -671,18 +683,18 @@ void Application::CreateTextureImage() {
         static_cast<uint32_t>(textureHeight)
     );
 
-    TransitionImageLayout(
-        _textureImage,
+    GenerateMipmaps(
+        *_textureImage,
         VK_FORMAT_R8G8B8A8_SRGB,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        textureWidth,
+        textureHeight,
+        _textureMipLevels
     );
 }
 
 void Application::CreateTextureImageView() {
     try {
-        _textureImageView = std::make_unique<ImageView>(CreateImageView(*_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT));
+        _textureImageView = std::make_unique<ImageView>(CreateImageView(*_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, _textureMipLevels));
     }
 
     catch (std::exception const& e) {
@@ -695,7 +707,8 @@ void Application::CreateTextureSampler() {
         auto samplerCreateInfo = GenerateSamplerCreateInfo();
         samplerCreateInfo.anisotropyEnable = VK_TRUE;
         samplerCreateInfo.maxAnisotropy = _physicalDevice->Properties().properties.limits.maxSamplerAnisotropy;
-        _textureSampler = std::make_unique<Sampler>(samplerCreateInfo, *_device);
+        samplerCreateInfo.maxLod = VK_LOD_CLAMP_NONE;
+        _textureSampler = std::make_unique<Sampler>(samplerCreateInfo, *_device, "main_texture_sampler");
     }
 
     catch (std::exception const& e) {
@@ -764,6 +777,7 @@ void Application::CreateVertexBuffer() {
         std::unique_ptr<Buffer> stagingBuffer = nullptr;
         std::unique_ptr<DeviceMemory> stagingBufferMemory = nullptr;
         CreateBuffer(
+            "staging_vertex_buffer",
             vertexBufferSize,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_SHARING_MODE_EXCLUSIVE,
@@ -782,6 +796,7 @@ void Application::CreateVertexBuffer() {
         _device->UnmapMemory(stagingBufferMemoryUnmapInfo);
 
         CreateBuffer(
+            "vertex_buffer",
             vertexBufferSize,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VK_SHARING_MODE_EXCLUSIVE,
@@ -805,6 +820,7 @@ void Application::CreateIndexBuffer() {
         std::unique_ptr<Buffer> stagingBuffer = nullptr;
         std::unique_ptr<DeviceMemory> stagingBufferMemory = nullptr;
         CreateBuffer(
+            "staging_index_buffer",
             indexBufferSize,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_SHARING_MODE_EXCLUSIVE,
@@ -823,6 +839,7 @@ void Application::CreateIndexBuffer() {
         _device->UnmapMemory(stagingBufferMemoryUnmapInfo);
 
         CreateBuffer(
+            "index_buffer",
             indexBufferSize,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
             VK_SHARING_MODE_EXCLUSIVE,
@@ -849,6 +866,7 @@ void Application::CreateUniformBuffers() {
 
         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
             CreateBuffer(
+                std::string("uniform_buffer_" + std::to_string(i)),
                 uniformBufferSize,
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_SHARING_MODE_EXCLUSIVE,
@@ -887,7 +905,7 @@ void Application::CreateDescriptorPool() {
     );
 
     try {
-        _descriptorPool = std::make_unique<DescriptorPool>(descriptorPoolCreateInfo, *_device);
+        _descriptorPool = std::make_unique<DescriptorPool>(descriptorPoolCreateInfo, *_device, "main_descriptor_pool");
     }
 
     catch (std::exception const& e) {
@@ -903,7 +921,7 @@ void Application::CreateDescriptorSets() {
     );
 
     try {
-        _descriptorSets = std::make_unique<DescriptorSetCollection>(descriptorSetAllocateInfo, *_device);
+        _descriptorSets = std::make_unique<DescriptorSetCollection>(descriptorSetAllocateInfo, *_device, "main_descriptor_sets");
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
             auto descriptorBufferInfo = GenerateDescriptorBufferInfo(*_uniformBuffers[i], sizeof(UniformBufferObject));
             auto textureDescriptorImageInfo = GenerateDescriptorImageInfo(*_textureImageView, *_textureSampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -942,7 +960,7 @@ void Application::CreateCommandBuffers() {
     auto commandBufferAllocateInfo = GenerateCommandBufferAllocateInfo(*_commandPool, static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)); // create command buffer
     
     try {
-        _commandBuffers = std::make_unique<CommandBufferCollection>(commandBufferAllocateInfo, *_device);
+        _commandBuffers = std::make_unique<CommandBufferCollection>(commandBufferAllocateInfo, *_device, "main_commands_buffer_collection");
     }
 
     catch (std::exception const& e) {
@@ -960,12 +978,12 @@ void Application::CreateSynchronizationObjects() {
 
     try {
         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-            _imageAvailableSemaphores.emplace_back(semaphoreCreateInfo, *_device);
-            _inFlightFences.emplace_back(fenceCreateInfo, *_device);
+            _imageAvailableSemaphores.emplace_back(semaphoreCreateInfo, *_device, std::string("image_available_semaphore_" + std::to_string(i)));
+            _inFlightFences.emplace_back(fenceCreateInfo, *_device, std::string("frame_in_flight_fence_" + std::to_string(i)));
         }
 
         for (int i = 0; i < static_cast<int>(_swapchainImages.size()); ++i) {
-            _renderFinishedSemaphores.emplace_back(semaphoreCreateInfo, *_device);
+            _renderFinishedSemaphores.emplace_back(semaphoreCreateInfo, *_device, std::string("render_finished_semaphore_" + std::to_string(i)));
         }
     }
 
@@ -1100,10 +1118,10 @@ void Application::RecordCommandBuffer(CommandBuffer& commandBuffer, uint32_t ima
     commandBuffer.End();
 }
 
-CommandBuffer Application::BeginSingleTimeCommands() {
+CommandBuffer Application::BeginSingleTimeCommands(std::string const& label) {
     try {
         auto allocateInfo = GenerateCommandBufferAllocateInfo(*_commandPool);
-        auto commandBuffer = CommandBuffer(allocateInfo, *_device, *_commandPool);
+        auto commandBuffer = CommandBuffer(allocateInfo, *_device, *_commandPool, "single_time_commands_" + label);
 
         auto beginInfo = GenerateCommandBufferBeginInfo();
         commandBuffer.Begin(beginInfo);
@@ -1154,7 +1172,7 @@ void Application::UpdateUniformBuffer(uint32_t currentImage) {
     ubo.model = glm::rotate(glm::mat4(1.0f), 0.0f /* glm::radians(90.0f) */, glm::vec3(0.0f, 0.0f, 1.0f));
     //ubo.model *= glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
-    ubo.view = glm::lookAt(glm::vec3(2.5f + sin(time), 2.5f + cos(time), 2.5f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.view = glm::lookAt(glm::vec3(2.5f * sin(time), 2.5f * cos(time), 2.5f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.projection = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 10000.0f);
     ubo.projection[1][1] *= -1;
 
@@ -1178,14 +1196,16 @@ void Application::TransitionImageLayout(
     VkFormat format,
     VkImageAspectFlags aspectMask,
     VkImageLayout oldLayout,
-    VkImageLayout newLayout
+    VkImageLayout newLayout,
+    uint32_t mipLevels
 ) {
     (void)(format);
 
-    CommandBuffer commandBuffer = BeginSingleTimeCommands();
+    CommandBuffer commandBuffer = BeginSingleTimeCommands(image->Label() + "_transition");
 
     std::vector<VkImageMemoryBarrier2> barriers = { GenerateImageMemoryBarrier(*image, oldLayout, newLayout) };
     barriers[0].subresourceRange.aspectMask = aspectMask;
+    barriers[0].subresourceRange.levelCount = mipLevels;
     auto dependencyInfo = GenerateDependencyInfo({}, {}, barriers);
     
     if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
@@ -1367,6 +1387,7 @@ VkExtent2D Application::ChooseSwapExtent(VkSurfaceCapabilities2KHR const& surfac
 }
 
 void Application::CreateBuffer(
+    std::string const& label,
     VkDeviceSize size,
     VkBufferUsageFlags usage,
     VkSharingMode sharingMode,
@@ -1376,7 +1397,7 @@ void Application::CreateBuffer(
 ) {
     try {
         auto bufferCreateInfo = GenerateBufferCreateInfo(size, usage, sharingMode);
-        buffer = std::make_unique<Buffer>(bufferCreateInfo, *_device); // will be moved
+        buffer = std::make_unique<Buffer>(bufferCreateInfo, *_device, label); // will be moved
 
         auto bufferMemoryRequirementsInfo = GenerateBufferMemoryRequirementsInfo(*buffer);
         auto bufferMemoryRequirements = _device->BufferMemoryRequirements(bufferMemoryRequirementsInfo);
@@ -1388,7 +1409,7 @@ void Application::CreateBuffer(
                 properties
             )
         );
-        bufferMemory = std::make_unique<DeviceMemory>(bufferMemoryAllocateInfo, *_device); // will be moved
+        bufferMemory = std::make_unique<DeviceMemory>(bufferMemoryAllocateInfo, *_device, "buffer_device_memory"); // will be moved
 
         std::vector<VkBindBufferMemoryInfo> bufferBindMemoryInfos = { GenerateBindBufferMemoryInfo(*buffer, *bufferMemory, 0) };
         _device->BindBufferMemory(bufferBindMemoryInfos);
@@ -1400,7 +1421,9 @@ void Application::CreateBuffer(
 }
 
 void Application::CreateImage(
+    std::string const& label,
     VkExtent3D const& dimensions,
+    uint32_t mipLevels,
     VkImageUsageFlags usage,
     VkSharingMode sharingMode,
     VkMemoryPropertyFlags properties,
@@ -1412,12 +1435,13 @@ void Application::CreateImage(
     try {
         auto imageCreateInfo = GenerateImageCreateInfo(
             dimensions,
+            mipLevels,
             usage,
             sharingMode,
             format,
             tiling
         );
-        image = std::make_unique<Image>(imageCreateInfo, *_device);
+        image = std::make_unique<Image>(imageCreateInfo, *_device, label + "_image");
 
         auto imageMemoryRequirementsInfo = GenerateImageMemoryRequirementsInfo(*image);
         auto imageMemoryRequirements = _device->ImageMemoryRequirements(imageMemoryRequirementsInfo);
@@ -1430,7 +1454,7 @@ void Application::CreateImage(
             )
         );
 
-        imageMemory = std::make_unique<DeviceMemory>(imageMemoryAllocateInfo, *_device);
+        imageMemory = std::make_unique<DeviceMemory>(imageMemoryAllocateInfo, *_device, label + "_image_memory");
 
         std::vector<VkBindImageMemoryInfo> imageBindMemoryInfos = { GenerateBindImageMemoryInfo(*image, *imageMemory, 0) };
         _device->BindImageMemory(imageBindMemoryInfos);
@@ -1441,11 +1465,17 @@ void Application::CreateImage(
     }
 }
 
-ImageView Application::CreateImageView(Image const& image, VkFormat format, VkImageAspectFlags aspectFlags) {
+ImageView Application::CreateImageView(
+    Image const& image,
+    VkFormat format,
+    VkImageAspectFlags aspectFlags,
+    uint32_t mipLevels
+) {
     try {
         auto imageViewCreateInfo = GenerateImageViewCreateInfo(format, image);
         imageViewCreateInfo.subresourceRange.aspectMask = aspectFlags;
-        auto imageView = ImageView(imageViewCreateInfo, *_device);
+        imageViewCreateInfo.subresourceRange.levelCount = mipLevels;
+        auto imageView = ImageView(imageViewCreateInfo, *_device, image.Label() + "_image_view");
 
         return std::move(imageView);
     }
@@ -1458,7 +1488,7 @@ ImageView Application::CreateImageView(Image const& image, VkFormat format, VkIm
 
 void Application::CopyBuffer(Buffer& src, Buffer& dst, VkDeviceSize size) {
     try {
-        auto commandBuffer = BeginSingleTimeCommands();
+        auto commandBuffer = BeginSingleTimeCommands("copy_buffer_" + src.Label() + "_to_" + dst.Label());
 
         std::vector<VkBufferCopy2> bufferCopyRegions = { GenerateBufferCopy(size) };
         auto copyBufferInfo = GenerateCopyBufferInfo(src, dst, bufferCopyRegions);
@@ -1478,7 +1508,7 @@ void Application::CopyBufferToImage(
     uint32_t width,
     uint32_t height
 ) {
-    CommandBuffer commandBuffer = BeginSingleTimeCommands();
+    CommandBuffer commandBuffer = BeginSingleTimeCommands("copy_buffer_to_image");
 
     std::vector<VkBufferImageCopy2> regions = { GenerateBufferImageCopy(width, height) };
     auto copyBufferToImageInfo = GenerateCopyBufferToImageInfo(
@@ -1488,6 +1518,86 @@ void Application::CopyBufferToImage(
         regions
     );
     commandBuffer.CopyBufferToImage(copyBufferToImageInfo);
+
+    EndSingleTimeCommands(commandBuffer);
+}
+
+void Application::GenerateMipmaps(
+    Image const& image,
+    VkFormat format,
+    int32_t textureWidth,
+    int32_t textureHeight,
+    uint32_t mipLevels
+) {
+    auto formatProperties = _physicalDevice->FormatProperties(format).formatProperties;
+    if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
+        throw std::runtime_error("Texture image format does not support linear blitting");
+    }
+
+    CommandBuffer commandBuffer = BeginSingleTimeCommands("generate_mipmaps");
+
+    VkImageMemoryBarrier2 barrier = GenerateImageMemoryBarrier(image);
+
+    int32_t mipWidth = textureWidth;
+    int32_t mipHeight = textureHeight;
+
+    for (uint32_t i = 1; i < mipLevels; ++i) {
+        barrier.subresourceRange.baseMipLevel = i - 1;
+        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        barrier.srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        barrier.dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    
+        std::vector<VkImageMemoryBarrier2> imageMemoryBarriers = { barrier };
+        auto dependencyInfo = GenerateDependencyInfo({}, {}, imageMemoryBarriers);
+        commandBuffer.PipelineBarrier(dependencyInfo);
+
+        std::vector<VkImageBlit2> imageBlits = {
+            GenerateImageBlit(
+                i - 1,
+                { mipWidth, mipHeight, 1 },
+                i,
+                { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 }
+            )
+        };
+        auto blitImageInfo = GenerateBlitImageInfo(
+            image,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            imageBlits,
+            VK_FILTER_LINEAR
+        );
+        commandBuffer.BlitImage(blitImageInfo);
+
+        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        barrier.srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        barrier.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+        imageMemoryBarriers[0] = barrier; // copy the new content of the barrier info in the vector
+        dependencyInfo = GenerateDependencyInfo({}, {}, imageMemoryBarriers);
+        commandBuffer.PipelineBarrier(dependencyInfo);
+    
+        if (mipWidth > 1) { mipWidth /= 2; }
+        if (mipHeight > 1) { mipHeight /= 2; }
+    }
+
+    barrier.subresourceRange.baseMipLevel = _textureMipLevels - 1;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    barrier.srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    barrier.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+    std::vector<VkImageMemoryBarrier2> imageMemoryBarriers = { barrier };
+    auto dependencyInfo = GenerateDependencyInfo({}, {}, imageMemoryBarriers);
+    commandBuffer.PipelineBarrier(dependencyInfo);
 
     EndSingleTimeCommands(commandBuffer);
 }

@@ -1,16 +1,19 @@
 #include "VulkanHelpers/Handles/DescriptorSetLayout.hpp"
 
-DescriptorSetLayout::DescriptorSetLayout(VkDescriptorSetLayoutCreateInfo const& createInfo, Device const& device)
-    : _device(&device) {
+DescriptorSetLayout::DescriptorSetLayout(VkDescriptorSetLayoutCreateInfo const& createInfo, Device const& device, std::string const& label)
+    : _label(label), _device(&device) {
     VkResult result = vkCreateDescriptorSetLayout(_device->Handle(), &createInfo, VK_NULL_HANDLE, &_handle);
     if (result != VK_SUCCESS) {
-        std::string error = "Couldn't create a descriptor set layout (result: code " + std::to_string(result) + ")";
+        std::string error = "Couldn't create \"" + _label + "\" descriptor set layout (result: code " + std::to_string(result) + ")";
         throw std::runtime_error(error);
     }
-    std::clog << "Descriptor set layout created successfully: <VkDescriptorSetLayout " << _handle << ">" << std::endl;
+    std::clog << "\"" << _label << "\" descriptor set layout created successfully: <VkDescriptorSetLayout " << _handle << ">" << std::endl;
 }
 
 DescriptorSetLayout::DescriptorSetLayout(DescriptorSetLayout&& other) {
+    _label = other._label;
+    other._label = "";
+
     _handle = other._handle;
     other._handle = nullptr;
 
@@ -19,6 +22,9 @@ DescriptorSetLayout::DescriptorSetLayout(DescriptorSetLayout&& other) {
 }
 
 DescriptorSetLayout& DescriptorSetLayout::operator = (DescriptorSetLayout&& other) {
+    _label = other._label;
+    other._label = "";
+
     _handle = other._handle;
     other._handle = nullptr;
 
@@ -32,6 +38,6 @@ DescriptorSetLayout::~DescriptorSetLayout() {
     if (_handle != VK_NULL_HANDLE) {
         vkDestroyDescriptorSetLayout(_device->Handle(), _handle, VK_NULL_HANDLE);
         _handle = VK_NULL_HANDLE;
-        std::clog << "Descriptor set layout destroyed successfully" << std::endl;
+        std::clog << "\"" << _label << "\" descriptor set layout destroyed successfully" << std::endl;
     }
 }

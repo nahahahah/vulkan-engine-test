@@ -5,6 +5,7 @@
 
 VkImageCreateInfo GenerateImageCreateInfo(
     VkExtent3D const& dimensions,
+    uint32_t mipLevels,
     VkImageUsageFlags usage,
     VkSharingMode sharingMode,
     VkFormat format,

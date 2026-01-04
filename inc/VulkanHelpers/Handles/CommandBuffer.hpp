@@ -18,11 +18,12 @@
 class CommandBuffer {
     public:
         CommandBuffer() = delete;
-        CommandBuffer(VkCommandBuffer commandBuffer);
+        CommandBuffer(VkCommandBuffer commandBuffer, std::string const& label);
         CommandBuffer(
             VkCommandBufferAllocateInfo const& allocateInfo,
             Device const& device,
-            CommandPool const& commandPool
+            CommandPool const& commandPool,
+            std::string const& label
         );
         CommandBuffer(CommandBuffer const& other) = delete;
         CommandBuffer(CommandBuffer&& other);
@@ -30,6 +31,9 @@ class CommandBuffer {
 
         CommandBuffer& operator = (CommandBuffer const& other) = delete;
         CommandBuffer& operator = (CommandBuffer&& other);
+
+        std::string Label() { return _label; }
+        std::string Label(std::string const& label) { _label = label; }
 
         VkCommandBuffer Handle() { return _handle; }
         VkCommandBuffer Handle() const { return _handle; }
@@ -57,6 +61,7 @@ class CommandBuffer {
         void SetViewport(uint32_t first, uint32_t count, std::span<VkViewport> viewports);
         void SetScissor(uint32_t first, uint32_t count, std::span<VkRect2D> scissors);
         void PipelineBarrier(VkDependencyInfo const& dependencyInfo);
+        void BlitImage(VkBlitImageInfo2 const& blitImageInfo);
         void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
         void DrawIndexed(
             uint32_t indexCount,
@@ -69,6 +74,7 @@ class CommandBuffer {
         void End();
 
     private:
+        std::string _label = "";
         VkCommandBuffer _handle = VK_NULL_HANDLE;
         Device const* _device = nullptr;
         CommandPool const* _commandPool = nullptr;
@@ -82,7 +88,7 @@ class CommandBufferCollection {
         using ConstReverseIterator = std::vector<CommandBuffer>::const_reverse_iterator;
 
         CommandBufferCollection() = default;
-        CommandBufferCollection(VkCommandBufferAllocateInfo const& allocateInfo, Device const& device);
+        CommandBufferCollection(VkCommandBufferAllocateInfo const& allocateInfo, Device const& device, std::string const& label);
         CommandBufferCollection(CommandBufferCollection const& other) = delete;
         CommandBufferCollection(CommandBufferCollection&& other) = default;
         /**
@@ -97,6 +103,10 @@ class CommandBufferCollection {
         CommandBuffer const& operator [] (size_t index) const;
 
         size_t size() { return _wrappers.size(); }
+
+        std::string Label() { return _label; }
+        std::string Label() const { return _label; }
+        std::string Label(std::string const& label) { _label = label; }
 
         CommandBuffer* Wrappers() { return _wrappers.data(); }
         CommandBuffer const* Wrappers() const { return _wrappers.data(); }
@@ -122,6 +132,7 @@ class CommandBufferCollection {
         ConstReverseIterator crend() const { return _wrappers.crend(); }
 
     private:
+        std::string _label = "";
         std::vector<VkCommandBuffer> _handles {};
         std::vector<CommandBuffer> _wrappers {};
 };
