@@ -22,6 +22,10 @@
 
 #include <vulkan/vulkan.h>
 
+#include <imgui.h>
+#include <imgui_impl_sdl3.h>
+#include <imgui_impl_vulkan.h>
+
 #include "SDLHelpers/Window.hpp"
 
 #include "VulkanHelpers/CreateInfos.hpp"
@@ -110,6 +114,9 @@ class Application {
         void CreateTextureImage();
         void CreateTextureImageView();
         void CreateTextureSampler();
+        void CreateNormalTextureImage();
+        void CreateNormalTextureImageView();
+        void CreateNormalTextureSampler();
         void LoadModel();
         void CreateVertexBuffer();
         void CreateIndexBuffer();
@@ -219,6 +226,12 @@ class Application {
         std::unique_ptr<DeviceMemory> _textureImageMemory = nullptr;
         std::unique_ptr<ImageView> _textureImageView = nullptr;
         std::unique_ptr<Sampler> _textureSampler = nullptr;
+
+        uint32_t _normalTextureMipLevels = 0;
+        std::unique_ptr<Image> _normalTextureImage = nullptr;
+        std::unique_ptr<DeviceMemory> _normalTextureImageMemory = nullptr;
+        std::unique_ptr<ImageView> _normalTextureImageView = nullptr;
+        std::unique_ptr<Sampler> _normalTextureSampler = nullptr;
 
         std::vector<Vertex> _vertices {};
         std::vector<uint32_t> _indices {};

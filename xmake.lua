@@ -2,6 +2,7 @@ add_rules("mode.debug", "mode.release")
 add_languages("cxx20")
 set_warnings("extra", "all", "error")
 add_requires("vulkansdk", "vulkan-headers", "vulkan-loader", "libsdl3", "glm", "stb", "tinyobjloader")
+add_requires("imgui", { configs = { sdl3 = true, vulkan = true } })
 
 rule("vertex_shader")
     set_extensions(".vertex.glsl")
@@ -41,7 +42,7 @@ target("vulkan_test")
     add_files("resources/shaders/*.vertex.glsl")
     add_files("resources/shaders/*.fragment.glsl")
 
-    add_packages("vulkansdk", "vulkan-headers", "libsdl3", "vulkan-loader", "glm", "stb", "tinyobjloader")
+    add_packages("vulkansdk", "vulkan-headers", "libsdl3", "vulkan-loader", "glm", "stb", "tinyobjloader", "imgui")
 
     if is_mode("debug") then
         set_optimize("none")

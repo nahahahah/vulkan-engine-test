@@ -168,6 +168,9 @@ void Application::InitVulkan() {
     CreateTextureImage();
     CreateTextureImageView();
     CreateTextureSampler();
+    CreateNormalTextureImage();
+    CreateNormalTextureImageView();
+    CreateNormalTextureSampler();
     LoadModel();
     CreateVertexBuffer();
     CreateIndexBuffer();
@@ -183,7 +186,7 @@ void Application::CreateInstance() {
         auto instanceLayersProperties = EnumerateLayerProperties(); // enumerate instance layers properties
 
         bool validationLayersSupported = AreValidationLayerSupported(validationLayers, instanceLayersProperties); // check validation layers support and enable them if available
-        if (enableValidationLayers && !validationLayersSupported) {
+        if (!validationLayersSupported && enableValidationLayers) {
             std::string error = "Validation layers requested, but not available";
             throw std::runtime_error(error);
         }
@@ -467,6 +470,7 @@ void Application::CreateDescriptorSetLayout() {
     std::vector<VkDescriptorSetLayoutBinding> uniformBufferDescriptorSetLayoutBindings = { 
         GenerateDescriptorSetLayoutBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT),
         GenerateDescriptorSetLayoutBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT),
+        GenerateDescriptorSetLayoutBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT)
     };
     auto uniformBufferDescriptorSetCreateInfo = GenerateDescriptorSetLayoutCreateInfo(uniformBufferDescriptorSetLayoutBindings);
     
@@ -653,7 +657,7 @@ void Application::CreateTextureImage() {
     int textureHeight = 0;
     int textureChannels = 0;
     stbi_uc* pixels = stbi_load(
-        "resources/textures/viking_room.png",
+        "resources/textures/crate_diffuse.png",
         &textureWidth,
         &textureHeight,
         &textureChannels,
@@ -761,6 +765,125 @@ void Application::CreateTextureSampler() {
     }
 }
 
+void Application::CreateNormalTextureImage() {
+    try {
+        int textureWidth = 0;
+        int textureHeight = 0;
+        int textureChannels = 0;
+        stbi_uc* pixels = stbi_load(
+            "resources/textures/crate_normal.png",
+            &textureWidth,
+            &textureHeight,
+            &textureChannels,
+            STBI_rgb_alpha
+        );
+
+        if (!pixels) {
+            std::string error = "Could not load the normal texture image file (reason: " + std::string(stbi_failure_reason()) + ")";
+            throw std::runtime_error(error);
+        }
+
+        _normalTextureMipLevels = static_cast<uint32_t>(
+            std::floor(std::log2(std::max(textureWidth, textureHeight)))
+        );
+
+        VkDeviceSize imageSize = textureWidth * textureHeight * static_cast<int>(STBI_rgb_alpha);
+
+        std::unique_ptr<Buffer> stagingBuffer = nullptr;
+        std::unique_ptr<DeviceMemory> stagingBufferMemory = nullptr;
+        CreateBuffer(
+            "normal_texture_data_buffer",
+            imageSize,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_SHARING_MODE_EXCLUSIVE,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            stagingBuffer,
+            stagingBufferMemory
+        );
+
+        void* data = nullptr;
+        auto stagingBufferMemoryMapInfo = GenerateMemoryMapInfo(*stagingBufferMemory, imageSize, 0);
+        _device->MapMemory(stagingBufferMemoryMapInfo, &data);
+
+        std::memcpy(data, pixels, static_cast<size_t>(imageSize));
+        
+        auto stagingBufferMemoryUnmapInfo = GenerateMemoryUnmapInfo(*stagingBufferMemory);
+        _device->UnmapMemory(stagingBufferMemoryUnmapInfo);
+
+        stbi_image_free(pixels);
+
+        CreateImage(
+            "main_normal_texture",
+            VkExtent3D {
+                static_cast<uint32_t>(textureWidth),
+                static_cast<uint32_t>(textureHeight),
+                1
+            },
+            _normalTextureMipLevels,
+            VK_SAMPLE_COUNT_1_BIT,
+            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            VK_SHARING_MODE_EXCLUSIVE,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            VK_FORMAT_R8G8B8A8_SRGB,
+            VK_IMAGE_TILING_OPTIMAL,
+            _normalTextureImage,
+            _normalTextureImageMemory
+        );
+
+        TransitionImageLayout(
+            _normalTextureImage,
+            VK_FORMAT_R8G8B8A8_SRGB,
+            VK_IMAGE_ASPECT_COLOR_BIT,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            _normalTextureMipLevels
+        );
+
+        CopyBufferToImage(
+            *stagingBuffer,
+            *_normalTextureImage,
+            static_cast<uint32_t>(textureWidth),
+            static_cast<uint32_t>(textureHeight)
+        );
+
+        GenerateMipmaps(
+            *_normalTextureImage,
+            VK_FORMAT_R8G8B8A8_SRGB,
+            textureWidth,
+            textureHeight,
+            _normalTextureMipLevels
+        );
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
+void Application::CreateNormalTextureImageView() {
+    try {
+        _normalTextureImageView = std::make_unique<ImageView>(CreateImageView(*_normalTextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, _normalTextureMipLevels));
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
+void Application::CreateNormalTextureSampler() {
+    try {
+        auto samplerCreateInfo = GenerateSamplerCreateInfo();
+        samplerCreateInfo.anisotropyEnable = VK_TRUE;
+        samplerCreateInfo.maxAnisotropy = _physicalDevice->Properties().properties.limits.maxSamplerAnisotropy;
+        samplerCreateInfo.maxLod = VK_LOD_CLAMP_NONE;
+        _normalTextureSampler = std::make_unique<Sampler>(samplerCreateInfo, *_device, "main_normal_texture_sampler");
+    }
+
+    catch (std::exception const& e) {
+        throw e;
+    }
+}
+
 void Application::LoadModel() {
     tinyobj::attrib_t attrib {};
     std::vector<tinyobj::shape_t> shapes {};
@@ -774,7 +897,7 @@ void Application::LoadModel() {
         &materials,
         &warnings,
         &errors,
-        "resources/models/viking_room.obj"
+        "resources/models/crate.obj"
     );
     if (!result) {
         std::string error = "Could not load a model:\nWarnings:\n" + warnings + "\nErrors:\n" + errors;
@@ -796,7 +919,7 @@ void Application::LoadModel() {
 
             vertex.uv = {
                 attrib.texcoords[2 * index.texcoord_index + 0],
-                1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                1.0 - attrib.texcoords[2 * index.texcoord_index + 1]
             };
 
             vertex.color = { 1.0f, 1.0f, 1.0f };
@@ -941,6 +1064,10 @@ void Application::CreateDescriptorPool() {
         GenerateDescriptorPoolSize(
             VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
             static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
+        ),
+        GenerateDescriptorPoolSize(
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
         )
     };
 
@@ -970,6 +1097,7 @@ void Application::CreateDescriptorSets() {
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
             auto descriptorBufferInfo = GenerateDescriptorBufferInfo(*_uniformBuffers[i], sizeof(UniformBufferObject));
             auto textureDescriptorImageInfo = GenerateDescriptorImageInfo(*_textureImageView, *_textureSampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            auto normalTextureDescriptorImageInfo = GenerateDescriptorImageInfo(*_normalTextureImageView, *_normalTextureSampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
             std::vector<VkWriteDescriptorSet> bufferDescriptorSetsWrites = {
                 GenerateWriteDescriptorSet(
@@ -989,6 +1117,15 @@ void Application::CreateDescriptorSets() {
                     0,
                     nullptr,
                     &textureDescriptorImageInfo
+                ),
+                GenerateWriteDescriptorSet(
+                    1,
+                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    (*_descriptorSets)[i],
+                    2,
+                    0,
+                    nullptr,
+                    &normalTextureDescriptorImageInfo
                 )
             };
 
@@ -1205,6 +1342,8 @@ void Application::UpdateUniformBuffer(uint32_t currentImage) {
     float ratio = _swapchainExtent.width / static_cast<float>(_swapchainExtent.height); 
     (void) ratio;
 
+    glm::vec3 cameraPosition = { 2.0f, -1.0f, 1.5f };
+
     UniformBufferObject ubo {};
 
     /*
@@ -1217,11 +1356,14 @@ void Application::UpdateUniformBuffer(uint32_t currentImage) {
     ubo.model = glm::rotate(glm::mat4(1.0f), 0.0f /* glm::radians(90.0f) */, glm::vec3(0.0f, 0.0f, 1.0f));
     //ubo.model *= glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
-    //ubo.view = glm::lookAt(glm::vec3(2.5f * sin(time), 2.5f * cos(time), 2.5f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.view = glm::lookAt(glm::vec3(1.8f, 1.8f, 1.8f), glm::vec3(0.025f, 0.0f, 0.25f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.projection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 10000.0f);
-    //ubo.projection = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 10000.0f);
+    //cameraPosition = glm::vec3(3.0f * sin(time), 3.0f * cos(time), 3.0f);
+    cameraPosition = glm::vec3(-2.5f, -2.5f, 2.5f);
+    ubo.view = glm::lookAt(cameraPosition, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    //ubo.projection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 10000.0f);
+    ubo.projection = glm::perspective(glm::radians(60.0f), ratio, 0.1f, 10000.0f);
     ubo.projection[1][1] *= -1;
+
+    ubo.cameraPosition = cameraPosition;
 
     int width = 0;
     int height = 0;

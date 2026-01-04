@@ -37,9 +37,10 @@ struct UniformBufferObject {
     alignas(16) glm::mat4 model {};
     alignas(16) glm::mat4 view {};
     alignas(16) glm::mat4 projection {};
-                Math::Vector2 resolution {};
+                glm::vec3 cameraPosition {};
                 float time = 0.0f;
-                float padding_[13];
+                Math::Vector2 resolution {};
+                float padding_[10];
 };
 
 static_assert("UBOs must be 16-byte aligned" &&
