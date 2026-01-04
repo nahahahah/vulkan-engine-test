@@ -7,6 +7,7 @@
 
 VkSubpassDescription2 GenerateSubpassDescription(
     std::span<VkAttachmentReference2> colorAttachments,
+    std::span<VkAttachmentReference2> resolveAttachments,
     VkAttachmentReference2 const* depthAttachment = VK_NULL_HANDLE
 );
 
