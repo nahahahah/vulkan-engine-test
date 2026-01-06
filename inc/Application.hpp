@@ -216,8 +216,14 @@ class Application {
         std::vector<ImageView> _swapchainImageViews {};
         std::unique_ptr<RenderPass> _renderPass = nullptr;
         std::unique_ptr<DescriptorSetLayout> _descriptorSetLayout = nullptr;
+
         std::unique_ptr<PipelineLayout> _pipelineLayout = nullptr;
+        VkGraphicsPipelineCreateInfo _graphicsPipelineCreateInfo {};
+
         std::unique_ptr<Pipeline> _graphicsPipeline = nullptr;
+
+        std::unique_ptr<Pipeline> _graphicsPipeline2 = nullptr;
+
         std::vector<Framebuffer> _framebuffers {};
         std::unique_ptr<CommandPool> _commandPool = nullptr;
 
@@ -244,8 +250,15 @@ class Application {
         std::vector<std::unique_ptr<DeviceMemory>> _uniformBuffersMemory {};
         std::vector<void*> _uniformBuffersMapped {};
 
+        std::vector<std::unique_ptr<Buffer>> _uniformBuffers2 {};
+        std::vector<std::unique_ptr<DeviceMemory>> _uniformBuffersMemory2 {};
+        std::vector<void*> _uniformBuffersMapped2 {};
+
         std::unique_ptr<DescriptorPool> _descriptorPool = nullptr;
         std::unique_ptr<DescriptorSetCollection> _descriptorSets = nullptr;
+
+        std::unique_ptr<DescriptorPool> _descriptorPool2 = nullptr;
+        std::unique_ptr<DescriptorSetCollection> _descriptorSets2 = nullptr;
 
         std::unique_ptr<Image> _depthImage = nullptr;
         std::unique_ptr<DeviceMemory> _depthImageMemory = nullptr;

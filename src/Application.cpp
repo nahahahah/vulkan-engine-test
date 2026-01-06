@@ -138,7 +138,7 @@ void Application::QuitSDL() {
 
 void Application::InitWindow() {
     try {
-        _window = std::make_unique<Window>(1200, 1000, "main_window");
+        _window = std::make_unique<Window>(320, 240, "main_window");
     }
 
     catch (std::exception const& e) {
@@ -485,11 +485,11 @@ void Application::CreateDescriptorSetLayout() {
 
 void Application::CreateGraphicsPipeline() {
     std::vector<char> vertexShaderFileBuffer;
-    auto vertexShaderModuleCreateInfo = GenerateShaderModuleCreateInfo("resources/shaders/triangle.vertex.spv", vertexShaderFileBuffer);
+    auto vertexShaderModuleCreateInfo = GenerateShaderModuleCreateInfo("resources/shaders/normal_specular.vertex.spv", vertexShaderFileBuffer);
     auto vertexShaderModule = ShaderModule(vertexShaderModuleCreateInfo, *_device, "vertex_shader_module"); // create vertex shader module
 
     std::vector<char> fragmentShaderFileBuffer;
-    auto fragmentShaderModuleCreateInfo = GenerateShaderModuleCreateInfo("resources/shaders/triangle.fragment.spv", fragmentShaderFileBuffer);
+    auto fragmentShaderModuleCreateInfo = GenerateShaderModuleCreateInfo("resources/shaders/normal_specular.fragment.spv", fragmentShaderFileBuffer);
     auto fragmentShaderModule = ShaderModule(fragmentShaderModuleCreateInfo, *_device, "fragment_shader_module"); // create fragment shader module
     
     std::string shaderMainFunctionName = "main";
@@ -552,6 +552,7 @@ void Application::CreateGraphicsPipeline() {
         );
         
         _graphicsPipeline = std::make_unique<Pipeline>(graphicsPipelineCreateInfo, *_device, "main_graphics_pipeline"); // create graphics pipeline
+        _graphicsPipeline2 = std::make_unique<Pipeline>(graphicsPipelineCreateInfo, *_device, "main_graphics_pipeline_2"); // create graphics pipeline
     }
 
     catch (std::exception const& e) {
@@ -1048,6 +1049,27 @@ void Application::CreateUniformBuffers() {
             auto uniformBufferMemoryMapInfo = GenerateMemoryMapInfo(*_uniformBuffersMemory[i], uniformBufferSize, 0);
             _device->MapMemory(uniformBufferMemoryMapInfo, &_uniformBuffersMapped[i]);
         }
+
+        _uniformBuffers2.resize(MAX_FRAMES_IN_FLIGHT);
+        _uniformBuffersMemory2.resize(MAX_FRAMES_IN_FLIGHT);
+        _uniformBuffersMapped2.resize(MAX_FRAMES_IN_FLIGHT);
+
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+            CreateBuffer(
+                std::string("uniform_buffer_2_" + std::to_string(i)),
+                uniformBufferSize,
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_SHARING_MODE_EXCLUSIVE,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                _uniformBuffers2[i],
+                _uniformBuffersMemory2[i]
+            );
+
+            _uniformBuffersMapped2[i] = nullptr;
+
+            auto uniformBufferMemoryMapInfo = GenerateMemoryMapInfo(*_uniformBuffersMemory2[i], uniformBufferSize, 0);
+            _device->MapMemory(uniformBufferMemoryMapInfo, &_uniformBuffersMapped2[i]);
+        }
     }
 
     catch (std::exception const& e) {
@@ -1078,6 +1100,7 @@ void Application::CreateDescriptorPool() {
 
     try {
         _descriptorPool = std::make_unique<DescriptorPool>(descriptorPoolCreateInfo, *_device, "main_descriptor_pool");
+        _descriptorPool2 = std::make_unique<DescriptorPool>(descriptorPoolCreateInfo, *_device, "main_descriptor_pool_2");
     }
 
     catch (std::exception const& e) {
@@ -1089,6 +1112,10 @@ void Application::CreateDescriptorSets() {
     std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, _descriptorSetLayout->Handle());
     auto descriptorSetAllocateInfo = GenerateDescriptorSetAllocateInfo(
         *_descriptorPool,
+        layouts
+    );
+    auto descriptorSetAllocateInfo2 = GenerateDescriptorSetAllocateInfo(
+        *_descriptorPool2,
         layouts
     );
 
@@ -1122,6 +1149,45 @@ void Application::CreateDescriptorSets() {
                     1,
                     VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     (*_descriptorSets)[i],
+                    2,
+                    0,
+                    nullptr,
+                    &normalTextureDescriptorImageInfo
+                )
+            };
+
+            _device->UpdateDescriptorSets(bufferDescriptorSetsWrites, {});
+        }
+
+        _descriptorSets2 = std::make_unique<DescriptorSetCollection>(descriptorSetAllocateInfo2, *_device, "main_descriptor_sets_2");
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+            auto descriptorBufferInfo = GenerateDescriptorBufferInfo(*_uniformBuffers2[i], sizeof(UniformBufferObject));
+            auto textureDescriptorImageInfo = GenerateDescriptorImageInfo(*_textureImageView, *_textureSampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            auto normalTextureDescriptorImageInfo = GenerateDescriptorImageInfo(*_normalTextureImageView, *_normalTextureSampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+            std::vector<VkWriteDescriptorSet> bufferDescriptorSetsWrites = {
+                GenerateWriteDescriptorSet(
+                    1,
+                    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    (*_descriptorSets2)[i],
+                    0,
+                    0,
+                    &descriptorBufferInfo,
+                    nullptr
+                ),
+                GenerateWriteDescriptorSet(
+                    1,
+                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    (*_descriptorSets2)[i],
+                    1,
+                    0,
+                    nullptr,
+                    &textureDescriptorImageInfo
+                ),
+                GenerateWriteDescriptorSet(
+                    1,
+                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    (*_descriptorSets2)[i],
                     2,
                     0,
                     nullptr,
@@ -1294,6 +1360,33 @@ void Application::RecordCommandBuffer(CommandBuffer& commandBuffer, uint32_t ima
 
     commandBuffer.DrawIndexed(static_cast<uint32_t>(_indices.size()), 1, 0, 0, 0);
 
+    commandBuffer.BindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, *_graphicsPipeline2);
+
+    // set dynamic states
+    commandBuffer.SetViewport(0, 1, viewports);
+    commandBuffer.SetScissor(0, 1, scissors);
+
+    commandBuffer.BindVertexBuffers(0, vertexBuffers, offsets, sizes, {});
+    
+    commandBuffer.BindIndexBuffers(
+        *_indexBuffer,
+        0,
+        (sizeof(_indices[0]) * _indices.size()),
+        VK_INDEX_TYPE_UINT32
+    );
+    
+    std::vector<VkDescriptorSet> descriptorSetCollectionToBind2 = { (*_descriptorSets2)[_frameIndex] };
+    auto bindDescriptorSetCollectionInfo2 = GenerateBindDescriptorSetsInfo(
+        *_pipelineLayout,
+        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+        0,
+        descriptorSetCollectionToBind2,
+        {}
+    );
+    commandBuffer.BindDescriptorSets(bindDescriptorSetCollectionInfo2);
+
+    commandBuffer.DrawIndexed(static_cast<uint32_t>(_indices.size()), 1, 0, 0, 0);
+
     auto subpassEndInfo = GenerateSubpassEndInfo();
     commandBuffer.EndRenderPass(subpassEndInfo); // end render pass
 
@@ -1353,11 +1446,11 @@ void Application::UpdateUniformBuffer(uint32_t currentImage) {
     ubo.projection = glm::mat4(1.0);
     */
 
-    ubo.model = glm::rotate(glm::mat4(1.0f), 0.0f /* glm::radians(90.0f) */, glm::vec3(0.0f, 0.0f, 1.0f));
-    //ubo.model *= glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-
+    ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, 0.0f, 0.0f));
+    ubo.model *= glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    
     //cameraPosition = glm::vec3(3.0f * sin(time), 3.0f * cos(time), 3.0f);
-    cameraPosition = glm::vec3(-2.5f, -2.5f, 2.5f);
+    cameraPosition = glm::vec3(0.0f, -5.0f, 0.0f);
     ubo.view = glm::lookAt(cameraPosition, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     //ubo.projection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 10000.0f);
     ubo.projection = glm::perspective(glm::radians(60.0f), ratio, 0.1f, 10000.0f);
@@ -1378,6 +1471,13 @@ void Application::UpdateUniformBuffer(uint32_t currentImage) {
     ubo.time = time;
 
     std::memcpy(_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+
+    ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 0.0f));
+    ubo.model *= glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+    ubo.time = FLT_MAX - time;
+
+    std::memcpy(_uniformBuffersMapped2[currentImage], &ubo, sizeof(ubo));
 }
 
 void Application::TransitionImageLayout(
