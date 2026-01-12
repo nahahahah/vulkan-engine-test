@@ -22,7 +22,7 @@ class RenderPass {
 
         std::string Label() { return _label; }
         std::string Label() const { return _label; }
-        std::string Label(std::string const& label) { _label = label; }
+        void Label(std::string const& label) { _label = label; }
 
         VkRenderPass Handle() { return _handle; }
         VkRenderPass Handle() const { return _handle; }

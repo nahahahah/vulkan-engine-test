@@ -22,7 +22,7 @@ class DescriptorSetLayout {
 
         std::string Label() { return _label; }
         std::string Label() const { return _label; }
-        std::string Label(std::string const& label) { _label = label; }
+        void Label(std::string const& label) { _label = label; }
 
         VkDescriptorSetLayout Handle() { return _handle; }
         VkDescriptorSetLayout Handle() const { return _handle; }

@@ -25,7 +25,7 @@ class Fence {
 
         std::string Label() { return _label; }
         std::string Label() const { return _label; }
-        std::string Label(std::string const& label) { _label = label; }
+        void Label(std::string const& label) { _label = label; }
 
         VkFence Handle() { return _handle; }
         VkFence Handle() const { return _handle; }

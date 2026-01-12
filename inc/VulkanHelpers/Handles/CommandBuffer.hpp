@@ -33,7 +33,7 @@ class CommandBuffer {
         CommandBuffer& operator = (CommandBuffer&& other);
 
         std::string Label() { return _label; }
-        std::string Label(std::string const& label) { _label = label; }
+        void Label(std::string const& label) { _label = label; }
 
         VkCommandBuffer Handle() { return _handle; }
         VkCommandBuffer Handle() const { return _handle; }
@@ -106,7 +106,7 @@ class CommandBufferCollection {
 
         std::string Label() { return _label; }
         std::string Label() const { return _label; }
-        std::string Label(std::string const& label) { _label = label; }
+        void Label(std::string const& label) { _label = label; }
 
         CommandBuffer* Wrappers() { return _wrappers.data(); }
         CommandBuffer const* Wrappers() const { return _wrappers.data(); }

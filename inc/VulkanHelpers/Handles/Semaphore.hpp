@@ -22,7 +22,7 @@ class Semaphore {
 
         std::string Label() { return _label; }
         std::string Label() const { return _label; }
-        std::string Label(std::string const& label) { _label = label; }
+        void Label(std::string const& label) { _label = label; }
 
         VkSemaphore Handle() { return _handle; }
         VkSemaphore Handle() const { return _handle; }

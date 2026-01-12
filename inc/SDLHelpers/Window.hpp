@@ -13,7 +13,7 @@ class Window {
         ~Window();
 
         std::string Label() { return _label; }
-        std::string Label(std::string const& label) { _label = label; }
+        void Label(std::string const& label) { _label = label; }
 
         SDL_Window* Handle() { return _handle; }
         SDL_Window* Handle() const { return _handle; }

@@ -3,7 +3,7 @@
 #include "VulkanHelpers/Handles/Device.hpp"
 
 Buffer::Buffer(VkBufferCreateInfo const& createInfo, Device const& device, std::string const& label)
-    : _device(&device), _label(label) {
+    : _label(label), _device(&device) {
     VkResult result = vkCreateBuffer(_device->Handle(), &createInfo, VK_NULL_HANDLE, &_handle);
     if (result != VK_SUCCESS) {
         std::string error = "Could not create the \"" + _label + "\" buffer (result: code " + std::to_string(result) + ")";
