@@ -27,7 +27,7 @@ class Surface {
 
         std::string Label() { return _label; }
         std::string Label() const { return _label; }
-        std::string Label(std::string const& label) { _label = label; }
+        void Label(std::string const& label) { _label = label; }
 
         VkSurfaceKHR Handle() { return _handle; }
         VkSurfaceKHR Handle() const { return _handle; }

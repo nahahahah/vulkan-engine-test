@@ -277,7 +277,7 @@ void Application::SelectPhysicalDevice() {
     }
 
     // check if device is suitable
-    for (int i = 0; i < physicalDevices.size(); ++i) {
+    for (int i = 0; i < static_cast<int>(physicalDevices.size()); ++i) {
         if (IsPhysicalDeviceSuitable(physicalDevices[i])) {
             std::cout << "Physical device " << i << " is supported" << std::endl;
             _physicalDevice = std::make_unique<PhysicalDevice>(std::move(physicalDevices[i]));

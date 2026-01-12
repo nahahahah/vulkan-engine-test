@@ -23,7 +23,7 @@ class Buffer {
 
         std::string Label() { return _label; }
         std::string Label() const { return _label; }
-        std::string Label(std::string const& label) { _label = label; }
+        void Label(std::string const& label) { _label = label; }
 
         VkBuffer Handle() { return _handle; }
         VkBuffer Handle() const { return _handle; }

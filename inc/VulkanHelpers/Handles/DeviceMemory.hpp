@@ -22,7 +22,7 @@ class DeviceMemory {
 
         std::string Label() { return _label; }
         std::string Label() const { return _label; }
-        std::string Label(std::string const& label) { _label = label; }
+        void Label(std::string const& label) { _label = label; }
 
         VkDeviceMemory Handle() { return _handle; }
         VkDeviceMemory Handle() const { return _handle; }

@@ -24,7 +24,7 @@ VkImageCreateInfo GenerateImageCreateInfo(
     
     // queue family indices properties
     createInfo.queueFamilyIndexCount = 0;
-    createInfo.pQueueFamilyIndices;
+    createInfo.pQueueFamilyIndices = VK_NULL_HANDLE;
 
     // array properties
     createInfo.arrayLayers = 1;

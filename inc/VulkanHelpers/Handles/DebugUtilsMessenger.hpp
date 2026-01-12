@@ -26,7 +26,7 @@ class DebugUtilsMessenger {
 
         std::string Label() { return _label; }
         std::string Label() const { return _label; }
-        std::string Label(std::string const& label) { _label = label; }
+        void Label(std::string const& label) { _label = label; }
         
         VkDebugUtilsMessengerEXT Handle() { return _handle; }
         VkDebugUtilsMessengerEXT Handle() const { return _handle; }
